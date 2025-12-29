@@ -72,6 +72,7 @@ public:
 	// Get all script entities
 	static std::vector<CEntityInstance*> GetScripts();
 	static CCSScript_EntityScript* GetScriptFromEntity(CEntityInstance* ent);
+	CSScriptHeader* GetScriptHeaderFromEntity(CEntityInstance* ent);
 	//static v8::Local<v8::Object> AssignEntityToObject(v8::Local<v8::Object> obj, const char* name, CEntityInstance* ent);
 	
 	void Hook_RegisterInstanceTemplate(CCSBaseScript* script, const char* name, v8::Local<v8::FunctionTemplate> funcTemplate);

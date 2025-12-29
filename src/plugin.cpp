@@ -808,7 +808,7 @@ CON_COMMAND_F(script_summary, "List registered function templates on scripts", F
 		FOR_EACH_HASHTABLE(script->enumMap, i)
 		{
 			auto key = script->enumMap.Key(i);
-			Msg("     - %s\n", key.String());
+			Msg("   - %s\n", key.String());
 			auto val = script->enumMap.Element(i);
 			auto obj = val->Get(isolate);
 			auto properties = obj->GetOwnPropertyNames(context).ToLocalChecked();

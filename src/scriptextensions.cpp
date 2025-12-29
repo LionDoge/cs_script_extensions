@@ -243,7 +243,7 @@ void CSScriptExtensionsSystem::InvokeNativeCallbackForScript(CCSScript_EntityScr
 	{
 		v8::Local<v8::Value> exception = tryCatch.Exception();
 		v8::String::Utf8Value exception_str(isolate, exception);
-		Log_Warning(g_logChanScript, "Exception during callback invocation: %s\n", *exception_str);
+		Log_Warning(g_logChanScript, "Exception during cs_script callback \"%s\"\n", *exception_str);
 	}
 	context->Exit();
 }
@@ -305,4 +305,14 @@ CCSScript_EntityScript* CSScriptExtensionsSystem::GetScriptFromEntity(CEntityIns
 		return nullptr;
 
 	return reinterpret_cast<CCSScript_EntityScript*>((unsigned char*)ent+0x508);
+}
+
+CSScriptHeader* CSScriptExtensionsSystem::GetScriptHeaderFromEntity(CEntityInstance* ent)
+{
+	if (!ent)
+		return nullptr;
+	if (dynamic_cast<CCSPointScriptEntity*>(ent) == nullptr)
+		return nullptr;
+
+	return reinterpret_cast<CSScriptHeader*>((unsigned char*)ent + 0x4F0);
 }

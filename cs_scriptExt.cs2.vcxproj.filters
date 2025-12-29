@@ -86,6 +86,7 @@
     <ClInclude Include="src\scriptExtensions\userMessageInfo.h">
       <Filter>scriptExtensions</Filter>
     </ClInclude>
+    <ClInclude Include="src\utlatuolist.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="cs2_sdk">
