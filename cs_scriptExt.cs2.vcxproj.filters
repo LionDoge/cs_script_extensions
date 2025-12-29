@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public\tier0\memoverride.cpp" />
+    <ClCompile Include="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\tier1\convar.cpp" />
+    <ClCompile Include="E:\Projekty\CSGO\cs2\ScriptExtensions\src/utils/plat_win.cpp" />
+    <ClCompile Include="E:\Projekty\CSGO\cs2\ScriptExtensions\src/plugin.cpp" />
+    <ClCompile Include="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\entity2\entitysystem.cpp" />
+    <ClCompile Include="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\entity2\entityidentity.cpp" />
+    <ClCompile Include="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\entity2\entitykeyvalues.cpp" />
+    <ClCompile Include="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\tier1\keyvalues3.cpp" />
+    <ClCompile Include="cs_scriptExt.cs2 - Default\network_connection.pb.cc" />
+    <ClCompile Include="E:\Projekty\CSGO\cs2\ScriptExtensions\src/cs2_sdk/schema.cpp">
+      <Filter>cs2_sdk</Filter>
+    </ClCompile>
+    <ClCompile Include="src\addresses.cpp" />
+    <ClCompile Include="src\ctimer.cpp" />
+    <ClCompile Include="src\econitemdefinition.cpp" />
+    <ClCompile Include="src\gameconfig.cpp" />
+    <ClCompile Include="src\hudhintmanager.cpp" />
+    <ClCompile Include="src\scriptclasses\schemaobject.cpp" />
+    <ClCompile Include="src\scriptextensions.cpp" />
+    <ClCompile Include="src\v8callbacks.cpp" />
+    <ClCompile Include="vendor\safetyhook\safetyhook.cpp" />
+    <ClCompile Include="vendor\safetyhook\Zydis.c" />
+    <ClCompile Include="src\utils\entity.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\CustomPlayer.cpp" />
+    <ClCompile Include="src\scriptextensions\userMessagesScriptExt.cpp">
+      <Filter>scriptExtensions</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="csv8.h" />
+    <ClInclude Include="cpointscript.h">
+      <Filter>cs2_sdk\entity</Filter>
+    </ClInclude>
+    <ClInclude Include="src\addresses.h" />
+    <ClInclude Include="src\common.h" />
+    <ClInclude Include="src\cs2_sdk\clientframe.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cbaseentity.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cbasemodelentity.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cbaseplayercontroller.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cbaseplayerpawn.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cbasetrigger.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cbaseviewmodel.h" />
+    <ClInclude Include="src\cs2_sdk\entity\ccsplayercontroller.h" />
+    <ClInclude Include="src\cs2_sdk\entity\ccsplayerpawn.h" />
+    <ClInclude Include="src\cs2_sdk\entity\ccsweaponbase.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cenventitymaker.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cenvhudhint.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cgameplayerequip.h" />
+    <ClInclude Include="src\cs2_sdk\entity\clogiccase.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cphysthruster.h" />
+    <ClInclude Include="src\cs2_sdk\entity\ctakedamageinfo.h" />
+    <ClInclude Include="src\cs2_sdk\entity\ctriggerteleport.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cvotecontroller.h" />
+    <ClInclude Include="src\cs2_sdk\entity\globaltypes.h" />
+    <ClInclude Include="src\cs2_sdk\entity\services.h" />
+    <ClInclude Include="src\cs2_sdk\entity\viewmodelservices.h" />
+    <ClInclude Include="src\cs2_sdk\netmessages.h" />
+    <ClInclude Include="src\cs2_sdk\schema.h" />
+    <ClInclude Include="src\cs2_sdk\serversideclient.h" />
+    <ClInclude Include="src\csscript.h" />
+    <ClInclude Include="src\ctimer.h" />
+    <ClInclude Include="src\econitemdefinition.hpp" />
+    <ClInclude Include="src\gameconfig.h" />
+    <ClInclude Include="src\hudhintmanager.h" />
+    <ClInclude Include="src\iscriptfunction.h" />
+    <ClInclude Include="src\object_wrap.h" />
+    <ClInclude Include="src\recipientfilters.h" />
+    <ClInclude Include="src\scriptclasses\schemaobject.h" />
+    <ClInclude Include="src\scriptextensions.h" />
+    <ClInclude Include="src\scriptfunctions.h" />
+    <ClInclude Include="src\utils\module.h" />
+    <ClInclude Include="src\v8callbacks.h" />
+    <ClInclude Include="src\utils\entity.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sigutils.h" />
+    <ClInclude Include="src\CustomPlayer.h" />
+    <ClInclude Include="src\scriptextensions\userMessagesScriptExt.h">
+      <Filter>scriptExtensions</Filter>
+    </ClInclude>
+    <ClInclude Include="src\scriptExtensions\userMessageInfo.h">
+      <Filter>scriptExtensions</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="cs2_sdk">
+      <UniqueIdentifier>{0d9a67fa-d5cf-4e11-ba5e-0b774080fc91}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="cs2_sdk\entity">
+      <UniqueIdentifier>{6c1a089a-b5ef-4b4e-9cd8-ef83933c64fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{c321defc-d0f1-44ef-b775-996d607fdab4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="scriptExtensions">
+      <UniqueIdentifier>{ac48a0c4-087d-45ba-ac54-a38f88ad458f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

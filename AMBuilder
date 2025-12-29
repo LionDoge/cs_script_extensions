@@ -1,0 +1,64 @@
+# vim: set sts=2 ts=8 sw=2 tw=99 et ft=python: 
+import os
+
+for sdk_target in MMSPlugin.sdk_targets:
+  sdk = sdk_target.sdk
+  cxx = sdk_target.cxx
+
+  binary = MMSPlugin.HL2Library(builder, cxx, f'{MMSPlugin.metadata["name"]}.{sdk["name"]}', sdk)
+
+  binary.compiler.cxxincludes += [
+    os.path.join(builder.sourcePath, 'src'),
+    os.path.join(builder.sourcePath, 'src', 'cs2_sdk'),
+    os.path.join(builder.sourcePath, 'src', 'utils'),
+    os.path.join(builder.sourcePath, 'public'),
+    os.path.join(builder.sourcePath, 'sdk', 'thirdparty', 'protobuf-3.21.8', 'src'),
+    os.path.join(builder.sourcePath, 'vendor', 'funchook', 'include'),
+    os.path.join(builder.sourcePath, 'v8_download', 'v8', 'include'),
+    os.path.join(builder.sourcePath, 'src', 'protobuf', 'generated'),
+    os.path.join(builder.sourcePath, 'src', 'vendor', 'safetyhook'),
+    
+  ]
+
+  target_folder = 'Debug' if builder.options.debug else 'Release'
+
+  if binary.compiler.target.platform == 'linux':
+    binary.compiler.postlink += [
+      os.path.join(builder.sourcePath, 'vendor', 'funchook', 'lib', target_folder, 'libfunchook.a'),
+      os.path.join(builder.sourcePath, 'vendor', 'funchook', 'lib', target_folder, 'libdistorm.a'),
+      os.path.join(builder.sourcePath, 'sdks', 'hl2sdk-cs2', 'lib', 'linux64', 'release', 'libprotobuf.a'),
+    ]
+    binary.sources += ['src/utils/plat_unix.cpp']
+  elif binary.compiler.target.platform == 'windows':
+    binary.compiler.postlink += [
+      os.path.join('psapi.lib'),
+      os.path.join(builder.sourcePath, 'vendor', 'funchook', 'lib', target_folder, 'funchook.lib'),
+      os.path.join(builder.sourcePath, 'vendor', 'funchook', 'lib', target_folder, 'distorm.lib'),
+      os.path.join(builder.sourcePath, 'sdks', 'hl2sdk-cs2', 'lib' ,'public', 'win64', '2015', 'libprotobuf.lib'),
+      os.path.join(builder.sourcePath, 'sdks', 'hl2sdk-cs2', 'lib', 'public', 'win64', 'steam_api64.lib'),
+      
+    ]
+    binary.sources += ['src/utils/plat_win.cpp']
+
+  binary.sources += [
+    'src/plugin.cpp',
+    'src/cs2_sdk/schema.cpp',
+    'src/addresses.cpp',
+    'src/econitemdefinition.cpp',
+    'src/gameconfig.cpp',
+    'src/hudhintmanager.cpp',
+    'src/ctimer.cpp',
+    'src/utils/entity.cpp',
+    os.path.join(sdk['path'], 'entity2', 'entitysystem.cpp'),
+    os.path.join(sdk['path'], 'entity2', 'entityidentity.cpp'),
+    os.path.join(sdk['path'], 'entity2', 'entitykeyvalues.cpp'),
+    os.path.join(sdk['path'], 'tier1', 'keyvalues3.cpp'),
+    
+  ]
+
+  binary.custom = [builder.tools.Protoc(protoc = sdk_target.protoc, sources = [
+    os.path.join(sdk['path'], 'common', 'network_connection.proto'),
+  ])]
+
+  nodes = builder.Add(binary)
+  MMSPlugin.binaries += [nodes]

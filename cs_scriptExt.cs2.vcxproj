@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Default|x64">
+      <Configuration>Default</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{8971D42A-A1BE-11F0-A517-2C98116308D8}</ProjectGuid>
+    <RootNamespace>cs_scriptExt.cs2</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Default|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+    <EnableASAN>false</EnableASAN>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Default|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros">
+  </PropertyGroup>
+  <PropertyGroup>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Default|x64'">C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\game\csgo\addons\cs_scriptExt\bin\win64</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Default|x64'">$(ProjectName) - $(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Default|x64'">true</LinkIncremental>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Default|x64'">scriptext</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Default|x64'">
+    <PreBuildEvent>
+      <Command>E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\devtools/bin/protoc.exe --proto_path="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\thirdparty/protobuf-3.21.8/src" --proto_path="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public" --proto_path="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public/engine" --proto_path="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public/mathlib" --proto_path="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public/tier0" --proto_path="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public/tier1" --proto_path="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public/entity2" --proto_path="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public/game/server" --proto_path="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\game/shared" --proto_path="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\game/server" --proto_path="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\common" --proto_path="E:\Projekty\CSGO\cs2\ScriptExtensions\." --cpp_out="$(ProjectDir)cs_scriptExt.cs2 - Default" "E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\common\network_connection.proto" --dependency_out="$(ProjectDir)cs_scriptExt.cs2 - Default\network_connection.proto.d"</Command>
+    </PreBuildEvent>
+    <ClCompile>
+      <AdditionalOptions>/DSE_BLOODYGOODTIME=4 /DSE_BLADE=19 /DSE_BMS=11 /DSE_CONTAGION=15 /DSE_CS2=25 /DSE_CSGO=23 /DSE_CSS=6 /DSE_DARKMESSIAH=2 /DSE_DEADLOCK=27 /DSE_DODS=8 /DSE_DOI=21 /DSE_DOTA=24 /DSE_EPISODEONE=1 /DSE_EYE=5 /DSE_HL2DM=7 /DSE_INSURGENCY=20 /DSE_LEFT4DEAD=13 /DSE_LEFT4DEAD2=16 /DSE_MCV=22 /DSE_MOCK=26 /DSE_NUCLEARDAWN=14 /DSE_ORANGEBOX=3 /DSE_PORTAL2=18 /DSE_PVKII=10 /DSE_SDK2013=9 /DSE_ALIENSWARM=17 /DSE_TF2=12 /DSOURCE_ENGINE=25</AdditionalOptions>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);E:\Projekty\CSGO\cs2\ScriptExtensions\build\versioning;E:\Projekty\CSGO\cs2\ScriptExtensions;E:\Projekty\CSGO\cs2\Shared\metamod-source\core;E:\Projekty\CSGO\cs2\Shared\metamod-source\core\sourcehook;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\thirdparty/protobuf-3.21.8/src;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public/engine;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public/mathlib;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public/tier0;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public/tier1;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public/entity2;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public/game/server;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\game/shared;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\game/server;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\common;E:\Projekty\CSGO\cs2\ScriptExtensions\src\cs2_sdk;E:\Projekty\CSGO\cs2\ScriptExtensions\src\utils;E:\Projekty\CSGO\cs2\ScriptExtensions\public;E:\Projekty\CSGO\cs2\ScriptExtensions\sdk\thirdparty\protobuf-3.21.8\src;E:\Projekty\CSGO\cs2\ScriptExtensions\vendor\funchook\include;cs_scriptExt.cs2 - Default;E:\Projekty\CSGO\cs2\ScriptExtensions\v8_download\v8\include;E:\Projekty\CSGO\cs2\ScriptExtensions\vendor\safetyhook;E:\Projekty\CSGO\cs2\ScriptExtensions\src\protobuf\generated</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;WIN32;_WINDOWS;META_IS_SOURCE2;GAME_DLL;COMPILER_MSVC;COMPILER_MSVC64;X64BITS;PLATFORM_64BITS;ZYDIS_STATIC_BUILD</PreprocessorDefinitions>
+      <Optimization>Disabled</Optimization>
+      <MinimalRebuild>false</MinimalRebuild>
+      <OmitFramePointer>false</OmitFramePointer>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpp23</LanguageStandard>
+      <LanguageStandard_C>stdclatest</LanguageStandard_C>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;WIN32;_WINDOWS;SE_BLOODYGOODTIME=4;SE_BLADE=19;SE_BMS=11;SE_CONTAGION=15;SE_CS2=25;SE_CSGO=23;SE_CSS=6;SE_DARKMESSIAH=2;SE_DEADLOCK=27;SE_DODS=8;SE_DOI=21;SE_DOTA=24;SE_EPISODEONE=1;SE_EYE=5;SE_HL2DM=7;SE_INSURGENCY=20;SE_LEFT4DEAD=13;SE_LEFT4DEAD2=16;SE_MCV=22;SE_MOCK=26;SE_NUCLEARDAWN=14;SE_ORANGEBOX=3;SE_PORTAL2=18;SE_PVKII=10;SE_SDK2013=9;SE_ALIENSWARM=17;SE_TF2=12;META_IS_SOURCE2;SOURCE_ENGINE=25;GAME_DLL;COMPILER_MSVC;COMPILER_MSVC64;X64BITS;PLATFORM_64BITS</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>E:\Projekty\CSGO\cs2\ScriptExtensions\build\versioning;E:\Projekty\CSGO\cs2\ScriptExtensions;E:\Projekty\CSGO\cs2\Shared\metamod-source\core;E:\Projekty\CSGO\cs2\Shared\metamod-source\core\sourcehook;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\thirdparty/protobuf-3.21.8/src;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public/engine;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public/mathlib;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public/tier0;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public/tier1;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public/entity2;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public/game/server;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\game/shared;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\game/server;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\common;E:\Projekty\CSGO\cs2\ScriptExtensions\src\cs2_sdk;E:\Projekty\CSGO\cs2\ScriptExtensions\src\utils;E:\Projekty\CSGO\cs2\ScriptExtensions\public;E:\Projekty\CSGO\cs2\ScriptExtensions\sdk\thirdparty\protobuf-3.21.8\src;E:\Projekty\CSGO\cs2\ScriptExtensions\vendor\funchook\include;cs_scriptExt.cs2 - Default;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Link>
+      <AdditionalDependencies>%(AdditionalDependencies);kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;legacy_stdio_definitions.lib;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\lib/public/win64/2015/libprotobuf.lib;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\lib/public/win64/mathlib.lib;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\lib/public/win64/tier0.lib;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\lib/public/win64/tier1.lib;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\lib/public/win64/interfaces.lib;psapi.lib;E:\Projekty\CSGO\cs2\ScriptExtensions\vendor\funchook\lib\Release\funchook.lib;E:\Projekty\CSGO\cs2\ScriptExtensions\vendor\funchook\lib\Release\distorm.lib;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\lib\public\win64\2015\libprotobuf.lib;E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\lib\public\win64\steam_api64.lib;E:\Projekty\CSGO\cs2\ScriptExtensions\build\versionlib_x86_64\windows-x86_64\versionlib_x86_64.lib;v8.dll.lib</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetFileName)</OutputFile>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <TargetMachine>MachineX64</TargetMachine>
+      <AdditionalLibraryDirectories>E:\Projekty\CSGO\cs2\ScriptExtensions\vendor\v8\lib\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="src\addresses.cpp" />
+    <ClCompile Include="src\ctimer.cpp" />
+    <ClCompile Include="src\CustomPlayer.cpp" />
+    <ClCompile Include="src\econitemdefinition.cpp" />
+    <ClCompile Include="src\gameconfig.cpp" />
+    <ClCompile Include="src\hudhintmanager.cpp" />
+    <ClCompile Include="src\scriptclasses\schemaobject.cpp" />
+    <ClCompile Include="src\scriptextensions.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Default|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\utils\entity.cpp" />
+    <ClCompile Include="src\v8callbacks.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Default|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\scriptextensions\userMessagesScriptExt.cpp" />
+    <ClCompile Include="vendor\safetyhook\safetyhook.cpp" />
+    <ClCompile Include="vendor\safetyhook\Zydis.c" />
+    <ClCompile Include="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\public\tier0\memoverride.cpp" />
+    <ClCompile Include="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\tier1\convar.cpp" />
+    <ClCompile Include="E:\Projekty\CSGO\cs2\ScriptExtensions\src/utils/plat_win.cpp" />
+    <ClCompile Include="E:\Projekty\CSGO\cs2\ScriptExtensions\src/plugin.cpp" />
+    <ClCompile Include="E:\Projekty\CSGO\cs2\ScriptExtensions\src/cs2_sdk/schema.cpp" />
+    <ClCompile Include="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\entity2\entitysystem.cpp" />
+    <ClCompile Include="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\entity2\entityidentity.cpp" />
+    <ClCompile Include="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\entity2\entitykeyvalues.cpp" />
+    <ClCompile Include="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\tier1\keyvalues3.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\addresses.h" />
+    <ClInclude Include="src\common.h" />
+    <ClInclude Include="src\cs2_sdk\clientframe.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cbaseentity.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cbasemodelentity.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cbaseplayercontroller.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cbaseplayerpawn.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cbasetrigger.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cbaseviewmodel.h" />
+    <ClInclude Include="src\cs2_sdk\entity\ccsplayercontroller.h" />
+    <ClInclude Include="src\cs2_sdk\entity\ccsplayerpawn.h" />
+    <ClInclude Include="src\cs2_sdk\entity\ccsweaponbase.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cenventitymaker.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cenvhudhint.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cgameplayerequip.h" />
+    <ClInclude Include="src\cs2_sdk\entity\clogiccase.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cphysthruster.h" />
+    <ClInclude Include="src\cs2_sdk\entity\ctakedamageinfo.h" />
+    <ClInclude Include="src\cs2_sdk\entity\ctriggerteleport.h" />
+    <ClInclude Include="src\cs2_sdk\entity\cvotecontroller.h" />
+    <ClInclude Include="src\cs2_sdk\entity\globaltypes.h" />
+    <ClInclude Include="src\cs2_sdk\entity\services.h" />
+    <ClInclude Include="src\cs2_sdk\entity\viewmodelservices.h" />
+    <ClInclude Include="src\cs2_sdk\netmessages.h" />
+    <ClInclude Include="src\cs2_sdk\schema.h" />
+    <ClInclude Include="src\cs2_sdk\serversideclient.h" />
+    <ClInclude Include="src\csscript.h" />
+    <ClInclude Include="src\ctimer.h" />
+    <ClInclude Include="src\CustomPlayer.h" />
+    <ClInclude Include="src\econitemdefinition.hpp" />
+    <ClInclude Include="src\gameconfig.h" />
+    <ClInclude Include="src\hudhintmanager.h" />
+    <ClInclude Include="src\iscriptfunction.h" />
+    <ClInclude Include="src\object_wrap.h" />
+    <ClInclude Include="src\recipientfilters.h" />
+    <ClInclude Include="src\scriptclasses\schemaobject.h" />
+    <ClInclude Include="src\scriptextensions.h" />
+    <ClInclude Include="src\scriptExtensions\userMessageInfo.h" />
+    <ClInclude Include="src\scriptfunctions.h" />
+    <ClInclude Include="src\sigutils.h" />
+    <ClInclude Include="src\utils\entity.h" />
+    <ClInclude Include="src\utils\module.h" />
+    <ClInclude Include="src\v8callbacks.h" />
+    <ClInclude Include="cpointscript.h" />
+    <ClInclude Include="csv8.h" />
+    <ClInclude Include="src\scriptextensions\userMessagesScriptExt.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+  <ItemGroup>
+    <ClCompile Include="cs_scriptExt.cs2 - Default\network_connection.pb.cc" />
+  </ItemGroup>
+</Project>
