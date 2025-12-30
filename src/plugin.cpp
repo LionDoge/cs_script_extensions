@@ -42,6 +42,7 @@
 #include "iloopmode.h"
 #include "scriptExtensions/userMessagesScriptExt.h"
 #include "scriptExtensions/userMessageInfo.h"
+#include "globalsymbol.h"
 
 SH_DECL_HOOK3_void(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, bool, bool, bool);
 SH_DECL_HOOK4_void(IServerGameClients, ClientActive, SH_NOATTRIB, 0, CPlayerSlot, bool, const char *, uint64);
@@ -295,6 +296,12 @@ void RegisterScriptFunctions()
 		"AddSampleCallback",
 		"point_script",
 		V8Callbacks::AddSampleCallback
+	);
+
+	g_scriptExtensions.AddNewFunction("Domain",
+		"OnUserMessage",
+		"point_script",
+		V8CallbacksUserMsg::OnUserMessage
 	);
 	
 }
@@ -686,15 +693,16 @@ void MMSPlugin::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nCli
 	ScriptUserMessageInfo* userMessageInfo = new ScriptUserMessageInfo(msg, clients);
 	for (CEntityInstance* scriptEnt : CSScriptExtensionsSystem::GetScripts())
 	{
+		v8::HandleScope handleScope(v8::Isolate::GetCurrent());
 		auto script = CSScriptExtensionsSystem::GetScriptFromEntity(scriptEnt);
 		if (!script)
 			continue;
 		auto obj = V8CallbacksUserMsg::CreateUserMessageInfoInstance(script, userMessageInfo);
 		if (!obj.has_value())
 			continue;
-		auto objVal = obj.value();
+		v8::Local<v8::Value> jsArgs[] = { obj.value() };
 
-		g_scriptExtensions.InvokeNativeCallbackForScript(script, scriptCallbackName, 1, &objVal);
+		g_scriptExtensions.InvokeNativeCallbackForScript(script, scriptCallbackName, 1, jsArgs);
 	}
 }
 
@@ -780,6 +788,8 @@ CON_COMMAND_F(scrtest, "Test create script", FCVAR_NONE)
 CON_COMMAND_F(script_summary, "List registered function templates on scripts", FCVAR_NONE)
 {
 	auto isolate = v8::Isolate::GetCurrent();
+	/*auto test = MakeGlobalSymbol("test");
+	const char* a2 = "elo";*/
 	for (CEntityInstance* scriptEnt : CSScriptExtensionsSystem::GetScripts())
 	{
 		v8::HandleScope handleScope(isolate);
@@ -790,25 +800,25 @@ CON_COMMAND_F(script_summary, "List registered function templates on scripts", F
 		FOR_EACH_HASHTABLE(script->callbackMap, i)
 		{
 			auto key = script->callbackMap.Key(i);
-			Msg("   - %s\n", key.String());
+			Msg("   - %s\n", key.Get());
 		}
 		Msg("  Function templates:\n");
 		FOR_EACH_HASHTABLE(script->functionTemplateMap, i)
 		{
 			auto key = script->functionTemplateMap.Key(i);
-			Msg("   - %s\n", key.String());
+			Msg("   - %s\n", key.Get());
 		}
 		Msg("  All registered types (including enums):\n");
 		FOR_EACH_VEC(script->registeredTypes, i)
 		{
 			auto val = script->registeredTypes.Element(i);
-			Msg("   - %s\n", val.String());
+			Msg("   - %s\n", val.Get());
 		}
 		Msg("  Enumerators:\n");
 		FOR_EACH_HASHTABLE(script->enumMap, i)
 		{
 			auto key = script->enumMap.Key(i);
-			Msg("   - %s\n", key.String());
+			Msg("   - %s\n", key.Get());
 			auto val = script->enumMap.Element(i);
 			auto obj = val->Get(isolate);
 			auto properties = obj->GetOwnPropertyNames(context).ToLocalChecked();
@@ -827,4 +837,26 @@ CON_COMMAND_F(script_summary, "List registered function templates on scripts", F
 	}
 }
 
+CON_COMMAND_F(script_fill, "List registered function templates on scripts", FCVAR_NONE)
+{
+	for (CEntityInstance* scriptEnt : CSScriptExtensionsSystem::GetScripts())
+	{
+		auto isolate = v8::Isolate::GetCurrent();
+		auto script = CSScriptExtensionsSystem::GetScriptFromEntity(scriptEnt);
+		v8::HandleScope handleScope(isolate);
+
+		for (int i = 0; i < 20; i++)
+		{
+			v8::Local<v8::ObjectTemplate> objTem = v8::ObjectTemplate::New(isolate);
+			v8::Local<v8::Object> obj = objTem->NewInstance(script->context.Get(isolate)).ToLocalChecked();
+			v8::Global<v8::Object>* newObj = new v8::Global<v8::Object>(v8::Isolate::GetCurrent(), obj);
+			CUtlString str("func_");
+			str += i;
+			auto sym = MakeGlobalSymbol(str.Get());
+			script->enumMap.Insert(sym, newObj);
+		}
+
+
+	}
+}
 

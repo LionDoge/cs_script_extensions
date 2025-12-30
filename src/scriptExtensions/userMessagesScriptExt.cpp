@@ -32,16 +32,20 @@ void UserMessageInfoObjectConstructor(const v8::FunctionCallbackInfo<v8::Value>&
 void V8CallbacksUserMsg::InitUserMessageInfoTemplate(CCSScript_EntityScript* script)
 {
 	auto isolate = v8::Isolate::GetCurrent();
-	v8::EscapableHandleScope handleScope(isolate);
-	auto context = isolate->GetCurrentContext();
+	v8::HandleScope handleScope(isolate);
+	auto context = script->context.Get(isolate);
 
 	v8::Local<v8::FunctionTemplate> tpl = v8::FunctionTemplate::New(isolate, UserMessageInfoObjectConstructor);
 	auto className = v8::String::NewFromUtf8(isolate, "UserMessageInfo").ToLocalChecked();
 	tpl->SetClassName(className);
 
 	// All functions
-	auto getFuncTemplate = v8::FunctionTemplate::New(isolate, UserMessageInfo_GetField);
-	tpl->PrototypeTemplate()->Set(v8::String::NewFromUtf8(isolate, "GetField").ToLocalChecked(), getFuncTemplate);
+	tpl->PrototypeTemplate()->Set(
+		v8::String::NewFromUtf8(isolate, "GetField").ToLocalChecked(),
+		v8::FunctionTemplate::New(isolate, UserMessageInfo_GetField)
+	);
+
+	tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
 	auto persistentTp = new v8::Global<v8::FunctionTemplate>(isolate, tpl);
 	script->functionTemplateMap.Insert("UserMessageInfo", persistentTp);
@@ -50,12 +54,13 @@ void V8CallbacksUserMsg::InitUserMessageInfoTemplate(CCSScript_EntityScript* scr
 std::optional<v8::Local<v8::Value>> V8CallbacksUserMsg::CreateUserMessageInfoInstance(CCSScript_EntityScript* script, ScriptUserMessageInfo* userMsgInfo)
 {
 	auto isolate = v8::Isolate::GetCurrent();
+	v8::HandleScope _scop(isolate); // needed, because otherwise we get a fatal error?
 	v8::EscapableHandleScope handleScope(isolate);
 
 	auto tplPointer = script->functionTemplateMap.Get("UserMessageInfo", nullptr);
 	if (!tplPointer)
 	{
-		Log_Error(g_logChanScript, "UserMessageInfo template not initialized!");
+		Log_Warning(g_logChanScript, "UserMessageInfo template not initialized!");
 		return std::nullopt;
 	}
 
@@ -87,7 +92,7 @@ void V8CallbacksUserMsg::OnUserMessage(const v8::FunctionCallbackInfo<v8::Value>
 		return;
 	}
 	auto v8Obj = info[0]->ToObject(isolate->GetCurrentContext()).ToLocalChecked();
-	auto v8MsgName = v8Obj->Get(isolate->GetCurrentContext(), v8::String::NewFromUtf8(isolate, "msgName").ToLocalChecked()).ToLocalChecked();
+	auto v8MsgName = v8Obj->Get(isolate->GetCurrentContext(), v8::String::NewFromUtf8(isolate, "messageName").ToLocalChecked()).ToLocalChecked();
 	if (!v8MsgName->IsString())
 	{
 		V8ThrowException(isolate, "OnUserMessage argument 0.msgName must be a string\n");
@@ -101,17 +106,17 @@ void V8CallbacksUserMsg::OnUserMessage(const v8::FunctionCallbackInfo<v8::Value>
 		return;
 	}
 	auto v8FuncCallback = v8::Local<v8::Function>::Cast(v8Callback);
-	auto netMessageInternal = g_pNetworkMessages->FindNetworkMessage(*msgNameUtf8);
+	auto netMessageInternal = g_pNetworkMessages->FindNetworkMessagePartial(*msgNameUtf8);
 	if (!netMessageInternal)
 	{
-		V8ThrowException(isolate, std::string("OnUserMessage: could not find user message with name '") + *msgNameUtf8 + "'");
+		V8ThrowException(isolate, std::string("OnUserMessage: could not find user message with partial name '") + *msgNameUtf8 + "'");
 		return;
 	}
 	NetworkMessageId msgId = netMessageInternal->GetNetMessageInfo()->m_MessageId;
 
 	CUtlString cbName("OnUserMessage:");
 	cbName += msgId;
-	g_scriptExtensions.AddCallbackNative(script, cbName, v8FuncCallback);
+	g_scriptExtensions.AddCallbackNative(script, cbName.Get(), v8FuncCallback);
 }
 
 void V8CallbacksUserMsg::UserMessageInfo_GetField(const v8::FunctionCallbackInfo<v8::Value>& info)
@@ -128,9 +133,7 @@ void V8CallbacksUserMsg::UserMessageInfo_GetField(const v8::FunctionCallbackInfo
 		V8ThrowException(isolate, "UserMessageInfo.GetField argument 0 must be a string\n");
 		return;
 	}
-	auto v8Obj = info.This();
-	auto wrap = v8Obj->GetInternalField(0).As<v8::Value>().As<v8::External>();
-	auto value = static_cast<ScriptUserMessageInfo*>(wrap->Value());
+	auto value = static_cast<ScriptUserMessageInfo*>(info.This()->GetAlignedPointerFromInternalField(0));
 	
 	bool isRepeated = false;
 	auto cppType = google::protobuf::FieldDescriptor::CPPTYPE_INT32;

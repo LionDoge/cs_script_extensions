@@ -87,6 +87,7 @@
       <Filter>scriptExtensions</Filter>
     </ClInclude>
     <ClInclude Include="src\utlatuolist.h" />
+    <ClInclude Include="src\globalsymbol.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="cs2_sdk">

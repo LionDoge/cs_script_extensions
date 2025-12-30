@@ -304,8 +304,6 @@ void V8Callbacks::V8ShowHudHint(const v8::FunctionCallbackInfo<v8::Value>& args)
 	ClientPrint(controller, isAlert ? HUD_PRINTALERT : HUD_PRINTCENTER, *v8StrTextUtf8);
 }
 
-typedef const char* (*MakeGlobalSymbolFunc)(const char*);
-
 void V8Callbacks::AddSampleCallback(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	auto isolate = args.GetIsolate();
@@ -329,13 +327,6 @@ void V8Callbacks::AddSampleCallback(const v8::FunctionCallbackInfo<v8::Value>& a
 		return;
 	}
 	auto callback = args[0].As<v8::Function>();
-
-	/*HMODULE hModule = GetModuleHandleA("tier0.dll");
-	if (hModule == NULL) {
-		std::cerr << "Failed to get module handle. Error: " << GetLastError() << std::endl;
-	}
-	FARPROC funcAddress = GetProcAddress(hModule, "_MakeGlobalSymbol");
-	MakeGlobalSymbolFunc func = reinterpret_cast<MakeGlobalSymbolFunc>(funcAddress);*/
 
 	//const char* test = func("OnPlayerPing");
 	//v8::Global<v8::Function> def;

@@ -126,6 +126,7 @@
     <ClInclude Include="src\CustomPlayer.h" />
     <ClInclude Include="src\econitemdefinition.hpp" />
     <ClInclude Include="src\gameconfig.h" />
+    <ClInclude Include="src\globalsymbol.h" />
     <ClInclude Include="src\hudhintmanager.h" />
     <ClInclude Include="src\iscriptfunction.h" />
     <ClInclude Include="src\object_wrap.h" />

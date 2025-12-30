@@ -77,7 +77,7 @@ public:
 	
 	void Hook_RegisterInstanceTemplate(CCSBaseScript* script, const char* name, v8::Local<v8::FunctionTemplate> funcTemplate);
 	// use internal hashmap for storing callbacks, (shared by game functions).
-	void AddCallbackNative(CCSScript_EntityScript* script, const CUtlString&, v8::Local<v8::Function> func);
+	void AddCallbackNative(CCSScript_EntityScript* script, const char* callbackName, v8::Local<v8::Function> func);
 	/*void AddCallback(uint64_t scriptIdx, const char* callbackName, v8::Global<v8::Function>&& func, v8::Global<v8::Context>&& ctx);
 	void InvokeCallbacks(const char* cbName);*/
 	void InvokeNativeCallbacks();

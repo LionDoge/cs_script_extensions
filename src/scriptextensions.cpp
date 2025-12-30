@@ -118,11 +118,11 @@ void CSScriptExtensionsSystem::Hook_RegisterInstanceTemplate(
 	m_pHookRegisterInstanceTemplate.call(script, name, funcTemplate);
 }
 
-void CSScriptExtensionsSystem::AddCallbackNative(CCSScript_EntityScript* script, const CUtlString& callbackName, v8::Local<v8::Function> func)
+void CSScriptExtensionsSystem::AddCallbackNative(CCSScript_EntityScript* script, const char* callbackName, v8::Local<v8::Function> func)
 {
-	if (script->callbackMap.HasElement(callbackName))
+	if (script->callbackMap.HasElement(MakeGlobalSymbol(callbackName)))
 	{
-		Log_Warning(g_logChanScript, "Callback \"%s\" already registered\n", callbackName.String());
+		Log_Warning(g_logChanScript, "Callback \"%s\" already registered\n", callbackName);
 		return;
 	}
 	v8::Global<v8::Function>* newFunc = new v8::Global<v8::Function>(v8::Isolate::GetCurrent(), func);
@@ -243,7 +243,7 @@ void CSScriptExtensionsSystem::InvokeNativeCallbackForScript(CCSScript_EntityScr
 	{
 		v8::Local<v8::Value> exception = tryCatch.Exception();
 		v8::String::Utf8Value exception_str(isolate, exception);
-		Log_Warning(g_logChanScript, "Exception during cs_script callback \"%s\"\n", *exception_str);
+		Log_Warning(g_logChanScript, "Exception during cs_script callback \"%s\"\n%s\n", callbackName, *exception_str);
 	}
 	context->Exit();
 }
