@@ -855,11 +855,8 @@ CON_COMMAND_F(script_fill, "List registered function templates on scripts", FCVA
 			v8::Global<v8::Object>* newObj = new v8::Global<v8::Object>(v8::Isolate::GetCurrent(), obj);
 			CUtlString str("func_");
 			str += i;
-			auto sym = MakeGlobalSymbol(str.Get());
-			script->enumMap.Insert(sym, newObj);
+			script->enumMap.Insert(str.Get(), newObj);
 		}
-
-
 	}
 }
 

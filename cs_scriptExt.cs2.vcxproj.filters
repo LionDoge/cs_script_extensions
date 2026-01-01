@@ -30,6 +30,7 @@
     <ClCompile Include="src\scriptextensions\userMessagesScriptExt.cpp">
       <Filter>scriptExtensions</Filter>
     </ClCompile>
+    <ClCompile Include="src\globalsymbol.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="csv8.h" />

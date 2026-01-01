@@ -7,15 +7,15 @@
 
 #include "platform.h"
 
-
 class CGlobalSymbol
 {
 public:
-	CGlobalSymbol(const char* str) { m_handle = str; }
-	operator const char*() const { return Get(); }
-	const char* Get() const { return m_handle; }
-	uint32_t Hash() const { return *(uint32_t*)(m_handle - 4); }
-	bool operator==(const CGlobalSymbol& rhs) const { return m_handle == rhs.Get(); }
+	CGlobalSymbol(const char* str);
+
+	uint32_t Hash() const;
+	const char* Get() const;
+	operator const char* () const;
+	bool operator==(const CGlobalSymbol& rhs) const;
 private:
 	const char* m_handle;
 };
@@ -24,29 +24,17 @@ using CGlobalSymbolCaseSensitive = CGlobalSymbol;
 
 struct GlobalSymbolHashFunctor
 {
-	inline unsigned int operator()(const CGlobalSymbol& globalSymbol) const;
+	unsigned int operator() (const CGlobalSymbol& globalSymbol) const;
 };
-inline unsigned int GlobalSymbolHashFunctor::operator()(const CGlobalSymbol& globalSymbol) const
-{
-	return globalSymbol.Hash();
-}
 
-PLATFORM_INTERFACE CGlobalSymbol FindGlobalSymbolByHash(uint32 hash);
-PLATFORM_INTERFACE CGlobalSymbol FindGlobalSymbol(const char* str);
-//PLATFORM_INTERFACE CGlobalSymbol MakeGlobalSymbol(const char* str);
-inline CGlobalSymbol MakeGlobalSymbol(const char* str)
-{
-	// TODO: Move out of here, fix the linking.
-	HMODULE hModule = GetModuleHandleA("tier0.dll");
-	if (hModule == NULL) {
-		std::cerr << "Failed to get module handle. Error: " << GetLastError() << std::endl;
-	}
-	FARPROC funcAddress = GetProcAddress(hModule, "_MakeGlobalSymbol");
+#pragma comment(linker, "/alternatename:__imp_MakeGlobalSymbol=_MakeGlobalSymbol")
+#pragma comment(linker, "/alternatename:__imp_MakeGlobalSymbolCaseSensitive=_MakeGlobalSymbolCaseSensitive")
+#pragma comment(linker, "/alternatename:__imp_FindGlobalSymbol=_FindGlobalSymbol")
+#pragma comment(linker, "/alternatename:__imp_FindGlobalSymbolByHash=_FindGlobalSymbolByHash")
 
-	typedef const char* (*MakeGlobalSymbolFunc)(const char*);
-	MakeGlobalSymbolFunc func = reinterpret_cast<MakeGlobalSymbolFunc>(funcAddress);
-	return {func(str)};
-}
+PLATFORM_INTERFACE CGlobalSymbol MakeGlobalSymbol(const char* str);
 PLATFORM_INTERFACE CGlobalSymbolCaseSensitive MakeGlobalSymbolCaseSensitive(const char* str);
+PLATFORM_INTERFACE CGlobalSymbol FindGlobalSymbol(const char* str);
+PLATFORM_INTERFACE CGlobalSymbol FindGlobalSymbolByHash(uint32 hash);
 
 #endif // GLOBALSYMBOL_H
