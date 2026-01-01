@@ -698,11 +698,14 @@ void MMSPlugin::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nCli
 		if (!script)
 			continue;
 		auto obj = V8CallbacksUserMsg::CreateUserMessageInfoInstance(script, userMessageInfo);
-		if (!obj.has_value())
-			continue;
-		v8::Local<v8::Value> jsArgs[] = { obj.value() };
+		v8::Local<v8::Value> jsArgs[] = { obj };
 
-		g_scriptExtensions.InvokeNativeCallbackForScript(script, scriptCallbackName, 1, jsArgs);
+		auto result = g_scriptExtensions.InvokeNativeCallbackForScript(script, scriptCallbackName, 1, jsArgs);
+		// script returned false - clear all recipients (block).
+		if (result->IsBoolean() && !result->ToBoolean(v8::Isolate::GetCurrent())->Value())
+		{
+			*const_cast<uint64*>(clients) = 0;
+		}
 	}
 }
 

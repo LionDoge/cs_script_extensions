@@ -282,7 +282,7 @@ void V8Callbacks::V8ShowHudHint(const v8::FunctionCallbackInfo<v8::Value>& args)
 	bool isAlert = false;
 	if (args.Length() >= 2 && !args[1]->IsBoolean())
 	{
-		V8ThrowException(args.GetIsolate(), "Method Entity.ShowHudHint second argument must be a boolean");
+		V8ThrowException(args.GetIsolate(), "Method Entity.ShowHudHi=nt second argument must be a boolean");
 		return;
 	}
 	isAlert = args[1].As<v8::Boolean>()->Value();

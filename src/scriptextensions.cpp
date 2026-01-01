@@ -120,13 +120,14 @@ void CSScriptExtensionsSystem::Hook_RegisterInstanceTemplate(
 
 void CSScriptExtensionsSystem::AddCallbackNative(CCSScript_EntityScript* script, const char* callbackName, v8::Local<v8::Function> func)
 {
-	if (script->callbackMap.HasElement(MakeGlobalSymbol(callbackName)))
+	auto symbol = MakeGlobalSymbol(callbackName);
+	if (script->callbackMap.HasElement(symbol))
 	{
 		Log_Warning(g_logChanScript, "Callback \"%s\" already registered\n", callbackName);
 		return;
 	}
 	v8::Global<v8::Function>* newFunc = new v8::Global<v8::Function>(v8::Isolate::GetCurrent(), func);
-	script->callbackMap.Insert(callbackName, newFunc);
+	script->callbackMap.Insert(symbol, newFunc);
 }
 
 //void CSScriptExtensionsSystem::AddCallback(uint64_t scriptIdx, const char* callbackName, v8::Global<v8::Function>&& func, v8::Global<v8::Context>&& ctx)
@@ -224,28 +225,32 @@ void CSScriptExtensionsSystem::InvokeNativeCallback(const char* callbackName, in
 	}
 }
 
-void CSScriptExtensionsSystem::InvokeNativeCallbackForScript(CCSScript_EntityScript* script, const char* callbackName, int argc, v8::Local<v8::Value> argv[])
+v8::Local<v8::Value> CSScriptExtensionsSystem::InvokeNativeCallbackForScript(CCSScript_EntityScript* script, const char* callbackName, int argc, v8::Local<v8::Value> argv[])
 {
 	VPROF("CSScriptExtensionsSystem::InvokeNativeCallbackForScript");
 
 	auto isolate = v8::Isolate::GetCurrent();
-	v8::HandleScope handleScope(isolate);
-	auto funcHandle = script->callbackMap.Get(callbackName, nullptr);
+	v8::EscapableHandleScope handleScope(isolate);
+	auto funcHandle = script->callbackMap.Get(MakeGlobalSymbol(callbackName), nullptr);
 	if (!funcHandle)
-		return;
+		return {};
 	auto func = funcHandle->Get(isolate);
 	auto context = script->context.Get(isolate);
 	context->Enter();
 	SwitchScriptContext(script);
 	v8::TryCatch tryCatch(isolate);
-	func->Call(context, context->Global(), argc, argv);
+	auto result = func->Call(context, context->Global(), argc, argv);
 	if (tryCatch.HasCaught())
 	{
 		v8::Local<v8::Value> exception = tryCatch.Exception();
 		v8::String::Utf8Value exception_str(isolate, exception);
 		Log_Warning(g_logChanScript, "Exception during cs_script callback \"%s\"\n%s\n", callbackName, *exception_str);
+		return {};
 	}
 	context->Exit();
+	if (result.IsEmpty())
+		return {};
+	return handleScope.Escape(result.ToLocalChecked());
 }
 
 void CSScriptExtensionsSystem::OnScriptInstanceRegisterInstance(CCSBaseScript* script, v8::Local<v8::ObjectTemplate> functionTemplate, const char* name)

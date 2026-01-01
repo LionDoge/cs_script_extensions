@@ -33,41 +33,37 @@ void V8CallbacksUserMsg::InitUserMessageInfoTemplate(CCSScript_EntityScript* scr
 {
 	auto isolate = v8::Isolate::GetCurrent();
 	v8::HandleScope handleScope(isolate);
-	auto context = script->context.Get(isolate);
 
 	v8::Local<v8::FunctionTemplate> tpl = v8::FunctionTemplate::New(isolate, UserMessageInfoObjectConstructor);
-	auto className = v8::String::NewFromUtf8(isolate, "UserMessageInfo").ToLocalChecked();
-	tpl->SetClassName(className);
-
-	// All functions
-	tpl->PrototypeTemplate()->Set(
-		v8::String::NewFromUtf8(isolate, "GetField").ToLocalChecked(),
-		v8::FunctionTemplate::New(isolate, UserMessageInfo_GetField)
-	);
-
+	tpl->SetClassName(v8::String::NewFromUtf8(isolate, "UserMessageInfo").ToLocalChecked());
 	tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
+	// All functions
+	auto proto = tpl->PrototypeTemplate();
+	proto->Set(isolate,"GetField",v8::FunctionTemplate::New(isolate, UserMessageInfo_GetField));
+
 	auto persistentTp = new v8::Global<v8::FunctionTemplate>(isolate, tpl);
-	script->functionTemplateMap.Insert("UserMessageInfo", persistentTp);
+	script->functionTemplateMap.Insert(MakeGlobalSymbol("UserMessageInfo"), persistentTp);
 }
 
-std::optional<v8::Local<v8::Value>> V8CallbacksUserMsg::CreateUserMessageInfoInstance(CCSScript_EntityScript* script, ScriptUserMessageInfo* userMsgInfo)
+v8::Local<v8::Value> V8CallbacksUserMsg::CreateUserMessageInfoInstance(CCSScript_EntityScript* script, ScriptUserMessageInfo* userMsgInfo)
 {
 	auto isolate = v8::Isolate::GetCurrent();
-	v8::HandleScope _scop(isolate); // needed, because otherwise we get a fatal error?
-	v8::EscapableHandleScope handleScope(isolate);
+	//v8::HandleScope _scop(isolate); // needed, because otherwise we get a fatal error?
+	//v8::EscapableHandleScope handleScope(isolate);
 
-	auto tplPointer = script->functionTemplateMap.Get("UserMessageInfo", nullptr);
+	auto tplPointer = script->functionTemplateMap.Get(MakeGlobalSymbol("UserMessageInfo"), nullptr);
 	if (!tplPointer)
 	{
 		Log_Warning(g_logChanScript, "UserMessageInfo template not initialized!");
-		return std::nullopt;
+		return {};
 	}
 
 	auto tpl = tplPointer->Get(isolate);
 	v8::Local<v8::Object> instance = tpl->InstanceTemplate()->NewInstance(script->context.Get(isolate)).ToLocalChecked();
 	instance->SetAlignedPointerInInternalField(0, userMsgInfo);
-	return handleScope.Escape(instance);
+	return instance;
+	//return handleScope.Escape(instance);
 }
 
 void V8CallbacksUserMsg::OnUserMessage(const v8::FunctionCallbackInfo<v8::Value>& info)

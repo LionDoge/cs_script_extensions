@@ -82,7 +82,7 @@ public:
 	void InvokeCallbacks(const char* cbName);*/
 	void InvokeNativeCallbacks();
 	void InvokeNativeCallback(const char* callbackName, int argc, v8::Local<v8::Value> argv[]);
-	void InvokeNativeCallbackForScript(CCSScript_EntityScript* script, const char* callbackName, int argc, v8::Local<v8::Value> argv[]);
+	v8::Local<v8::Value> InvokeNativeCallbackForScript(CCSScript_EntityScript* script, const char* callbackName, int argc, v8::Local<v8::Value> argv[]);
 
 	void SwitchScriptContext(CCSScript_EntityScript* script);
 	// maps CSPointScript entity handles to their registered callbacks

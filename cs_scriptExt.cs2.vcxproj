@@ -46,7 +46,7 @@
       <OmitFramePointer>false</OmitFramePointer>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
