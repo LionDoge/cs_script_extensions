@@ -1,10 +1,4 @@
-#ifndef GLOBALSYMBOL_H
-#define GLOBALSYMBOL_H
-
-#ifdef _WIN32
 #pragma once
-#endif
-
 #include "platform.h"
 
 class CGlobalSymbol
@@ -36,5 +30,3 @@ PLATFORM_INTERFACE CGlobalSymbol MakeGlobalSymbol(const char* str);
 PLATFORM_INTERFACE CGlobalSymbolCaseSensitive MakeGlobalSymbolCaseSensitive(const char* str);
 PLATFORM_INTERFACE CGlobalSymbol FindGlobalSymbol(const char* str);
 PLATFORM_INTERFACE CGlobalSymbol FindGlobalSymbolByHash(uint32 hash);
-
-#endif // GLOBALSYMBOL_H
