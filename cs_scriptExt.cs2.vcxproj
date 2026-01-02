@@ -68,6 +68,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\addresses.cpp" />
+    <ClCompile Include="src\csscript.cpp" />
     <ClCompile Include="src\ctimer.cpp" />
     <ClCompile Include="src\CustomPlayer.cpp" />
     <ClCompile Include="src\econitemdefinition.cpp" />
@@ -96,6 +97,7 @@
     <ClCompile Include="E:\Projekty\CSGO\cs2\ScriptExtensions\sdks\hl2sdk-cs2\tier1\keyvalues3.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="scriptcommon.h" />
     <ClInclude Include="src\addresses.h" />
     <ClInclude Include="src\common.h" />
     <ClInclude Include="src\cs2_sdk\clientframe.h" />

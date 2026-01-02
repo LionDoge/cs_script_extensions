@@ -1,12 +1,13 @@
 
-#pragma once
 #include "userMessagesScriptExt.h"
-#include <v8-external.h>
+#include "v8-external.h"
 #include "v8-object.h"
 #include "v8-isolate.h"
 #include "src/protobuf/generated/usermessages.pb.h"
 #include "src/scriptextensions.h"
 #include "igameevents.h"
+
+#include "scriptcommon.h"
 #include "userMessageInfo.h"
 #include "src/plugin.h"
 
@@ -14,27 +15,16 @@ extern LoggingChannelID_t g_logChanScript;
 
 extern ISchemaSystem* g_pSchemaSystem;
 extern IGameEventManager2* g_gameEventManager;
-extern CSScriptExtensionsSystem g_scriptExtensions;
 
-static void V8ThrowException(v8::Isolate* isolate, const std::string_view& message)
+void ScriptUserMessage::InitUserMessageInfoTemplate(CCSBaseScript* script)
 {
-	auto v8ExceptionText = v8::String::NewFromUtf8(isolate, message.data()).ToLocalChecked();
-	isolate->ThrowException(v8ExceptionText);
-}
+	if (script->IsTypeRegistered("UserMessageInfo"))
+		return;
 
-void UserMessageInfoObjectConstructor(const v8::FunctionCallbackInfo<v8::Value>& info)
-{
-	auto isolate = v8::Isolate::GetCurrent();
-	v8::HandleScope handleScope(isolate);
-	V8ThrowException(isolate, "Cannot be constructed from script\n");
-}
-
-void V8CallbacksUserMsg::InitUserMessageInfoTemplate(CCSScript_EntityScript* script)
-{
 	auto isolate = v8::Isolate::GetCurrent();
 	v8::HandleScope handleScope(isolate);
 
-	v8::Local<v8::FunctionTemplate> tpl = v8::FunctionTemplate::New(isolate, UserMessageInfoObjectConstructor);
+	v8::Local<v8::FunctionTemplate> tpl = v8::FunctionTemplate::New(isolate, V8FakeObjectConstructorCallback);
 	tpl->SetClassName(v8::String::NewFromUtf8(isolate, "UserMessageInfo").ToLocalChecked());
 	tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
@@ -42,17 +32,16 @@ void V8CallbacksUserMsg::InitUserMessageInfoTemplate(CCSScript_EntityScript* scr
 	auto proto = tpl->PrototypeTemplate();
 	proto->Set(isolate,"GetField",v8::FunctionTemplate::New(isolate, UserMessageInfo_GetField));
 
-	auto persistentTp = new v8::Global<v8::FunctionTemplate>(isolate, tpl);
-	script->functionTemplateMap.Insert(MakeGlobalSymbol("UserMessageInfo"), persistentTp);
+	script->AddFunctionTemplate("UserMessageInfo", tpl);
 }
 
-v8::Local<v8::Value> V8CallbacksUserMsg::CreateUserMessageInfoInstance(CCSScript_EntityScript* script, ScriptUserMessageInfo* userMsgInfo)
+v8::Local<v8::Value> ScriptUserMessage::CreateUserMessageInfoInstance(CCSScript_EntityScript* script, ScriptUserMessageInfo* userMsgInfo)
 {
 	auto isolate = v8::Isolate::GetCurrent();
 	//v8::HandleScope _scop(isolate); // needed, because otherwise we get a fatal error?
 	//v8::EscapableHandleScope handleScope(isolate);
 
-	auto tplPointer = script->functionTemplateMap.Get(MakeGlobalSymbol("UserMessageInfo"), nullptr);
+	auto tplPointer = script->GetFunctionTemplate("UserMessageInfo");
 	if (!tplPointer)
 	{
 		Log_Warning(g_logChanScript, "UserMessageInfo template not initialized!");
@@ -60,13 +49,13 @@ v8::Local<v8::Value> V8CallbacksUserMsg::CreateUserMessageInfoInstance(CCSScript
 	}
 
 	auto tpl = tplPointer->Get(isolate);
-	v8::Local<v8::Object> instance = tpl->InstanceTemplate()->NewInstance(script->context.Get(isolate)).ToLocalChecked();
+	v8::Local<v8::Object> instance = tpl->InstanceTemplate()->NewInstance(script->GetContext().Get(isolate)).ToLocalChecked();
 	instance->SetAlignedPointerInInternalField(0, userMsgInfo);
 	return instance;
 	//return handleScope.Escape(instance);
 }
 
-void V8CallbacksUserMsg::OnUserMessage(const v8::FunctionCallbackInfo<v8::Value>& info)
+void ScriptUserMessage::OnUserMessage(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	const auto isolate = v8::Isolate::GetCurrent();
 	const auto baseScript = CSScriptExtensionsSystem::GetCurrentCsScriptInstance();
@@ -108,14 +97,19 @@ void V8CallbacksUserMsg::OnUserMessage(const v8::FunctionCallbackInfo<v8::Value>
 		V8ThrowException(isolate, std::string("OnUserMessage: could not find user message with partial name '") + *msgNameUtf8 + "'");
 		return;
 	}
-	NetworkMessageId msgId = netMessageInternal->GetNetMessageInfo()->m_MessageId;
+	NetMessageInfo_t* msgInfo = netMessageInternal->GetNetMessageInfo();
+	if (!msgInfo)
+	{
+		V8ThrowException(isolate, std::string("OnUserMessage: failed to get message info'") + *msgNameUtf8 + "'");
+		return;
+	}
 
-	CUtlString cbName("OnUserMessage:");
-	cbName += msgId;
-	g_scriptExtensions.AddCallbackNative(script, cbName.Get(), v8FuncCallback);
+	CBufferString cbName("OnUserMessage:");
+	cbName.AppendFormat("%d", msgInfo->m_MessageId);
+	script->AddCallback(cbName.Get(), v8FuncCallback);
 }
 
-void V8CallbacksUserMsg::UserMessageInfo_GetField(const v8::FunctionCallbackInfo<v8::Value>& info)
+void ScriptUserMessage::UserMessageInfo_GetField(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	auto isolate = v8::Isolate::GetCurrent();
 	v8::HandleScope handleScope(isolate);

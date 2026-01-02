@@ -1,7 +1,6 @@
 #include "scriptextensions.h"
 
 #include <vprof.h>
-
 #include "v8.h"
 #include "ehandle.h"
 #include "sourcehook.h"
@@ -9,24 +8,17 @@
 #include "entity/cpointscript.h"
 #include "sigutils.h"
 #include "scriptExtensions/userMessagesScriptExt.h"
+#include "gameconfig.h"
 
 extern LoggingChannelID_t g_logChanScript;
 // HACK!
-extern CSScriptExtensionsSystem g_scriptExtensions;
+extern CSScriptExtensionsSystem* g_scriptExtensions;
 static void Hook_RegisterInstanceTemplateA(
 	CCSBaseScript* script,
 	const char* name,
 	v8::Local<v8::FunctionTemplate> funcTemplate
 ) {
-	g_scriptExtensions.Hook_RegisterInstanceTemplate(script, name, funcTemplate);
-}
-
-CSScriptExtensionsSystem::CSScriptExtensionsSystem(const std::initializer_list<ScriptFunctionDetails>& initList)
-{
-	for (const auto& entry : initList)
-	{
-		AddNewFunction(entry.className, entry.name, entry.scopeName, entry.callback);
-	}
+	g_scriptExtensions->Hook_RegisterInstanceTemplate(script, name, funcTemplate);
 }
 
 bool CSScriptExtensionsSystem::ResolveSigs(CGameConfig* gameConfig)
@@ -34,7 +26,18 @@ bool CSScriptExtensionsSystem::ResolveSigs(CGameConfig* gameConfig)
 	RESOLVE_SIG(gameConfig, "CSScript_RegisterFunctionTemplate", m_pfnRegisterInstanceTemplate)
 	RESOLVE_SIG(gameConfig, "CSScript_SwitchContext", m_pfnSwitchScriptContext)
 	RESOLVE_SIG(gameConfig, "CSScript_GetCurrentScriptContext", m_pfnGetCurrentCSScript)
-	RESOLVE_SIG(gameConfig, "CSScript_AssignEntityToObject", m_pfnScriptAssignEntAuto)
+	RESOLVE_SIG(gameConfig, "CSScript_AssignEntityToObject", m_pfnAssignEntityToObject)
+	RESOLVE_SIG(gameConfig, "CSScript_CreateEntityObjectFromTemplate", m_pfnCreateEntintyObjectFromTemplate)
+
+	return true;
+}
+
+CSScriptExtensionsSystem* CSScriptExtensionsSystem::GetInstance()
+{
+	if (m_instance == nullptr)
+		m_instance = new CSScriptExtensionsSystem();
+
+	return m_instance;
 }
 
 bool CSScriptExtensionsSystem::Initialize(CGameConfig* gameConfig)
@@ -52,7 +55,7 @@ bool CSScriptExtensionsSystem::Initialize(CGameConfig* gameConfig)
 bool CSScriptExtensionsSystem::AddNewFunction(
 	const std::string& instanceName,
 	const std::string& funcName,
-	const std::string& scopeName,
+	const std::string& scriptTypeName,
 	v8::FunctionCallback callback
 )
 {
@@ -67,7 +70,13 @@ bool CSScriptExtensionsSystem::AddNewFunction(
 		vec.reserve(8); // just a random guess for prealloc.
 		m_registeredFunctions[instanceName] = vec;
 	}
-	m_registeredFunctions[instanceName].emplace_back(funcName, scopeName, callback);
+	m_registeredFunctions[instanceName].emplace_back(funcName, scriptTypeName, callback);
+	return true;
+}
+
+void CSScriptExtensionsSystem::RegisterCustomFunctionTemplate(void (*callback)(CCSBaseScript*))
+{
+	m_functionTemplateInitializers.push_back(callback);
 }
 
 CEntityInstance* CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(v8::Local<v8::Object> obj)
@@ -77,20 +86,14 @@ CEntityInstance* CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(v8:
 	}
 
 	// TODO: we don't know the Entity marker to check for, this will probably explode if we pass something else.
-	// Validate type marker in field 0
-	// values under returned pointer seem to be:
-	// u32 0x1
-	uint32_t* typeMarker = (uint32_t*)obj->GetAlignedPointerFromInternalField(0);
-	//Msg("cs_script type marker is %d", *typeMarker);
-
-	CSScriptEntityHandle* entPointer = (CSScriptEntityHandle*)obj->GetAlignedPointerFromInternalField(1);
+	uint32_t* typeMarker = static_cast<uint32_t*>(obj->GetAlignedPointerFromInternalField(0));
+	CSScriptEntityHandle* entPointer = static_cast<CSScriptEntityHandle*>(obj->GetAlignedPointerFromInternalField(1));
 	if (!entPointer)
 	{
 		Msg("[cs_script_extensions] Failed to get entity pointer from object! (Field 1 of object doesn't exist)");
 		return nullptr;
 	}
-	auto ent = entPointer->handle.Get();
-	return ent;
+	return entPointer->handle.Get();
 }
 
 CCSBaseScript* CSScriptExtensionsSystem::GetCurrentCsScriptInstance()
@@ -98,15 +101,15 @@ CCSBaseScript* CSScriptExtensionsSystem::GetCurrentCsScriptInstance()
 	return m_pfnGetCurrentCSScript();
 }
 
-v8::Local<v8::Object> CSScriptExtensionsSystem::CreateEntityObject(CEntityInstance* ent)
+v8::Local<v8::Object> CSScriptExtensionsSystem::CreateEntityObjectAuto(CEntityInstance* ent)
 {
-	return m_pfnScriptAssignEntAuto(ent);
+	return m_pfnAssignEntityToObject(ent);
 }
 
-//v8::Local<v8::Object> CSScriptExtensionsSystem::AssignEntityToObject(v8::Local<v8::Object> obj, const char* name, CEntityInstance* ent)
-//{
-//	return m_pfnScriptAssignEntityToObject(obj, name, ent);
-//}
+v8::Local<v8::Object> CSScriptExtensionsSystem::CreateEntityObjectFromTemplate(const CGlobalSymbol& templateName, CEntityInstance* entity)
+{
+	return m_pfnCreateEntintyObjectFromTemplate(templateName, entity);
+}
 
 void CSScriptExtensionsSystem::Hook_RegisterInstanceTemplate(
 	CCSBaseScript* script, 
@@ -114,20 +117,8 @@ void CSScriptExtensionsSystem::Hook_RegisterInstanceTemplate(
 	v8::Local<v8::FunctionTemplate> funcTemplate
 )
 {
-	OnScriptInstanceRegisterInstance(script, funcTemplate->PrototypeTemplate(), name);
+	OnScriptInstanceRegisterFunctionTemplate(script, funcTemplate->PrototypeTemplate(), name);
 	m_pHookRegisterInstanceTemplate.call(script, name, funcTemplate);
-}
-
-void CSScriptExtensionsSystem::AddCallbackNative(CCSScript_EntityScript* script, const char* callbackName, v8::Local<v8::Function> func)
-{
-	auto symbol = MakeGlobalSymbol(callbackName);
-	if (script->callbackMap.HasElement(symbol))
-	{
-		Log_Warning(g_logChanScript, "Callback \"%s\" already registered\n", callbackName);
-		return;
-	}
-	v8::Global<v8::Function>* newFunc = new v8::Global<v8::Function>(v8::Isolate::GetCurrent(), func);
-	script->callbackMap.Insert(symbol, newFunc);
 }
 
 //void CSScriptExtensionsSystem::AddCallback(uint64_t scriptIdx, const char* callbackName, v8::Global<v8::Function>&& func, v8::Global<v8::Context>&& ctx)
@@ -179,81 +170,53 @@ void CSScriptExtensionsSystem::AddCallbackNative(CCSScript_EntityScript* script,
 //	}
 //}
 
-void CSScriptExtensionsSystem::InvokeNativeCallbacks()
+//void CSScriptExtensionsSystem::TestInvokeAllCallbacks()
+//{
+//	auto isolate = v8::Isolate::GetCurrent();
+//	for (CEntityInstance* scriptEnt : GetScripts())
+//	{
+//		v8::HandleScope handleScope(isolate);
+//		auto script = GetScriptFromEntity(scriptEnt);
+//		auto context = script->context.Get(isolate);
+//		context->Enter();
+//		SwitchScriptContext(script);
+//		FOR_EACH_HASHTABLE(script->callbackMap, i)
+//		{
+//			auto key = script->callbackMap.Key(i);
+//			auto val = script->callbackMap.Element(i);
+//			auto func = val->Get(isolate);
+//
+//			v8::TryCatch tryCatch(isolate);
+//			v8::Local<v8::Value> args[3];
+//			args[0] = v8::String::NewFromUtf8(isolate, "hello").ToLocalChecked();
+//			args[1] = v8::Number::New(isolate, 42);
+//			args[2] = v8::Boolean::New(isolate, true);
+//			func->Call(context, context->Global(), 3, args);
+//			if (tryCatch.HasCaught())
+//			{
+//				v8::Local<v8::Value> exception = tryCatch.Exception();
+//				v8::String::Utf8Value exception_str(isolate, exception);
+//				Log_Warning(g_logChanScript, "Exception: %s\n", *exception_str);
+//			}
+//		}
+//		context->Exit();
+//	}
+//}
+
+void CSScriptExtensionsSystem::InvokeCallbacks(const char* callbackName, int argc, v8::Local<v8::Value> argv[])
 {
+	VPROF("CSScriptExtensionsSystem::InvokeCallbacks");
+
 	auto isolate = v8::Isolate::GetCurrent();
 	for (CEntityInstance* scriptEnt : GetScripts())
 	{
 		v8::HandleScope handleScope(isolate);
-		auto script = GetScriptFromEntity(scriptEnt);
-		auto context = script->context.Get(isolate);
-		context->Enter();
-		SwitchScriptContext(script);
-		FOR_EACH_HASHTABLE(script->callbackMap, i)
-		{
-			auto key = script->callbackMap.Key(i);
-			auto val = script->callbackMap.Element(i);
-			auto func = val->Get(isolate);
-
-			v8::TryCatch tryCatch(isolate);
-			v8::Local<v8::Value> args[3];
-			args[0] = v8::String::NewFromUtf8(isolate, "hello").ToLocalChecked();
-			args[1] = v8::Number::New(isolate, 42);
-			args[2] = v8::Boolean::New(isolate, true);
-			func->Call(context, context->Global(), 3, args);
-			if (tryCatch.HasCaught())
-			{
-				v8::Local<v8::Value> exception = tryCatch.Exception();
-				v8::String::Utf8Value exception_str(isolate, exception);
-				Log_Warning(g_logChanScript, "Exception: %s\n", *exception_str);
-			}
-		}
-		context->Exit();
+		if (const auto script = GetScriptFromEntity(scriptEnt))
+			script->InvokeCallback(callbackName, argc, argv);
 	}
 }
 
-void CSScriptExtensionsSystem::InvokeNativeCallback(const char* callbackName, int argc, v8::Local<v8::Value> argv[])
-{
-	VPROF("CSScriptExtensionsSystem::InvokeNativeCallback");
-
-	auto isolate = v8::Isolate::GetCurrent();
-	for (CEntityInstance* scriptEnt : GetScripts())
-	{
-		v8::HandleScope handleScope(isolate);
-		auto script = GetScriptFromEntity(scriptEnt);
-		InvokeNativeCallbackForScript(script, callbackName, argc, argv);
-	}
-}
-
-v8::Local<v8::Value> CSScriptExtensionsSystem::InvokeNativeCallbackForScript(CCSScript_EntityScript* script, const char* callbackName, int argc, v8::Local<v8::Value> argv[])
-{
-	VPROF("CSScriptExtensionsSystem::InvokeNativeCallbackForScript");
-
-	auto isolate = v8::Isolate::GetCurrent();
-	v8::EscapableHandleScope handleScope(isolate);
-	auto funcHandle = script->callbackMap.Get(MakeGlobalSymbol(callbackName), nullptr);
-	if (!funcHandle)
-		return {};
-	auto func = funcHandle->Get(isolate);
-	auto context = script->context.Get(isolate);
-	context->Enter();
-	SwitchScriptContext(script);
-	v8::TryCatch tryCatch(isolate);
-	auto result = func->Call(context, context->Global(), argc, argv);
-	if (tryCatch.HasCaught())
-	{
-		v8::Local<v8::Value> exception = tryCatch.Exception();
-		v8::String::Utf8Value exception_str(isolate, exception);
-		Log_Warning(g_logChanScript, "Exception during cs_script callback \"%s\"\n%s\n", callbackName, *exception_str);
-		return {};
-	}
-	context->Exit();
-	if (result.IsEmpty())
-		return {};
-	return handleScope.Escape(result.ToLocalChecked());
-}
-
-void CSScriptExtensionsSystem::OnScriptInstanceRegisterInstance(CCSBaseScript* script, v8::Local<v8::ObjectTemplate> functionTemplate, const char* name)
+void CSScriptExtensionsSystem::OnScriptInstanceRegisterFunctionTemplate(CCSBaseScript* script, v8::Local<v8::ObjectTemplate> prototypeTemplate, const char* name)
 {
 	std::string instanceNameStr(name);
 	if (!m_registeredFunctions.contains(instanceNameStr))
@@ -261,40 +224,38 @@ void CSScriptExtensionsSystem::OnScriptInstanceRegisterInstance(CCSBaseScript* s
 	auto& funcs = m_registeredFunctions[instanceNameStr];
 	for (const auto& funcInfo : funcs)
 	{
-		RegisterNewFunction(functionTemplate, funcInfo);
+		RegisterNewFunction(prototypeTemplate, funcInfo);
 		Log_Msg(g_logChanScript, "Registered script extension function %s.%s\n", funcInfo.scopeName.c_str(), funcInfo.name.c_str());
 	}
-	if (const auto entityScript = dynamic_cast<CCSScript_EntityScript*>(script))
+
+	for (const auto& initializer : m_functionTemplateInitializers)
 	{
-		V8CallbacksUserMsg::InitUserMessageInfoTemplate(entityScript);
+		if (initializer)
+			initializer(script);
 	}
 }
 
-void CSScriptExtensionsSystem::RegisterNewFunction(v8::Local<v8::ObjectTemplate> targetFuncTemplate, const ScriptFunctionInfo& funcInfo)
+void CSScriptExtensionsSystem::RegisterNewFunction(v8::Local<v8::ObjectTemplate> prototypeTemplate, const ScriptFunctionInfo& funcInfo)
 {
 	auto isolate = v8::Isolate::GetCurrent();
 	auto name = v8::String::NewFromUtf8(isolate, funcInfo.name.c_str()).ToLocalChecked();
 	auto funcTemplate = v8::FunctionTemplate::New(isolate, funcInfo.callback);
-	targetFuncTemplate->Set(name, funcTemplate);
+	prototypeTemplate->Set(name, funcTemplate);
 }
 
-void CSScriptExtensionsSystem::SwitchScriptContext(CCSScript_EntityScript* script)
+void CSScriptExtensionsSystem::SwitchScriptContext(CCSBaseScript* script)
 {
 	m_pfnSwitchScriptContext(script);
-}
-
-void CSScriptExtensionsSystem::AddUserMessageCallback(NetworkMessageId msgId, v8::Global<v8::Function> callback)
-{
 }
 
 std::vector<CEntityInstance*> CSScriptExtensionsSystem::GetScripts() {
 	std::vector<CEntityInstance*> vecInstances;
 	vecInstances.reserve(1);
-	EntityInstanceByClassIter_t iter(NULL, "point_script");
+	EntityInstanceByClassIter_t iter(nullptr, "point_script");
 
-	for (CPointScript* currentEnt = (CPointScript*)iter.First();
+	for (CPointScript* currentEnt = static_cast<CPointScript*>(iter.First());
 		currentEnt != nullptr;
-		currentEnt = (CPointScript*)iter.Next())
+		currentEnt = static_cast<CPointScript*>(iter.Next()))
 	{
 		vecInstances.emplace_back(currentEnt);
 	}

@@ -31,6 +31,7 @@
       <Filter>scriptExtensions</Filter>
     </ClCompile>
     <ClCompile Include="src\globalsymbol.cpp" />
+    <ClCompile Include="src\csscript.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="csv8.h" />
@@ -89,6 +90,9 @@
     </ClInclude>
     <ClInclude Include="src\utlatuolist.h" />
     <ClInclude Include="src\globalsymbol.h" />
+    <ClInclude Include="scriptcommon.h">
+      <Filter>scriptExtensions</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="cs2_sdk">

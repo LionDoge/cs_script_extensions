@@ -55,9 +55,6 @@ public: //hooks
 	void Hook_SetGameSpawnGroupMgr(IGameSpawnGroupMgr* pSpawnGroupMgr);
 	void Hook_StartupServer(const GameSessionConfiguration_t& config, ISource2WorldSession* pSession, const char* pszMapName);
 	void Hook_GameServerSteamAPIActivated();
-	//void OnValidateAuthTicket(ValidateAuthTicketResponse_t* pResponse);
-
-	//STEAM_GAMESERVER_CALLBACK_MANUAL(MMSPlugin, OnValidateAuthTicket, ValidateAuthTicketResponse_t, m_CallbackValidateAuthTicketResponse);
 public:
 	const char *GetAuthor() { return PLUGIN_AUTHOR; }
 	const char *GetName() { return PLUGIN_DISPLAY_NAME; }

@@ -22,10 +22,8 @@
 #include "module.h"
 #include "funchook.h"
 #include "csscript.h"
-//#include "entity/cbaseentity.h"
 #include "hudhintmanager.h"
 #include "schemasystem/schemasystem.h"
-#include <optional>
 #include "igameeventsystem.h"
 #include "recipientfilters.h"
 #include "vprof.h"
@@ -86,14 +84,8 @@ LoggingChannelID_t g_logChanScript;
 	funchookHandle = funchook_create(); \
 	funchook_prepare(funchookHandle, (void**)(&originalFunction), reinterpret_cast<void*>(hookedFunction)); \
 	funchook_install(funchookHandle, 0);
-CSScriptExtensionsSystem g_scriptExtensions; /*{
-	// class	func name		  scope name	  callback function
-	{ "Domain", "ShowHudHintAll", "point_script", V8Callbacks::V8ShowHudHintAll },
-	{ "Domain", "AddSampleCallback", "point_script", V8Callbacks::AddSampleCallback },
-	{ "Entity", "SetMoveType", "Entity", V8Callbacks::SetEntityMoveType },
-	{ "Entity", "GetSchemaField", "Entity", SchemaObject::New}
-};*/
 
+CSScriptExtensionsSystem* g_scriptExtensions;
 typedef CBaseEntity* (__fastcall* CreateEntityByNameFunc_t)(const char* className, int iForceEdictIndex);
 typedef CBaseEntity* (__fastcall* DispatchSpawnFunc_t)(CBaseEntity* ent, CEntityKeyValues* pEntityKeyValues);
 CreateEntityByNameFunc_t g_pfnCreateEntityByName = nullptr;
@@ -257,52 +249,47 @@ int Hook_LoadEventsFromFile(const char* filename, bool bSearchAll)
 	RETURN_META_VALUE(MRES_IGNORED, 0);
 }
 
-void RegisterScriptFunctions()
+static void RegisterScriptFunctions()
 {
-	// Domain
-	/*g_scriptExtensions.AddNewFunction("Domain",
-		"ShowHudHintAll",
-		"point_script",
-		V8Callbacks::V8ShowHudHintAll
-	);*/
-
-	g_scriptExtensions.AddNewFunction("Domain", 
+	g_scriptExtensions->AddNewFunction("Domain", 
 		"MsgNew",
 		"point_script",
 		V8Callbacks::V8NewMsg
 	);
 
 	// Entity
-	g_scriptExtensions.AddNewFunction("Entity",
+	g_scriptExtensions->AddNewFunction("Entity",
 		"GetSchemaField",
-		"Entity",
+		"point_script",
 		V8Callbacks::V8GetSchemaField
 	);
 
 	// Player controller
-	g_scriptExtensions.AddNewFunction("CSPlayerController",
+	g_scriptExtensions->AddNewFunction("CSPlayerController",
 		"ShowHudMessageHTML",
-		"CSPlayerController",
+		"point_script",
 		V8Callbacks::V8ShowHTMLMessage
 	);
 
-	g_scriptExtensions.AddNewFunction("CSPlayerController",
+	g_scriptExtensions->AddNewFunction("CSPlayerController",
 		"ShowHudHint",
-		"CSPlayerController",
+		"point_script",
 		V8Callbacks::V8ShowHudHint
 	);
 
-	g_scriptExtensions.AddNewFunction("Domain",
+	g_scriptExtensions->AddNewFunction("Domain",
 		"AddSampleCallback",
 		"point_script",
 		V8Callbacks::AddSampleCallback
 	);
 
-	g_scriptExtensions.AddNewFunction("Domain",
+	g_scriptExtensions->AddNewFunction("Domain",
 		"OnUserMessage",
 		"point_script",
-		V8CallbacksUserMsg::OnUserMessage
+		ScriptUserMessage::OnUserMessage
 	);
+
+	g_scriptExtensions->RegisterCustomFunctionTemplate(ScriptUserMessage::InitUserMessageInfoTemplate);
 	
 }
 
@@ -341,17 +328,6 @@ void UnlockConVars()
 	}
 
 	Msg("Removed hidden flags from %d convars\n", iUnhiddenConVars);
-}
-
-CON_COMMAND(entsyst, "")
-{
-	auto entSystem = GameEntitySystem();
-	Msg("entitysystem");
-}
-
-CON_COMMAND(test_cb, "")
-{
-	g_scriptExtensions.InvokeNativeCallbacks();
 }
 
 PLUGIN_EXPOSE(MMSPlugin, g_ThisPlugin);
@@ -417,8 +393,10 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 	if (!addresses::Initialize(g_GameConfig))
 		bRequiredInitLoaded = false;
 
+
+	g_scriptExtensions = CSScriptExtensionsSystem::GetInstance();
 	RegisterScriptFunctions();
-	if(!g_scriptExtensions.Initialize(g_GameConfig))
+	if(!g_scriptExtensions->Initialize(g_GameConfig))
 		bRequiredInitLoaded = false;
 
 	if (!bRequiredInitLoaded)
@@ -525,8 +503,7 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 	}*/
 
 	auto gameEventMgrVtbl = (IGameEventManager2*)modules::server->FindVirtualTable("CGameEventManager");
-	SH_ADD_DVPHOOK(IGameEventManager2, LoadEventsFromFile, gameEventMgrVtbl, Hook_LoadEventsFromFile, false);
-	
+	SH_ADD_DVPHOOK(IGameEventManager2, LoadEventsFromFile, gameEventMgrVtbl, Hook_LoadEventsFromFile, false);\
 
 	return true;
 }
@@ -542,7 +519,7 @@ bool MMSPlugin::Unload(char *error, size_t maxlen)
 	SH_REMOVE_HOOK(IServerGameClients, ClientConnect, gameclients, SH_MEMBER(this, &MMSPlugin::Hook_ClientConnect), false);
 	SH_REMOVE_HOOK(IServerGameClients, ClientCommand, gameclients, SH_MEMBER(this, &MMSPlugin::Hook_ClientCommand), false);
 	//SH_REMOVE_HOOK(INetworkServerService, StartupServer, g_pNetworkServerService, SH_MEMBER(this, &MMSPlugin::Hook_StartupServer), true);
-
+	delete g_scriptExtensions;
 
 	return true;
 }
@@ -686,8 +663,8 @@ void MMSPlugin::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nCli
 	INetworkMessageInternal* pEvent, const CNetMessage* pData, unsigned long nSize, NetChannelBufType_t bufType)
 {
 	NetMessageInfo_t* info = pEvent->GetNetMessageInfo();
-	CUtlString scriptCallbackName("OnUserMessage:");
-	scriptCallbackName += info->m_MessageId;
+	CBufferString scriptCallbackName("OnUserMessage:");
+	scriptCallbackName.AppendFormat("%d", info->m_MessageId);
 
 	auto msg = const_cast<CNetMessage*>(pData)->ToPB<google::protobuf::Message>();
 	ScriptUserMessageInfo* userMessageInfo = new ScriptUserMessageInfo(msg, clients);
@@ -697,10 +674,10 @@ void MMSPlugin::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nCli
 		auto script = CSScriptExtensionsSystem::GetScriptFromEntity(scriptEnt);
 		if (!script)
 			continue;
-		auto obj = V8CallbacksUserMsg::CreateUserMessageInfoInstance(script, userMessageInfo);
+		auto obj = ScriptUserMessage::CreateUserMessageInfoInstance(script, userMessageInfo);
 		v8::Local<v8::Value> jsArgs[] = { obj };
 
-		auto result = g_scriptExtensions.InvokeNativeCallbackForScript(script, scriptCallbackName, 1, jsArgs);
+		auto result = script->InvokeCallback(scriptCallbackName.Get(), 1, jsArgs);
 		// script returned false - clear all recipients (block).
 		if (result->IsBoolean() && !result->ToBoolean(v8::Isolate::GetCurrent())->Value())
 		{
@@ -732,52 +709,6 @@ CServerSideClient* FASTCALL Detour_GetFreeClient(int64_t unk1, const __m128i* un
 	return nullptr;
 }
 
-//void MMSPlugin::OnValidateAuthTicket(ValidateAuthTicketResponse_t* pResponse)
-//{
-//	uint64 iSteamId = pResponse->m_SteamID.ConvertToUint64();
-//
-//	Msg("%s: SteamID=%llu Response=%d\n", __func__, iSteamId, pResponse->m_eAuthSessionResponse);
-//
-//	for (auto pPlayer : m_vecCustomPlayers)
-//	{
-//		if (!pPlayer || pPlayer->IsFakePlayer() || !(pPlayer->GetUnauthenticatedSteamId() == iSteamId))
-//			continue;
-//
-//		CCSPlayerController* pController = CCSPlayerController::FromSlot(pPlayer->GetPlayerSlot());
-//
-//		switch (pResponse->m_eAuthSessionResponse)
-//		{
-//		case k_EAuthSessionResponseOK:
-//		{
-//			pPlayer->OnAuthenticated();
-//			return;
-//		}
-//
-//		case k_EAuthSessionResponseAuthTicketInvalid:
-//		case k_EAuthSessionResponseAuthTicketInvalidAlreadyUsed:
-//		{
-//			ClientPrint(pController, HUD_PRINTTALK, " \7Your Steam authentication failed due to an invalid or used ticket.");
-//			ClientPrint(pController, HUD_PRINTTALK, " \7You may have to restart your Steam client in order to fix this.\n");
-//			[[fallthrough]];
-//		}
-//
-//		default:
-//		{
-//			Msg("Kicking player %d for failed Steam authentication\n", pPlayer->GetPlayerSlot());
-//			//ClientPrint(pController, HUD_PRINTTALK, " \7WARNING: You will be kicked in %i seconds due to failed Steam authentication.\n", g_cvarDelayAuthFailKick.Get());
-//
-//			//ZEPlayerHandle hPlayer = pPlayer->GetHandle();
-//			//CTimer::Create(g_cvarDelayAuthFailKick.Get(), TIMERFLAG_NONE, [hPlayer]() {
-//				//if (!hPlayer.IsValid())
-//					//return -1.f;
-//
-//			g_pEngineServer2->DisconnectClient(pPlayer->GetPlayerSlot(), NETWORK_DISCONNECT_KICKED_NOSTEAMLOGIN, "Auto kicked for failed steam authentication");
-//				//return -1.f;
-//				//});
-//		}
-//	}
-//}
-
 CON_COMMAND_F(scrtest, "Test create script", FCVAR_NONE)
 {
 	META_CONPRINTF("Sample command called by %d. Command: %s\n", context.GetPlayerSlot(), args.GetCommandString());
@@ -797,66 +728,7 @@ CON_COMMAND_F(script_summary, "List registered function templates on scripts", F
 	{
 		v8::HandleScope handleScope(isolate);
 		auto script = CSScriptExtensionsSystem::GetScriptFromEntity(scriptEnt);
-		auto context = script->context.Get(isolate);
-		Msg("point_script: \"%s\" [%d]\n", scriptEnt->m_pEntity->m_name.String(), script->globalScriptIndex);
-		Msg("  Callbacks:\n");
-		FOR_EACH_HASHTABLE(script->callbackMap, i)
-		{
-			auto key = script->callbackMap.Key(i);
-			Msg("   - %s\n", key.Get());
-		}
-		Msg("  Function templates:\n");
-		FOR_EACH_HASHTABLE(script->functionTemplateMap, i)
-		{
-			auto key = script->functionTemplateMap.Key(i);
-			Msg("   - %s\n", key.Get());
-		}
-		Msg("  All registered types (including enums):\n");
-		FOR_EACH_VEC(script->registeredTypes, i)
-		{
-			auto val = script->registeredTypes.Element(i);
-			Msg("   - %s\n", val.Get());
-		}
-		Msg("  Enumerators:\n");
-		FOR_EACH_HASHTABLE(script->enumMap, i)
-		{
-			auto key = script->enumMap.Key(i);
-			Msg("   - %s\n", key.Get());
-			auto val = script->enumMap.Element(i);
-			auto obj = val->Get(isolate);
-			auto properties = obj->GetOwnPropertyNames(context).ToLocalChecked();
-			for (uint32_t j = 0; j < properties->Length(); j++)
-			{
-				auto propKey = properties->Get(context, j).ToLocalChecked();
-				v8::String::Utf8Value utf8Key(isolate, propKey);
-				auto propVal = obj->Get(context, propKey).ToLocalChecked();
-				if (propVal->IsNumber())
-				{
-					int numVal = propVal->Int32Value(context).ToChecked();
-					Msg("     - %s = %d\n", *utf8Key, numVal);
-				}
-			}
-		}
-	}
-}
-
-CON_COMMAND_F(script_fill, "List registered function templates on scripts", FCVAR_NONE)
-{
-	for (CEntityInstance* scriptEnt : CSScriptExtensionsSystem::GetScripts())
-	{
-		auto isolate = v8::Isolate::GetCurrent();
-		auto script = CSScriptExtensionsSystem::GetScriptFromEntity(scriptEnt);
-		v8::HandleScope handleScope(isolate);
-
-		for (int i = 0; i < 20; i++)
-		{
-			v8::Local<v8::ObjectTemplate> objTem = v8::ObjectTemplate::New(isolate);
-			v8::Local<v8::Object> obj = objTem->NewInstance(script->context.Get(isolate)).ToLocalChecked();
-			v8::Global<v8::Object>* newObj = new v8::Global<v8::Object>(v8::Isolate::GetCurrent(), obj);
-			CUtlString str("func_");
-			str += i;
-			script->enumMap.Insert(str.Get(), newObj);
-		}
+		script->PrintSummary();
 	}
 }
 

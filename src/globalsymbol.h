@@ -1,6 +1,9 @@
 #pragma once
+#include <iostream>
+#include <ostream>
 #include "platform.h"
 
+// Likely just CUtlSymbolLarge utilizing a global symbol table.
 class CGlobalSymbol
 {
 public:
@@ -21,12 +24,20 @@ struct GlobalSymbolHashFunctor
 	unsigned int operator() (const CGlobalSymbol& globalSymbol) const;
 };
 
-#pragma comment(linker, "/alternatename:__imp_MakeGlobalSymbol=_MakeGlobalSymbol")
-#pragma comment(linker, "/alternatename:__imp_MakeGlobalSymbolCaseSensitive=_MakeGlobalSymbolCaseSensitive")
-#pragma comment(linker, "/alternatename:__imp_FindGlobalSymbol=_FindGlobalSymbol")
-#pragma comment(linker, "/alternatename:__imp_FindGlobalSymbolByHash=_FindGlobalSymbolByHash")
+inline const char* MakeGlobalSymbol(const char* str)
+{
+	// TODO: Move out of here, fix the linking.
+	HMODULE hModule = GetModuleHandleA("tier0.dll");
+	if (hModule == NULL) {
+		std::cerr << "Failed to get module handle. Error: " << GetLastError() << std::endl;
+	}
+	FARPROC funcAddress = GetProcAddress(hModule, "_MakeGlobalSymbol");
 
-PLATFORM_INTERFACE CGlobalSymbol MakeGlobalSymbol(const char* str);
+	typedef const char* (*MakeGlobalSymbolFunc)(const char*);
+	MakeGlobalSymbolFunc func = reinterpret_cast<MakeGlobalSymbolFunc>(funcAddress);
+	return func(str);
+}
+
 PLATFORM_INTERFACE CGlobalSymbolCaseSensitive MakeGlobalSymbolCaseSensitive(const char* str);
 PLATFORM_INTERFACE CGlobalSymbol FindGlobalSymbol(const char* str);
 PLATFORM_INTERFACE CGlobalSymbol FindGlobalSymbolByHash(uint32 hash);

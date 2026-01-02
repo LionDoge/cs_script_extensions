@@ -327,17 +327,7 @@ void V8Callbacks::AddSampleCallback(const v8::FunctionCallbackInfo<v8::Value>& a
 		return;
 	}
 	auto callback = args[0].As<v8::Function>();
-
-	//const char* test = func("OnPlayerPing");
-	//v8::Global<v8::Function> def;
-	/*uint64_t a = 50;
-	auto elem = script->callbackMap.Insert(test, a);*/
-	//auto& functor = script->callbackMap.GetHashRef();
-	g_scriptExtensions.AddCallbackNative(
-		script,
-		"OnSampleCallback",
-		callback
-	);
+	script->AddCallback("OnSampleCallback", callback);
 }
 
 void V8Callbacks::SetEntityMoveType(const v8::FunctionCallbackInfo<v8::Value>& args)
@@ -365,8 +355,6 @@ void V8Callbacks::SetEntityMoveType(const v8::FunctionCallbackInfo<v8::Value>& a
 
 	int moveType = static_cast<int>(args[0].As<v8::Number>()->Value());
 	baseEnt->SetMoveType(static_cast<MoveType_t>(moveType));
-	/*baseEnt->m_MoveType();
-	baseEnt->m_nActualMoveType(static_cast<MoveType_t>(moveType));*/
 }
 
 template <typename T>
