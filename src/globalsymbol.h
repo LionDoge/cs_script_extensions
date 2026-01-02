@@ -27,6 +27,7 @@ struct GlobalSymbolHashFunctor
 inline const char* MakeGlobalSymbol(const char* str)
 {
 	// TODO: Move out of here, fix the linking.
+#ifdef _WIN32
 	HMODULE hModule = GetModuleHandleA("tier0.dll");
 	if (hModule == NULL) {
 		std::cerr << "Failed to get module handle. Error: " << GetLastError() << std::endl;
@@ -36,6 +37,20 @@ inline const char* MakeGlobalSymbol(const char* str)
 	typedef const char* (*MakeGlobalSymbolFunc)(const char*);
 	MakeGlobalSymbolFunc func = reinterpret_cast<MakeGlobalSymbolFunc>(funcAddress);
 	return func(str);
+#else
+	void* hModule = dlopen("libtier0.so", RTLD_LAZY);
+	if (hModule == NULL) {
+		std::cerr << "Failed to load library. Error: " << dlerror() << std::endl;
+	}
+	void* funcAddress = dlsym(hModule, "_MakeGlobalSymbol");
+	if (funcAddress == NULL) {
+		std::cerr << "Failed to find symbol. Error: " << dlerror() << std::endl;
+	}
+
+	typedef const char* (*MakeGlobalSymbolFunc)(const char*);
+	MakeGlobalSymbolFunc func = reinterpret_cast<MakeGlobalSymbolFunc>(funcAddress);
+	return func(str);
+#endif
 }
 
 PLATFORM_INTERFACE CGlobalSymbolCaseSensitive MakeGlobalSymbolCaseSensitive(const char* str);
