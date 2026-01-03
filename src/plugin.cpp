@@ -662,26 +662,40 @@ void MMSPlugin::Hook_StartupServer(const GameSessionConfiguration_t& config, ISo
 void MMSPlugin::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nClientCount, const uint64* clients,
 	INetworkMessageInternal* pEvent, const CNetMessage* pData, unsigned long nSize, NetChannelBufType_t bufType)
 {
-	NetMessageInfo_t* info = pEvent->GetNetMessageInfo();
-	CBufferString scriptCallbackName("OnUserMessage:");
-	scriptCallbackName.AppendFormat("%d", info->m_MessageId);
+	auto scripts = CSScriptExtensionsSystem::GetScripts();
 
-	auto msg = const_cast<CNetMessage*>(pData)->ToPB<google::protobuf::Message>();
-	ScriptUserMessageInfo* userMessageInfo = new ScriptUserMessageInfo(msg, clients);
-	for (CEntityInstance* scriptEnt : CSScriptExtensionsSystem::GetScripts())
+	if (!scripts.empty())
 	{
-		v8::HandleScope handleScope(v8::Isolate::GetCurrent());
-		auto script = CSScriptExtensionsSystem::GetScriptFromEntity(scriptEnt);
-		if (!script)
-			continue;
-		auto obj = ScriptUserMessage::CreateUserMessageInfoInstance(script, userMessageInfo);
-		v8::Local<v8::Value> jsArgs[] = { obj };
+		NetMessageInfo_t* info = pEvent->GetNetMessageInfo();
+		CBufferString scriptCallbackName("OnUserMessage:");
+		scriptCallbackName.AppendFormat("%d", info->m_MessageId);
+		CGlobalSymbol callbackSymbol(scriptCallbackName.Get());
 
-		auto result = script->InvokeCallback(scriptCallbackName.Get(), 1, jsArgs);
-		// script returned false - clear all recipients (block).
-		if (result->IsBoolean() && !result->ToBoolean(v8::Isolate::GetCurrent())->Value())
+		ScriptUserMessageInfo* userMessageInfo = nullptr;
+
+		bool scriptCallbackInitialized = false;
+		for (CEntityInstance* scriptEnt : scripts)
 		{
-			*const_cast<uint64*>(clients) = 0;
+			v8::HandleScope handleScope(v8::Isolate::GetCurrent());
+			auto script = CSScriptExtensionsSystem::GetScriptFromEntity(scriptEnt);
+			if (!script || !script->IsCallbackRegistered(callbackSymbol))
+				continue;
+
+			if (!scriptCallbackInitialized)
+			{
+				auto msg = const_cast<CNetMessage*>(pData)->ToPB<google::protobuf::Message>();
+				userMessageInfo = new ScriptUserMessageInfo(msg, clients);
+				scriptCallbackInitialized = true;
+			}
+			auto obj = ScriptUserMessage::CreateUserMessageInfoInstance(script, userMessageInfo);
+			v8::Local<v8::Value> jsArgs[] = { obj };
+
+			auto result = script->InvokeCallback(callbackSymbol, 1, jsArgs);
+			// script returned false - clear all recipients (block).
+			if (!result.IsEmpty() && result->IsBoolean() && !result->ToBoolean(v8::Isolate::GetCurrent())->Value())
+			{
+				*const_cast<uint64*>(clients) = 0;
+			}
 		}
 	}
 }

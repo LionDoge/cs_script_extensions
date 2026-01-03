@@ -7,6 +7,7 @@
 class CGlobalSymbol
 {
 public:
+	CGlobalSymbol() = default;
 	CGlobalSymbol(const char* str);
 
 	uint32_t Hash() const;

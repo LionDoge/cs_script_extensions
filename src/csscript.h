@@ -41,6 +41,7 @@ private:
 	CUtlHashtable<CGlobalSymbol, v8::Global<v8::Object>*, GlobalSymbolHashFunctor, PointerEqualFunctor> m_enumMap; // 0x70 (112);
 	CUtlHashtable<CGlobalSymbol, v8::Global<v8::Function>*, GlobalSymbolHashFunctor, PointerEqualFunctor> m_callbackMap; // 0x90 (144);
 	CUtlHashtable<CEntityHandle, v8::Global<v8::Object>*, MurmurHash2HashFunctor> m_entityObjects; // 0xb0 (176);
+	// There's likely one more hashtable, but for me it's been always empty.
 };
 
 class CCSScript_EntityScript : public CCSBaseScript {};
@@ -57,5 +58,5 @@ struct CSScriptHeader
 {
 	void* toolsResourceListener;
 	CUtlString scriptPath;
-	CUtlString** scriptTextContents;
+	v8::Global<v8::String> scriptTextContents;
 };

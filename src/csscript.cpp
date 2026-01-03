@@ -117,7 +117,7 @@ void CCSBaseScript::AddFunctionTemplate(CGlobalSymbol name, const v8::Local<v8::
 {
 	auto persistentTp = new v8::Global<v8::FunctionTemplate>(v8::Isolate::GetCurrent(), functionTemplate);
 	m_functionTemplateMap.Insert(name, persistentTp);
-	m_registeredTypes.AddToTail(name);
+	m_registeredTypes.AddToHead(name);
 }
 
 const v8::Global<v8::FunctionTemplate>* CCSBaseScript::GetFunctionTemplate(CGlobalSymbol name) const
