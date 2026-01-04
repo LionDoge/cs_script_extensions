@@ -10,21 +10,25 @@ class CCSBaseScript : public IEntityListener, public CUtlAutoList<CCSBaseScript>
 public:
 	// only game can construct this properly
 	CCSBaseScript() = delete;
+	CCSBaseScript(const CCSBaseScript&) = delete;
+	void operator=(const CCSBaseScript&) = delete;
 
 	virtual const char* GetName() const = 0;
 	virtual CGlobalSymbol GetNameSymbol() = 0;
 	virtual void InitializeFunctionTemplates() = 0;
 	virtual void UnloadScript() = 0;
 
+	bool operator==(const CCSBaseScript& rhs) const;
 	const v8::Global<v8::Context>& GetContext();
+	void PrintSummary() const;
+
 	void AddCallback(CGlobalSymbol callbackName, v8::Local<v8::Function> callbackFunction);
 	v8::Local<v8::Value> InvokeCallback(CGlobalSymbol callbackName, int argc, v8::Local<v8::Value> argv[]);
 	bool IsCallbackRegistered(CGlobalSymbol callbackName) const;
-	void PrintSummary() const;
-
 	void AddFunctionTemplate(CGlobalSymbol name, const v8::Local<v8::FunctionTemplate>& functionTemplate);
 	const v8::Global<v8::FunctionTemplate>* GetFunctionTemplate(CGlobalSymbol name) const;
-	bool IsTypeRegistered(CGlobalSymbol name);
+	bool IsTypeRegistered(CGlobalSymbol name) const;
+
 private:
 	// https://github.com/Wend4r/sourcesdk/blob/016a41630755cf86d650654c991069853418610a/public/entity2/entitysystem.h#L262
 	struct MurmurHash2HashFunctor
@@ -41,14 +45,22 @@ private:
 	CUtlHashtable<CGlobalSymbol, v8::Global<v8::Object>*, GlobalSymbolHashFunctor, PointerEqualFunctor> m_enumMap; // 0x70 (112);
 	CUtlHashtable<CGlobalSymbol, v8::Global<v8::Function>*, GlobalSymbolHashFunctor, PointerEqualFunctor> m_callbackMap; // 0x90 (144);
 	CUtlHashtable<CEntityHandle, v8::Global<v8::Object>*, MurmurHash2HashFunctor> m_entityObjects; // 0xb0 (176);
-	// There's likely one more hashtable, but for me it's been always empty.
+	CUtlHashtable<void*, v8::Global<v8::Object>*, MurmurHash2HashFunctor> m_otherObjects;
 };
 
 class CCSScript_EntityScript : public CCSBaseScript {};
 
+enum ScriptHandleType
+{
+	Invalid = 0,
+	Module = 1, // Only seen used when initializing 'Domain' module. 
+	Entity = 2,
+	GenericObject = 3, // only seen used for CSWeaponData
+};
+
 struct CSScriptEntityHandle
 {
-	uint32_t typeIdentifier; // looks like it's equal to 2 usually?
+	ScriptHandleType typeIdentifier;
 	uint32_t unk;
 	CEntityHandle handle;
 };

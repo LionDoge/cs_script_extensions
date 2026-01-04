@@ -111,6 +111,11 @@ void CCSBaseScript::PrintSummary() const
 		}
 		// TODO: print stored values
 	}
+	Msg("  Other objects:\n");
+	FOR_EACH_HASHTABLE(m_otherObjects, i)
+	{
+		auto key = m_otherObjects.Key(i);
+	}
 }
 
 void CCSBaseScript::AddFunctionTemplate(CGlobalSymbol name, const v8::Local<v8::FunctionTemplate>& functionTemplate)
@@ -125,7 +130,12 @@ const v8::Global<v8::FunctionTemplate>* CCSBaseScript::GetFunctionTemplate(CGlob
 	return m_functionTemplateMap.Get(name, nullptr);
 }
 
-bool CCSBaseScript::IsTypeRegistered(CGlobalSymbol name)
+bool CCSBaseScript::IsTypeRegistered(CGlobalSymbol name) const
 {
 	return m_registeredTypes.HasElement(name);
+}
+
+bool CCSBaseScript::operator==(const CCSBaseScript& rhs) const
+{
+	return this->m_globalScriptIndex == rhs.m_globalScriptIndex;
 }

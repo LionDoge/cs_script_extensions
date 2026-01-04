@@ -86,6 +86,7 @@ CEntityInstance* CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(v8:
 	}
 
 	// TODO: we don't know the Entity marker to check for, this will probably explode if we pass something else.
+	// Note: The domain marker is a pointer to a value that evaluates to the type that's defined by 'ScriptHandleType'.
 	uint32_t* typeMarker = static_cast<uint32_t*>(obj->GetAlignedPointerFromInternalField(0));
 	CSScriptEntityHandle* entPointer = static_cast<CSScriptEntityHandle*>(obj->GetAlignedPointerFromInternalField(1));
 	if (!entPointer)
