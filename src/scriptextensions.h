@@ -56,9 +56,13 @@ public:
 	static CCSScript_EntityScript* GetScriptFromEntity(CEntityInstance* ent);
 	CSScriptHeader* GetScriptHeaderFromEntity(CEntityInstance* ent);
 
-	void Hook_RegisterInstanceTemplate(CCSBaseScript* script, const char* name, v8::Local<v8::FunctionTemplate> funcTemplate);
+	void Hook_RegisterFunctionTemplate(CCSBaseScript* script, const char* name, v8::Local<v8::FunctionTemplate> funcTemplate);
 	// Invoke named callback on all scripts, this doesn't let you retrieve return values yet, maybe later...
 	void InvokeCallbacks(const char* callbackName, int argc, v8::Local<v8::Value> argv[]);
+	
+	// just calls the game function
+	void ScriptRegisterFunctionTemplate(CCSBaseScript* script, const char* name, const v8::Local<v8::FunctionTemplate>& functionTemplate);
+	void RunScriptString(CCSBaseScript* script, const char* path, const char* scriptData);
 
 protected:
 	// Should be called by a hook when a script is being created.
@@ -79,6 +83,7 @@ private:
 	typedef	v8::Local<v8::Object>(FASTCALL* funcScriptAssignEntAuto_t)(CEntityInstance* ent);
 	typedef	v8::Local<v8::Object>(FASTCALL* funcCreateEntityObjectFromTemplate_t)(const CGlobalSymbol& name, CEntityInstance* ent);
 	typedef void(FASTCALL* funcSwitchScriptContext_t)(CCSBaseScript* script);
+	typedef void(FASTCALL* funcRunScriptString)(CCSBaseScript* script, const char* path, const char* scriptData);
 
 	inline static funcRegisterV8InstanceTemplate_t m_pfnRegisterInstanceTemplate;
 	inline static funcGetEntityInstanceFromCSScriptArg_t m_pfnGetEntityInstanceFromCSScriptArg;
@@ -86,6 +91,7 @@ private:
 	inline static funcScriptAssignEntAuto_t m_pfnAssignEntityToObject;
 	inline static funcCreateEntityObjectFromTemplate_t m_pfnCreateEntintyObjectFromTemplate;
 	inline static funcSwitchScriptContext_t m_pfnSwitchScriptContext;
+	inline static funcRunScriptString m_pfnRunScript;
 
 	// hooks
 	SafetyHookInline m_pHookRegisterInstanceTemplate{};

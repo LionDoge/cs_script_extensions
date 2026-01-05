@@ -16,16 +16,17 @@ public:
 	virtual const char* GetName() const = 0;
 	virtual CGlobalSymbol GetNameSymbol() = 0;
 	virtual void InitializeFunctionTemplates() = 0;
-	virtual void UnloadScript() = 0;
+	virtual void UnloadScript() = 0; // just cleans up all the fields and deallocates memory.
 
 	bool operator==(const CCSBaseScript& rhs) const;
 	const v8::Global<v8::Context>& GetContext();
+	uint64_t GetScriptIndex();
 	void PrintSummary() const;
 
 	void AddCallback(CGlobalSymbol callbackName, v8::Local<v8::Function> callbackFunction);
 	v8::Local<v8::Value> InvokeCallback(CGlobalSymbol callbackName, int argc, v8::Local<v8::Value> argv[]);
 	bool IsCallbackRegistered(CGlobalSymbol callbackName) const;
-	void AddFunctionTemplate(CGlobalSymbol name, const v8::Local<v8::FunctionTemplate>& functionTemplate);
+	void AddFunctionTemplate(const char* name, const v8::Local<v8::FunctionTemplate>& functionTemplate);
 	const v8::Global<v8::FunctionTemplate>* GetFunctionTemplate(CGlobalSymbol name) const;
 	bool IsTypeRegistered(CGlobalSymbol name) const;
 
@@ -62,7 +63,7 @@ struct CSScriptEntityHandle
 {
 	ScriptHandleType typeIdentifier;
 	uint32_t unk;
-	CEntityHandle handle;
+	CEntityHandle handle; // TODO: depending on the handle type it's not always an entity handle
 };
 
 // above CSScript struct - (3 * 0x8)

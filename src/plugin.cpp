@@ -15,6 +15,9 @@
 #include "v8.h"
 #include <stdio.h>
 #include "plugin.h"
+
+#include <fstream>
+#include <sstream>
 #include "entitysystem.h"
 #include "schema.h"
 #include "protobuf/generated/networkbasetypes.pb.h"
@@ -35,6 +38,7 @@
 #include "safetyhook.hpp"
 #include "convar.h"
 #include "CustomPlayer.h"
+#include "entity.h"
 #include "scriptclasses/schemaobject.h"
 #include "sigutils.h"
 #include "iloopmode.h"
@@ -723,21 +727,143 @@ CServerSideClient* FASTCALL Detour_GetFreeClient(int64_t unk1, const __m128i* un
 	return nullptr;
 }
 
-CON_COMMAND_F(scrtest, "Test create script", FCVAR_NONE)
+// remember the script path by its id for reloading purposes
+// yes this doesn't get cleaned properly, but I don't care right now.
+static std::unordered_map<uint64_t, std::string> scriptPathMap;
+
+void RunScriptFromFile(CCSScript_EntityScript* script, std::string_view relativePath, bool savePath = false)
 {
-	META_CONPRINTF("Sample command called by %d. Command: %s\n", context.GetPlayerSlot(), args.GetCommandString());
+	if (!script)
+		return;
+
+	CBufferStringGrowable<256> gamedirpath;
+	g_pEngineServer2->GetGameDir(gamedirpath);
+
+	std::stringstream pathStream(gamedirpath.Get());
+	pathStream << relativePath;
+
+	if (std::ifstream inFile(pathStream.str(), std::ios::in); inFile.good())
+	{
+		std::string fileContents{ std::istreambuf_iterator<char>(inFile), std::istreambuf_iterator<char>() };
+		g_scriptExtensions->RunScriptString(script, "nul.vjs_c", fileContents.c_str());
+
+		if (savePath)
+			scriptPathMap[script->GetScriptIndex()] = std::string(relativePath);
+	}
+	else
+	{
+		META_CONPRINT("Failed to open file for reading!\n");
+	}
+}
+
+CON_COMMAND_F(script_load, "Creates a script entity and loads the provided file (raw .js)", FCVAR_NONE)
+{
+	if (args.ArgC() < 2)
+	{
+		META_CONPRINT("Usage: script_load <script_file> [script_entity_name]\n");
+	}
+
+	const char* scriptName = "script";
+	if (args.ArgC() > 2)
+		scriptName = args[2];
+
 	auto point_script = addresses::CreateEntityByName("point_script", -1);
 	auto kv = new CEntityKeyValues();
-	kv->SetString("cs_script", "scripts/tests2.vjs");
-	kv->SetString("targetname", "elo");
+	kv->SetString("cs_script", "nul.vjs_c");
+	kv->SetString("targetname", scriptName);
 	addresses::DispatchSpawn(point_script, kv);
+
+	auto script = CSScriptExtensionsSystem::GetScriptFromEntity(point_script);
+	RunScriptFromFile(script, args[1], true);
+}
+
+CON_COMMAND_F(script_reload, "Reload a script (loaded by script_load only)", FCVAR_NONE)
+{
+	if (args.ArgC() < 2)
+	{
+		META_CONPRINT("Usage: script_reload <script_entity_name>\n");
+	}
+
+	CBaseEntity* ent = nullptr;
+	while ((ent = UTIL_FindEntityByName(ent, args[1])))
+	{
+		auto script = CSScriptExtensionsSystem::GetScriptFromEntity(ent);
+		if (!script)
+			continue;
+
+		auto index = script->GetScriptIndex();
+		if (scriptPathMap.contains(index))
+		{
+			RunScriptFromFile(script, scriptPathMap[index]);
+		}
+	}
+}
+
+CON_COMMAND_F(remove_scripts, "Remove all point_script entities", FCVAR_NONE)
+{
+	CBaseEntity* ent = nullptr;
+	while ((ent = UTIL_FindEntityByClassname(ent, "point_script")))
+	{
+		ent->Remove();
+	}
+	scriptPathMap.clear();
+}
+
+CON_COMMAND_F(script_run_code, "Run code inside an existing script", FCVAR_NONE)
+{
+	if (args.ArgC() < 3)
+	{
+		META_CONPRINT("Usage: script_code <script_entity_name> <js code>\n");
+	}
+	
+	const auto isolate = v8::Isolate::GetCurrent();
+	CBaseEntity* ent = nullptr;
+	while ((ent = UTIL_FindEntityByName(ent, args[1])))
+	{
+		if (!V_stricmp_fast(ent->GetClassname(), "point_script"))
+		{
+			if (const auto script = CSScriptExtensionsSystem::GetScriptFromEntity(ent))
+			{
+				v8::HandleScope handleScope(isolate);
+				const auto& scriptContext = script->GetContext().Get(isolate);
+				g_scriptExtensions->SwitchScriptContext(script);
+				v8::TryCatch tryCatch(isolate);
+
+				v8::Local<v8::String> source =
+					v8::String::NewFromUtf8(isolate, args[2]).ToLocalChecked();
+
+				v8::Local<v8::Script> compiledScript;
+				if (!v8::Script::Compile(scriptContext, source).ToLocal(&compiledScript))
+				{
+					v8::Local<v8::String> exceptionStr;
+					if (exceptionStr->ToString(scriptContext).ToLocal(&exceptionStr)) {
+						v8::String::Utf8Value error_msg(isolate, exceptionStr);
+						META_CONPRINTF("Error: %s\n", *error_msg);
+					}
+					META_CONPRINTF("Failed to compile string: %s\n", *exceptionStr);
+					return;
+				}
+
+				v8::Local<v8::Value> result;
+				if (!compiledScript->Run(scriptContext).ToLocal(&result))
+				{
+					v8::Local<v8::Value> exception = tryCatch.Exception();
+
+					v8::Local<v8::String> exceptionStr;
+					if (exception->ToString(scriptContext).ToLocal(&exceptionStr)) {
+						v8::String::Utf8Value error_msg(isolate, exceptionStr);
+						META_CONPRINTF("Error: %s\n", *error_msg);
+					}
+				}
+			}
+
+		}
+	}
 }
 
 CON_COMMAND_F(script_summary, "List registered function templates on scripts", FCVAR_NONE)
 {
 	auto isolate = v8::Isolate::GetCurrent();
-	/*auto test = MakeGlobalSymbol("test");
-	const char* a2 = "elo";*/
 	for (CEntityInstance* scriptEnt : CSScriptExtensionsSystem::GetScripts())
 	{
 		v8::HandleScope handleScope(isolate);

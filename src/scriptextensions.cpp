@@ -18,7 +18,7 @@ static void Hook_RegisterInstanceTemplateA(
 	const char* name,
 	v8::Local<v8::FunctionTemplate> funcTemplate
 ) {
-	g_scriptExtensions->Hook_RegisterInstanceTemplate(script, name, funcTemplate);
+	g_scriptExtensions->Hook_RegisterFunctionTemplate(script, name, funcTemplate);
 }
 
 bool CSScriptExtensionsSystem::ResolveSigs(CGameConfig* gameConfig)
@@ -28,6 +28,7 @@ bool CSScriptExtensionsSystem::ResolveSigs(CGameConfig* gameConfig)
 	RESOLVE_SIG(gameConfig, "CSScript_GetCurrentScriptContext", m_pfnGetCurrentCSScript)
 	RESOLVE_SIG(gameConfig, "CSScript_AssignEntityToObject", m_pfnAssignEntityToObject)
 	RESOLVE_SIG(gameConfig, "CSScript_CreateEntityObjectFromTemplate", m_pfnCreateEntintyObjectFromTemplate)
+	RESOLVE_SIG(gameConfig, "CSScript_RunScript", m_pfnRunScript)
 
 	return true;
 }
@@ -112,7 +113,7 @@ v8::Local<v8::Object> CSScriptExtensionsSystem::CreateEntityObjectFromTemplate(c
 	return m_pfnCreateEntintyObjectFromTemplate(templateName, entity);
 }
 
-void CSScriptExtensionsSystem::Hook_RegisterInstanceTemplate(
+void CSScriptExtensionsSystem::Hook_RegisterFunctionTemplate(
 	CCSBaseScript* script, 
 	const char* name, 
 	v8::Local<v8::FunctionTemplate> funcTemplate
@@ -215,6 +216,16 @@ void CSScriptExtensionsSystem::InvokeCallbacks(const char* callbackName, int arg
 		if (const auto script = GetScriptFromEntity(scriptEnt))
 			script->InvokeCallback(callbackName, argc, argv);
 	}
+}
+
+void CSScriptExtensionsSystem::ScriptRegisterFunctionTemplate(CCSBaseScript* script, const char* name, const v8::Local<v8::FunctionTemplate>& functionTemplate)
+{
+	m_pHookRegisterInstanceTemplate.call(script, name, functionTemplate);
+}
+
+void CSScriptExtensionsSystem::RunScriptString(CCSBaseScript* script, const char* path, const char* scriptData)
+{
+	m_pfnRunScript(script, path, scriptData);
 }
 
 void CSScriptExtensionsSystem::OnScriptInstanceRegisterFunctionTemplate(CCSBaseScript* script, v8::Local<v8::ObjectTemplate> prototypeTemplate, const char* name)

@@ -11,6 +11,11 @@ const v8::Global<v8::Context>& CCSBaseScript::GetContext()
 	return m_context;
 }
 
+uint64_t CCSBaseScript::GetScriptIndex()
+{
+	return m_globalScriptIndex;
+}
+
 void CCSBaseScript::AddCallback(CGlobalSymbol callbackName, v8::Local<v8::Function> callbackFunction)
 {
 	if (m_callbackMap.HasElement(callbackName))
@@ -19,7 +24,7 @@ void CCSBaseScript::AddCallback(CGlobalSymbol callbackName, v8::Local<v8::Functi
 		return;
 	}
 	const auto newFunc = new v8::Global<v8::Function>(v8::Isolate::GetCurrent(), callbackFunction);
-	m_callbackMap.Insert(callbackName, newFunc);
+	//m_callbackMap.Insert(callbackName, newFunc);
 }
 
 v8::Local<v8::Value> CCSBaseScript::InvokeCallback(CGlobalSymbol callbackName, int argc, v8::Local<v8::Value> argv[])
@@ -118,11 +123,11 @@ void CCSBaseScript::PrintSummary() const
 	}
 }
 
-void CCSBaseScript::AddFunctionTemplate(CGlobalSymbol name, const v8::Local<v8::FunctionTemplate>& functionTemplate)
+void CCSBaseScript::AddFunctionTemplate(const char* name, const v8::Local<v8::FunctionTemplate>& functionTemplate)
 {
-	auto persistentTp = new v8::Global<v8::FunctionTemplate>(v8::Isolate::GetCurrent(), functionTemplate);
-	m_functionTemplateMap.Insert(name, persistentTp);
-	m_registeredTypes.AddToHead(name);
+	// Use the signature game function, as apparently trying to insert ourselves leads to heap corruption
+	// causing crashes down the line...
+	g_scriptExtensions->ScriptRegisterFunctionTemplate(this, name, functionTemplate);
 }
 
 const v8::Global<v8::FunctionTemplate>* CCSBaseScript::GetFunctionTemplate(CGlobalSymbol name) const

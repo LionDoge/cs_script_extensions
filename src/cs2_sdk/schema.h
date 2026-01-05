@@ -20,22 +20,21 @@
 #pragma once
 
 #ifdef _WIN32
-	#pragma warning(push)
-	#pragma warning(disable : 4005)
+#pragma warning(push)
+#pragma warning(disable : 4005)
 #endif
 
 #include <type_traits>
 
 #ifdef _WIN32
-	#pragma warning(pop)
+#pragma warning(pop)
 #endif
 
-//#include "../addresses.h"
+#include "../addresses.h"
 #include "const.h"
 #include "stdint.h"
 #include "tier0/dbg.h"
 #include "virtual.h"
-#include "entityidentity.h"
 #undef schema
 
 struct SchemaKey
@@ -46,8 +45,6 @@ struct SchemaKey
 
 class CNetworkVarChainer
 {
-//public:
-	//CEntityInstance* m_pEntity;
 public:
 	CEntityInstance* m_pEntity;
 
@@ -107,7 +104,7 @@ inline constexpr uint64_t hash_64_fnv1a_const(const char* const str, const uint6
                                                                                                                     \
 			uintptr_t pThisClass = ((uintptr_t)this - m_offset);                                                    \
                                                                                                                     \
-			/*NetworkStateChanged();*/                                                                                  \
+			NetworkStateChanged();                                                                                  \
 			*reinterpret_cast<std::add_pointer_t<type>>(pThisClass + m_key.offset + extra_offset) = val;            \
 		}                                                                                                           \
 		void NetworkStateChanged()                                                                                  \

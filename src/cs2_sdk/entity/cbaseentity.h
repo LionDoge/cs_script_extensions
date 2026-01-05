@@ -233,15 +233,15 @@ public:
 	//	addresses::CBaseEntity_EmitSoundParams(this, pszSound, nPitch, flVolume, flDelay);
 	//}
 
-	//SndOpEventGuid_t EmitSoundFilter(IRecipientFilter &filter, const char *pszSound, float flVolume = 1.0, float flPitch = 1.0)
-	//{
-	//	EmitSound_t params;
-	//	params.m_pSoundName = pszSound;
-	//	params.m_flVolume = flVolume;
-	//	params.m_nPitch = flPitch;
+	SndOpEventGuid_t EmitSoundFilter(IRecipientFilter &filter, const char *pszSound, float flVolume = 1.0, float flPitch = 1.0)
+	{
+		EmitSound_t params;
+		params.m_pSoundName = pszSound;
+		params.m_flVolume = flVolume;
+		params.m_nPitch = flPitch;
 
-	//	return addresses::CBaseEntity_EmitSoundFilter(filter, entindex(), params);
-	//}
+		return addresses::CBaseEntity_EmitSoundFilter(filter, entindex(), params);
+	}
 
 	//void DispatchParticle(const char *pszParticleName, IRecipientFilter *pFilter, ParticleAttachment_t nAttachType = PATTACH_POINT_FOLLOW, 
 	//	char iAttachmentPoint = 0, CUtlSymbolLarge iAttachmentName = "")
@@ -255,10 +255,10 @@ public:
 	//	addresses::CBaseEntity_SetParent(this, pNewParent, 0, nullptr);
 	//}
 
-	//void Remove()
-	//{
-	//	addresses::UTIL_Remove(this);
-	//}
+	void Remove()
+	{
+		addresses::UTIL_Remove(this);
+	}
 
 	void SetMoveType(MoveType_t nMoveType)
 	{
