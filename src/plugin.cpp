@@ -731,16 +731,17 @@ CServerSideClient* FASTCALL Detour_GetFreeClient(int64_t unk1, const __m128i* un
 // yes this doesn't get cleaned properly, but I don't care right now.
 static std::unordered_map<uint64_t, std::string> scriptPathMap;
 
-void RunScriptFromFile(CCSScript_EntityScript* script, std::string_view relativePath, bool savePath = false)
+bool RunScriptFromFile(CCSScript_EntityScript* script, std::string_view relativePath, bool savePath = false)
 {
 	if (!script)
-		return;
+		return false;
 
 	CBufferStringGrowable<256> gamedirpath;
 	g_pEngineServer2->GetGameDir(gamedirpath);
 
-	std::stringstream pathStream(gamedirpath.Get());
-	pathStream << relativePath;
+	std::stringstream pathStream;
+	pathStream << gamedirpath.Get();
+	pathStream << "/" << relativePath;
 
 	if (std::ifstream inFile(pathStream.str(), std::ios::in); inFile.good())
 	{
@@ -753,10 +754,13 @@ void RunScriptFromFile(CCSScript_EntityScript* script, std::string_view relative
 	else
 	{
 		META_CONPRINT("Failed to open file for reading!\n");
+		return false;
 	}
+
+	return true;
 }
 
-CON_COMMAND_F(script_load, "Creates a script entity and loads the provided file (raw .js)", FCVAR_NONE)
+CON_COMMAND_F(csscript_load, "Creates a script entity and loads the provided file (raw .js)", FCVAR_NONE)
 {
 	if (args.ArgC() < 2)
 	{
@@ -774,10 +778,13 @@ CON_COMMAND_F(script_load, "Creates a script entity and loads the provided file 
 	addresses::DispatchSpawn(point_script, kv);
 
 	auto script = CSScriptExtensionsSystem::GetScriptFromEntity(point_script);
-	RunScriptFromFile(script, args[1], true);
+	if (!RunScriptFromFile(script, args[1], true))
+	{
+		point_script->Remove();
+	}
 }
 
-CON_COMMAND_F(script_reload, "Reload a script (loaded by script_load only)", FCVAR_NONE)
+CON_COMMAND_F(csscript_reload, "Reload a script (loaded by script_load only)", FCVAR_NONE)
 {
 	if (args.ArgC() < 2)
 	{
@@ -795,6 +802,10 @@ CON_COMMAND_F(script_reload, "Reload a script (loaded by script_load only)", FCV
 		if (scriptPathMap.contains(index))
 		{
 			RunScriptFromFile(script, scriptPathMap[index]);
+		}
+		else
+		{
+			META_CONPRINT("Provided script entity was not loaded through script_load\n");
 		}
 	}
 }
