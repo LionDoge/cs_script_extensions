@@ -135,9 +135,9 @@ const v8::Global<v8::FunctionTemplate>* CCSBaseScript::GetFunctionTemplate(CGlob
 	return m_functionTemplateMap.Get(name, nullptr);
 }
 
-bool CCSBaseScript::IsTypeRegistered(CGlobalSymbol name) const
+bool CCSBaseScript::IsFunctionTemplateRegistered(CGlobalSymbol name) const
 {
-	return m_registeredTypes.HasElement(name);
+	return m_functionTemplateMap.HasElement(name);
 }
 
 bool CCSBaseScript::operator==(const CCSBaseScript& rhs) const

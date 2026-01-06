@@ -28,7 +28,7 @@ public:
 	bool IsCallbackRegistered(CGlobalSymbol callbackName) const;
 	void AddFunctionTemplate(const char* name, const v8::Local<v8::FunctionTemplate>& functionTemplate);
 	const v8::Global<v8::FunctionTemplate>* GetFunctionTemplate(CGlobalSymbol name) const;
-	bool IsTypeRegistered(CGlobalSymbol name) const;
+	bool IsFunctionTemplateRegistered(CGlobalSymbol name) const;
 
 private:
 	// https://github.com/Wend4r/sourcesdk/blob/016a41630755cf86d650654c991069853418610a/public/entity2/entitysystem.h#L262
@@ -41,7 +41,7 @@ private:
 	v8::Global<v8::Context> m_context; // 0x28 (40);
 	bool m_isActive; // 0x30 (48); string: Invalid script. No valid imports found.\n
 	bool m_isUsingLegacyTypescript; // 0x31 (49); Is using deprecated SourceTS feature set.
-	CUtlVector<CGlobalSymbol> m_registeredTypes; // 0x40 (64);  // NOLINT(clang-diagnostic-padded)
+	CUtlVector<CUtlString> m_registeredTypes; // 0x40 (64);  // NOLINT(clang-diagnostic-padded)
 	CUtlHashtable<CGlobalSymbol, v8::Global<v8::FunctionTemplate>*, GlobalSymbolHashFunctor, PointerEqualFunctor> m_functionTemplateMap; // 0x50 (80);
 	CUtlHashtable<CGlobalSymbol, v8::Global<v8::Object>*, GlobalSymbolHashFunctor, PointerEqualFunctor> m_enumMap; // 0x70 (112);
 	CUtlHashtable<CGlobalSymbol, v8::Global<v8::Function>*, GlobalSymbolHashFunctor, PointerEqualFunctor> m_callbackMap; // 0x90 (144);

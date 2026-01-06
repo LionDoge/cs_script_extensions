@@ -9,6 +9,7 @@
 #include "sigutils.h"
 #include "scriptExtensions/userMessagesScriptExt.h"
 #include "gameconfig.h"
+#include "scriptcommon.h"
 
 extern LoggingChannelID_t g_logChanScript;
 // HACK!
@@ -53,26 +54,36 @@ bool CSScriptExtensionsSystem::Initialize(CGameConfig* gameConfig)
 	return true;
 }
 
-bool CSScriptExtensionsSystem::AddNewFunction(
-	const std::string& instanceName,
-	const std::string& funcName,
-	const std::string& scriptTypeName,
-	v8::FunctionCallback callback
-)
+void CSScriptExtensionsSystem::IncludeFunctions(const std::string& templateName,
+	std::initializer_list<std::pair<std::string, v8::FunctionCallback>> functions)
 {
-	if (callback == nullptr)
-		return false;
-	if (instanceName.empty())
-		return false;
-	
-	if (!m_registeredFunctions.contains(instanceName))
+	auto vec = std::vector<ScriptFunctionInfo>();
+	vec.reserve(functions.size());
+	for (const auto& pair : functions)
 	{
-		auto vec = std::vector<ScriptFunctionInfo>();
-		vec.reserve(8); // just a random guess for prealloc.
-		m_registeredFunctions[instanceName] = vec;
+		vec.emplace_back(pair.first, pair.second);
 	}
-	m_registeredFunctions[instanceName].emplace_back(funcName, scriptTypeName, callback);
-	return true;
+	m_registeredFunctions[templateName] = vec;
+}
+
+void CSScriptExtensionsSystem::RegisterCustomFunctionTemplate(const std::string& templateName,
+	std::initializer_list<std::pair<std::string, v8::FunctionCallback>> functions, unsigned int internalFields,
+	const std::optional<v8::FunctionCallback>& constructor, const std::optional<std::string_view>& inheritFrom)
+{	
+	auto vec = std::vector<ScriptFunctionInfo>();
+	vec.reserve(functions.size());
+	for (const auto& pair : functions)
+	{
+		vec.emplace_back(pair.first, pair.second);
+	}
+
+	ScriptCustomTemplateInfo info {
+		.functions = std::move(vec),
+		.internalFields = internalFields,
+		.constructor = constructor,
+		.inheritObject = inheritFrom
+	};
+	m_customFunctionTemplates[templateName] = std::move(info);
 }
 
 void CSScriptExtensionsSystem::RegisterCustomFunctionTemplate(void (*callback)(CCSBaseScript*))
@@ -237,13 +248,45 @@ void CSScriptExtensionsSystem::OnScriptInstanceRegisterFunctionTemplate(CCSBaseS
 	for (const auto& funcInfo : funcs)
 	{
 		RegisterNewFunction(prototypeTemplate, funcInfo);
-		Log_Msg(g_logChanScript, "Registered script extension function %s.%s\n", funcInfo.scopeName.c_str(), funcInfo.name.c_str());
+		Log_Msg(g_logChanScript, "Registered script extension function %s.%s\n", instanceNameStr.c_str(), funcInfo.name.c_str());
 	}
 
 	for (const auto& initializer : m_functionTemplateInitializers)
 	{
 		if (initializer)
 			initializer(script);
+	}
+
+	auto isolate = v8::Isolate::GetCurrent();
+	v8::HandleScope handleScope(isolate);
+
+	for (const auto& [templateName, templateInfo] : m_customFunctionTemplates)
+	{
+		// kinda ugly way before we do hooking onto post-script initialization method separately.
+		if (script->IsFunctionTemplateRegistered(templateName.c_str()))
+			continue;
+
+		v8::Local<v8::FunctionTemplate> tpl = v8::FunctionTemplate::New(
+			isolate,
+			templateInfo.constructor.has_value() ? *templateInfo.constructor : V8FakeObjectConstructorCallback
+		);
+		tpl->SetClassName(v8::String::NewFromUtf8(isolate, templateName.c_str()).ToLocalChecked());
+		tpl->InstanceTemplate()->SetInternalFieldCount(static_cast<int>(templateInfo.internalFields));
+
+		for (const auto& funcInfo : templateInfo.functions)
+		{
+			RegisterNewFunction(tpl->PrototypeTemplate(), funcInfo);
+		}
+		// inheritance won't really work at this stage, but this whole thing will be moved out later, as per the comment above.
+		if (templateInfo.inheritObject.has_value())
+		{
+			auto inheritTpl = script->GetFunctionTemplate(templateInfo.inheritObject.value().data());
+			if (inheritTpl && !inheritTpl->IsEmpty())
+			{
+				tpl->Inherit(inheritTpl->Get(isolate));
+			}
+		}
+		script->AddFunctionTemplate(templateName.c_str(), tpl);
 	}
 }
 

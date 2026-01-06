@@ -18,9 +18,6 @@ extern IGameEventManager2* g_gameEventManager;
 
 void ScriptUserMessage::InitUserMessageInfoTemplate(CCSBaseScript* script)
 {
-	if (script->IsTypeRegistered("UserMessageInfo"))
-		return;
-
 	auto isolate = v8::Isolate::GetCurrent();
 	v8::HandleScope handleScope(isolate);
 

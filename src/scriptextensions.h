@@ -1,16 +1,21 @@
 #pragma once
-#include <map>
+#include <unordered_map>
 #include "v8-function-callback.h"
 #include "v8-template.h"
 #include "module.h"
 #include "csscript.h"
 #include "safetyhook.hpp"
 
-// Used to hold data in the function map
 struct ScriptFunctionInfo {
 	std::string name; // Name of the function as seen from script.
-	std::string scopeName; // Matters for logging only. The class instance e.g. 'point_script'
 	v8::FunctionCallback callback;
+};
+
+struct ScriptCustomTemplateInfo {
+	std::vector<ScriptFunctionInfo> functions;
+	unsigned int internalFields;
+	std::optional<v8::FunctionCallback> constructor;
+	std::optional<std::string_view> inheritObject;
 };
 
 class CSScriptExtensionsSystem {
@@ -23,17 +28,23 @@ public:
 
 	bool Initialize(CGameConfig* gameConfig);
 
-	// Registers a function to be callable from cs_script, valid for newly created script instances.
-	bool AddNewFunction(
-		const std::string& instanceName,
-		const std::string& funcName,
-		const std::string& scriptTypeName,
-		v8::FunctionCallback callback
+	// Add functions to an existing function template.
+	void IncludeFunctions(
+		const std::string& templateName,
+		std::initializer_list<std::pair<std::string, v8::FunctionCallback>> functions
 	);
 
 	// Register a custom object that can be used inside scripts and have its own methods
 	// The passed callback is expected to create a function template and register it inside the script.
-	// This will be ran each time a script tries to register a function template. TODO hook onto script creation only instead.
+	// This will be run each time a script tries to register a function template. TODO hook onto script creation only instead.
+	void RegisterCustomFunctionTemplate(
+		const std::string& templateName,
+		std::initializer_list<std::pair<std::string, v8::FunctionCallback>> functions, unsigned int internalFields,
+		const std::optional<v8::FunctionCallback>& constructor = std::nullopt,
+		const std::optional<std::string_view>& inheritFrom = std::nullopt
+	);
+
+	// More advanced API where the registration can be fully controlled by the user.
 	void RegisterCustomFunctionTemplate(void (*callback)(CCSBaseScript*));
 
 	static CEntityInstance* GetEntityInstanceFromScriptObject(v8::Local<v8::Object> obj);
@@ -72,9 +83,10 @@ protected:
 private:
 	bool ResolveSigs(CGameConfig* gameConfig);
 
-	std::map<std::string, std::vector<ScriptFunctionInfo>> m_registeredFunctions;
-	// This might get moved out soon, API feels a bit awkward currently.
+	std::unordered_map<std::string, std::vector<ScriptFunctionInfo>> m_registeredFunctions;
+	// Used for manual registration of function templates, useful for advanced users that want full control of the process.
 	std::vector<void (*)(CCSBaseScript*)> m_functionTemplateInitializers;
+	std::unordered_map<std::string, ScriptCustomTemplateInfo> m_customFunctionTemplates;
 
 	// function pointers
 	typedef void* (FASTCALL* funcRegisterV8InstanceTemplate_t)(CCSBaseScript* script, const char* name, v8::Local<v8::FunctionTemplate> funcTemplate);

@@ -255,46 +255,37 @@ int Hook_LoadEventsFromFile(const char* filename, bool bSearchAll)
 
 static void RegisterScriptFunctions()
 {
-	g_scriptExtensions->AddNewFunction("Domain", 
-		"MsgNew",
-		"point_script",
-		V8Callbacks::V8NewMsg
-	);
 
-	// Entity
-	g_scriptExtensions->AddNewFunction("Entity",
-		"GetSchemaField",
-		"point_script",
-		V8Callbacks::V8GetSchemaField
-	);
+	g_scriptExtensions->IncludeFunctions(
+		"Domain",
+		{
+			{ "MsgNew", V8Callbacks::V8NewMsg },
+			{ "AddSampleCallback", V8Callbacks::AddSampleCallback },
+			{ "OnUserMessage", ScriptUserMessage::OnUserMessage },
+		});
 
-	// Player controller
-	g_scriptExtensions->AddNewFunction("CSPlayerController",
-		"ShowHudMessageHTML",
-		"point_script",
-		V8Callbacks::V8ShowHTMLMessage
-	);
+	g_scriptExtensions->IncludeFunctions(
+		"Entity",
+		{
+			{ "GetSchemaField", V8Callbacks::V8GetSchemaField },
+		});
 
-	g_scriptExtensions->AddNewFunction("CSPlayerController",
-		"ShowHudHint",
-		"point_script",
-		V8Callbacks::V8ShowHudHint
-	);
+	g_scriptExtensions->IncludeFunctions(
+		"CSPlayerController",
+		{
+			{ "ShowHudHint", V8Callbacks::V8ShowHudHint },
+			{ "ShowHudMessageHTML", V8Callbacks::V8ShowHTMLMessage },
+		});
 
-	g_scriptExtensions->AddNewFunction("Domain",
-		"AddSampleCallback",
-		"point_script",
-		V8Callbacks::AddSampleCallback
+	//g_scriptExtensions->RegisterCustomFunctionTemplate(ScriptUserMessage::InitUserMessageInfoTemplate);
+	g_scriptExtensions->RegisterCustomFunctionTemplate(
+		"UserMessageInfo",
+		{
+			{ "GetField", ScriptUserMessage::UserMessageInfo_GetField },
+		},
+		1, // internal fields
+		std::nullopt // Inherits from
 	);
-
-	g_scriptExtensions->AddNewFunction("Domain",
-		"OnUserMessage",
-		"point_script",
-		ScriptUserMessage::OnUserMessage
-	);
-
-	g_scriptExtensions->RegisterCustomFunctionTemplate(ScriptUserMessage::InitUserMessageInfoTemplate);
-	
 }
 
 void SetupDetours()
