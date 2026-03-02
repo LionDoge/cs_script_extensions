@@ -24,7 +24,7 @@ void CCSBaseScript::AddCallback(CGlobalSymbol callbackName, v8::Local<v8::Functi
 		return;
 	}
 	const auto newFunc = new v8::Global<v8::Function>(v8::Isolate::GetCurrent(), callbackFunction);
-	//m_callbackMap.Insert(callbackName, newFunc);
+	m_callbackMap.Insert(callbackName, newFunc);
 }
 
 v8::Local<v8::Value> CCSBaseScript::InvokeCallback(CGlobalSymbol callbackName, int argc, v8::Local<v8::Value> argv[])

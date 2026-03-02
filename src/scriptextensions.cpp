@@ -317,6 +317,10 @@ std::vector<CEntityInstance*> CSScriptExtensionsSystem::GetScripts() {
 	return vecInstances;
 }
 
+namespace {
+	struct DummyBase { virtual ~DummyBase() = default; };
+	static size_t _csScriptOffset = -1;
+}
 class CCSPointScriptEntity {};
 CCSScript_EntityScript* CSScriptExtensionsSystem::GetScriptFromEntity(CEntityInstance* ent)
 {
@@ -325,7 +329,29 @@ CCSScript_EntityScript* CSScriptExtensionsSystem::GetScriptFromEntity(CEntityIns
 	if (dynamic_cast<CCSPointScriptEntity*>(ent) == nullptr)
 		return nullptr;
 
+	// scans a memory range relative to entity, trying to find rtti of csscript, and caches the result.
+#ifdef _WIN32
+	if (_csScriptOffset == -1)
+	{
+		for (int i = 0; i < 0x800; i += sizeof(void*))
+		{
+			if (!modules::server->IsAddressInRange(*(void**)((unsigned char*)ent + i)))
+				continue;
+
+			DummyBase* obj = (DummyBase*)((unsigned char*)ent + i);
+			if (V_stristr(typeid(*obj).name(), "CCSScript") != nullptr)
+			{
+				_csScriptOffset = i;
+				break;
+			}
+		}
+	}
+
+	return reinterpret_cast<CCSScript_EntityScript*>((unsigned char*)ent + _csScriptOffset);
+#else
+	// TODO: linux impl
 	return reinterpret_cast<CCSScript_EntityScript*>((unsigned char*)ent+0x4C0);
+#endif
 }
 
 CSScriptHeader* CSScriptExtensionsSystem::GetScriptHeaderFromEntity(CEntityInstance* ent)

@@ -169,6 +169,11 @@ public:
 
 		return nullptr;
 	}
+
+	bool IsAddressInRange(void* address)
+	{
+		return address >= m_base && address < (void*)((uintptr_t)m_base + m_size);
+	}
 #ifdef _WIN32
 	void InitializeSections();
 #endif
