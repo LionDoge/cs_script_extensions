@@ -325,7 +325,7 @@ CCSScript_EntityScript* CSScriptExtensionsSystem::GetScriptFromEntity(CEntityIns
 	if (dynamic_cast<CCSPointScriptEntity*>(ent) == nullptr)
 		return nullptr;
 
-	return reinterpret_cast<CCSScript_EntityScript*>((unsigned char*)ent+0x508);
+	return reinterpret_cast<CCSScript_EntityScript*>((unsigned char*)ent+0x4C0);
 }
 
 CSScriptHeader* CSScriptExtensionsSystem::GetScriptHeaderFromEntity(CEntityInstance* ent)
@@ -335,5 +335,5 @@ CSScriptHeader* CSScriptExtensionsSystem::GetScriptHeaderFromEntity(CEntityInsta
 	if (dynamic_cast<CCSPointScriptEntity*>(ent) == nullptr)
 		return nullptr;
 
-	return reinterpret_cast<CSScriptHeader*>((unsigned char*)ent + 0x4F0);
+	return reinterpret_cast<CSScriptHeader*>((unsigned char*)ent + 0x4A8);
 }
