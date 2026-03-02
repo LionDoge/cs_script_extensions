@@ -24,19 +24,17 @@ void HudHintManager::AddHintMessage(CPlayerSlot targetSlot, const std::string ms
 		}
 		return;
 	}
-	HudHintInfo info(targetSlot, msg, g_flUniversalTime + duration);
-	hintMessages.push_back(info);
+	else
+	{
+		CancelHintMessage(targetSlot); // cancel any existing message for this player
+		HudHintInfo info(targetSlot, msg, g_flUniversalTime + duration);
+		hintMessages[targetSlot.Get()] = info;
+	}
 }
 
 void HudHintManager::CancelHintMessage(CPlayerSlot targetSlot)
 {
-	for (auto it = hintMessages.begin(); it != hintMessages.end(); )
-	{
-		if (it->targetSlot == targetSlot)
-			it = hintMessages.erase(it);
-		else
-			++it;
-	}
+	hintMessages.erase(targetSlot.Get());
 }
 
 void HudHintManager::CancelAllHintMessages()
@@ -48,11 +46,11 @@ void HudHintManager::Update()
 {
 	for (auto it = hintMessages.begin(); it != hintMessages.end(); )
 	{
-		if (g_flUniversalTime >= it->endTime)
+		if (g_flUniversalTime >= it->second.endTime)
 			it = hintMessages.erase(it);
 		else
 		{
-			Display(*it);
+			Display(it->second);
 			++it;
 		}
 	}

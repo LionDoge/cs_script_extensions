@@ -12,14 +12,13 @@
 #include "scriptcommon.h"
 
 extern LoggingChannelID_t g_logChanScript;
-// HACK!
-extern CSScriptExtensionsSystem* g_scriptExtensions;
+// Can't use member functions through safetyhook directly, we're using a singleton anyways.
 static void Hook_RegisterInstanceTemplateA(
 	CCSBaseScript* script,
 	const char* name,
 	v8::Local<v8::FunctionTemplate> funcTemplate
 ) {
-	g_scriptExtensions->Hook_RegisterFunctionTemplate(script, name, funcTemplate);
+	CSScriptExtensionsSystem::GetInstance()->Hook_RegisterFunctionTemplate(script, name, funcTemplate);
 }
 
 bool CSScriptExtensionsSystem::ResolveSigs(CGameConfig* gameConfig)
@@ -100,7 +99,7 @@ CEntityInstance* CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(v8:
 	// TODO: we don't know the Entity marker to check for, this will probably explode if we pass something else.
 	// Note: The domain marker is a pointer to a value that evaluates to the type that's defined by 'ScriptHandleType'.
 	uint32_t* typeMarker = static_cast<uint32_t*>(obj->GetAlignedPointerFromInternalField(0));
-	CSScriptEntityHandle* entPointer = static_cast<CSScriptEntityHandle*>(obj->GetAlignedPointerFromInternalField(1));
+	CSScriptHandle* entPointer = static_cast<CSScriptHandle*>(obj->GetAlignedPointerFromInternalField(1));
 	if (!entPointer)
 	{
 		Msg("[cs_script_extensions] Failed to get entity pointer from object! (Field 1 of object doesn't exist)");

@@ -6,6 +6,7 @@
 #include "entity/ccsplayercontroller.h"
 
 struct HudHintInfo {
+	HudHintInfo() : targetSlot(-1), strMessage(""), endTime(0.0) {} // map requires default constructor, ugh.
 	HudHintInfo(CPlayerSlot _slot, std::string _msg, double _endTime) 
 		: targetSlot(_slot), strMessage(_msg), endTime(_endTime) {}
 	CPlayerSlot targetSlot; // what player to send this to (userid)
@@ -24,5 +25,5 @@ public:
 
 private:
 	void Display(const HudHintInfo& info);
-	std::vector<HudHintInfo> hintMessages;
+	std::unordered_map<int, HudHintInfo> hintMessages; // map of player slot to their active hint message, if any
 };
