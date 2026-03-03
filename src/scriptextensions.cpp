@@ -377,5 +377,5 @@ CSScriptHeader* CSScriptExtensionsSystem::GetScriptHeaderFromEntity(CEntityInsta
 	if (dynamic_cast<CCSPointScriptEntity*>(ent) == nullptr)
 		return nullptr;
 
-	return reinterpret_cast<CSScriptHeader*>((unsigned char*)ent + 0x4A8);
+	return reinterpret_cast<CSScriptHeader*>((unsigned char*)GetScriptFromEntity(ent) - 0x18);
 }
