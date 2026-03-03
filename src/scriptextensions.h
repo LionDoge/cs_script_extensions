@@ -21,6 +21,7 @@ struct ScriptCustomTemplateInfo {
 class CSScriptExtensionsSystem {
 public:
 	CSScriptExtensionsSystem() = default;
+	~CSScriptExtensionsSystem();
 
 	CSScriptExtensionsSystem(CSScriptExtensionsSystem& other) = delete;
 	void operator=(const CSScriptExtensionsSystem&) = delete;
@@ -77,7 +78,7 @@ public:
 
 protected:
 	// Should be called by a hook when a script is being created.
-	void OnScriptInstanceRegisterFunctionTemplate(CCSBaseScript* script, v8::Local<v8::ObjectTemplate> prototypeTemplate, const char* name);
+	void OnScriptInstanceRegisterTemplates();
 	void RegisterNewFunction(v8::Local<v8::ObjectTemplate> prototypeTemplate, const ScriptFunctionInfo& funcInfo);
 
 private:
@@ -87,6 +88,7 @@ private:
 	// Used for manual registration of function templates, useful for advanced users that want full control of the process.
 	std::vector<void (*)(CCSBaseScript*)> m_functionTemplateInitializers;
 	std::unordered_map<std::string, ScriptCustomTemplateInfo> m_customFunctionTemplates;
+	
 
 	// function pointers
 	typedef void* (FASTCALL* funcRegisterV8InstanceTemplate_t)(CCSBaseScript* script, const char* name, v8::Local<v8::FunctionTemplate> funcTemplate);
@@ -106,7 +108,9 @@ private:
 	inline static funcRunScriptString m_pfnRunScript;
 
 	// hooks
-	SafetyHookInline m_pHookRegisterInstanceTemplate{};
+	// SafetyHookInline m_pHookRegisterInstanceTemplate{};
+	// Global SourceHook for CSScript
+	int m_registerTemplatesHook = -1;
 
 protected:
 	inline static CSScriptExtensionsSystem* m_instance;

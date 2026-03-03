@@ -177,7 +177,7 @@ public:
 #ifdef _WIN32
 	void InitializeSections();
 #endif
-	void* FindVirtualTable(const std::string& name);
+	void* FindVirtualTable(const std::string& name, bool autoDecorate = true);
 public:
 	const char* m_pszModule;
 	const char* m_pszPath;

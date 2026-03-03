@@ -49,7 +49,7 @@ void CModule::InitializeSections()
 	}
 }
 
-void* CModule::FindVirtualTable(const std::string& name)
+void* CModule::FindVirtualTable(const std::string& name, bool autoDecorate)
 {
 	auto runTimeData = GetSection(".data");
 	auto readOnlyData = GetSection(".rdata");
@@ -60,7 +60,11 @@ void* CModule::FindVirtualTable(const std::string& name)
 		return nullptr;
 	}
 
-	std::string decoratedTableName = ".?AV" + name + "@@";
+	std::string decoratedTableName;
+	if(autoDecorate)
+		decoratedTableName = ".?AV" + name + "@@";
+	else
+		decoratedTableName = name;
 
 	SignatureIterator sigIt(runTimeData->m_pBase, runTimeData->m_iSize, (const byte*)decoratedTableName.c_str(), decoratedTableName.size() + 1);
 	void* typeDescriptor = sigIt.FindNext(false);

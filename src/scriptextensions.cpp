@@ -3,13 +3,15 @@
 #include <vprof.h>
 #include "v8.h"
 #include "ehandle.h"
-#include "sourcehook.h"
 #include "utlvector.h"
 #include "entity/cpointscript.h"
 #include "sigutils.h"
 #include "scriptExtensions/userMessagesScriptExt.h"
 #include "gameconfig.h"
 #include "scriptcommon.h"
+#include "plugin.h"
+
+SH_DECL_HOOK0_void(CCSScript_EntityScript, InitializeFunctionTemplates, SH_NOATTRIB, false);
 
 extern LoggingChannelID_t g_logChanScript;
 // Can't use member functions through safetyhook directly, we're using a singleton anyways.
@@ -48,9 +50,25 @@ bool CSScriptExtensionsSystem::Initialize(CGameConfig* gameConfig)
 		MsgCrit("Failed to resolve one or more required signatures!\n");
 		return false;
 	}
-	m_pHookRegisterInstanceTemplate = safetyhook::create_inline(reinterpret_cast<void*>(m_pfnRegisterInstanceTemplate), reinterpret_cast<void*>(Hook_RegisterInstanceTemplateA));
+	//m_pHookRegisterInstanceTemplate = safetyhook::create_inline(reinterpret_cast<void*>(m_pfnRegisterInstanceTemplate), reinterpret_cast<void*>(Hook_RegisterInstanceTemplateA));
+
+	auto vtable = modules::server->FindVirtualTable("??_7CCSScript_EntityScript@@6B@", false);
+	if (!vtable)
+		return false;
+
+	m_registerTemplatesHook = SH_ADD_DVPHOOK(CCSScript_EntityScript, InitializeFunctionTemplates, vtable, SH_MEMBER(this, &CSScriptExtensionsSystem::OnScriptInstanceRegisterTemplates), true);
 	g_logChanScript = LoggingSystem_FindChannel("cs_script");
 	return true;
+}
+
+
+CSScriptExtensionsSystem::~CSScriptExtensionsSystem()
+{
+	if (m_registerTemplatesHook != -1)
+	{
+		SH_REMOVE_HOOK_ID(m_registerTemplatesHook);
+		m_registerTemplatesHook = -1;
+	}
 }
 
 void CSScriptExtensionsSystem::IncludeFunctions(const std::string& templateName,
@@ -123,15 +141,15 @@ v8::Local<v8::Object> CSScriptExtensionsSystem::CreateEntityObjectFromTemplate(c
 	return m_pfnCreateEntintyObjectFromTemplate(templateName, entity);
 }
 
-void CSScriptExtensionsSystem::Hook_RegisterFunctionTemplate(
-	CCSBaseScript* script, 
-	const char* name, 
-	v8::Local<v8::FunctionTemplate> funcTemplate
-)
-{
-	OnScriptInstanceRegisterFunctionTemplate(script, funcTemplate->PrototypeTemplate(), name);
-	m_pHookRegisterInstanceTemplate.call(script, name, funcTemplate);
-}
+//void CSScriptExtensionsSystem::Hook_RegisterFunctionTemplate(
+//	CCSBaseScript* script, 
+//	const char* name, 
+//	v8::Local<v8::FunctionTemplate> funcTemplate
+//)
+//{
+//	OnScriptInstanceRegisterFunctionTemplate(script, funcTemplate->PrototypeTemplate(), name);
+//	//m_pHookRegisterInstanceTemplate.call(script, name, funcTemplate);
+//}
 
 //void CSScriptExtensionsSystem::AddCallback(uint64_t scriptIdx, const char* callbackName, v8::Global<v8::Function>&& func, v8::Global<v8::Context>&& ctx)
 //{
@@ -230,7 +248,8 @@ void CSScriptExtensionsSystem::InvokeCallbacks(const char* callbackName, int arg
 
 void CSScriptExtensionsSystem::ScriptRegisterFunctionTemplate(CCSBaseScript* script, const char* name, const v8::Local<v8::FunctionTemplate>& functionTemplate)
 {
-	m_pHookRegisterInstanceTemplate.call(script, name, functionTemplate);
+	//m_pHookRegisterInstanceTemplate.call(script, name, functionTemplate);
+	m_pfnRegisterInstanceTemplate(script, name, functionTemplate);
 }
 
 void CSScriptExtensionsSystem::RunScriptString(CCSBaseScript* script, const char* path, const char* scriptData)
@@ -238,16 +257,24 @@ void CSScriptExtensionsSystem::RunScriptString(CCSBaseScript* script, const char
 	m_pfnRunScript(script, path, scriptData);
 }
 
-void CSScriptExtensionsSystem::OnScriptInstanceRegisterFunctionTemplate(CCSBaseScript* script, v8::Local<v8::ObjectTemplate> prototypeTemplate, const char* name)
+void CSScriptExtensionsSystem::OnScriptInstanceRegisterTemplates()
 {
-	std::string instanceNameStr(name);
-	if (!m_registeredFunctions.contains(instanceNameStr))
-		return;
-	auto& funcs = m_registeredFunctions[instanceNameStr];
-	for (const auto& funcInfo : funcs)
+	CCSScript_EntityScript* script = META_IFACEPTR(CCSScript_EntityScript);
+	auto isolate = v8::Isolate::GetCurrent();
+
+	for (const auto& [name, funcInfos] : m_registeredFunctions)
 	{
-		RegisterNewFunction(prototypeTemplate, funcInfo);
-		Log_Msg(g_logChanScript, "Registered script extension function %s.%s\n", instanceNameStr.c_str(), funcInfo.name.c_str());
+		// get the already registered template
+		auto tem = script->GetFunctionTemplate(name.c_str());
+		if (tem && !tem->IsEmpty())
+		{
+			auto prototypeTemplate = tem->Get(isolate)->PrototypeTemplate();
+			for (const auto& funcInfo : funcInfos)
+			{
+				RegisterNewFunction(prototypeTemplate, funcInfo);
+				Log_Msg(g_logChanScript, "Registered script extension function %s.%s\n", name, funcInfo.name.c_str());
+			}
+		}
 	}
 
 	for (const auto& initializer : m_functionTemplateInitializers)
@@ -256,7 +283,6 @@ void CSScriptExtensionsSystem::OnScriptInstanceRegisterFunctionTemplate(CCSBaseS
 			initializer(script);
 	}
 
-	auto isolate = v8::Isolate::GetCurrent();
 	v8::HandleScope handleScope(isolate);
 
 	for (const auto& [templateName, templateInfo] : m_customFunctionTemplates)
@@ -287,6 +313,8 @@ void CSScriptExtensionsSystem::OnScriptInstanceRegisterFunctionTemplate(CCSBaseS
 		}
 		script->AddFunctionTemplate(templateName.c_str(), tpl);
 	}
+
+	RETURN_META(MRES_IGNORED);
 }
 
 void CSScriptExtensionsSystem::RegisterNewFunction(v8::Local<v8::ObjectTemplate> prototypeTemplate, const ScriptFunctionInfo& funcInfo)
