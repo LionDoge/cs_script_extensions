@@ -5,15 +5,6 @@
 #include "utlatuolist.h"
 #include "v8-function.h"
 
-// SH can't do cast when we have a concrete class, so we use this for now, just for hooking purposes.
-abstract_class ICSScript {
-public:
-	virtual const char* GetName() const = 0;
-	virtual CGlobalSymbol GetNameSymbol() = 0;
-	virtual void InitializeFunctionTemplates() = 0;
-	virtual void UnloadScript() = 0; // just cleans up all the fields and deallocates memory.
-};
-
 class CCSBaseScript : public IEntityListener, public CUtlAutoList<CCSBaseScript>
 {
 public:

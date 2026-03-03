@@ -68,7 +68,6 @@ public:
 	static CCSScript_EntityScript* GetScriptFromEntity(CEntityInstance* ent);
 	CSScriptHeader* GetScriptHeaderFromEntity(CEntityInstance* ent);
 
-	void Hook_RegisterFunctionTemplate(CCSBaseScript* script, const char* name, v8::Local<v8::FunctionTemplate> funcTemplate);
 	// Invoke named callback on all scripts, this doesn't let you retrieve return values yet, maybe later...
 	void InvokeCallbacks(const char* callbackName, int argc, v8::Local<v8::Value> argv[]);
 	

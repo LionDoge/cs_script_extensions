@@ -11,17 +11,9 @@
 #include "scriptcommon.h"
 #include "plugin.h"
 
-SH_DECL_HOOK0_void(CCSScript_EntityScript, InitializeFunctionTemplates, SH_NOATTRIB, false);
-
 extern LoggingChannelID_t g_logChanScript;
-// Can't use member functions through safetyhook directly, we're using a singleton anyways.
-static void Hook_RegisterInstanceTemplateA(
-	CCSBaseScript* script,
-	const char* name,
-	v8::Local<v8::FunctionTemplate> funcTemplate
-) {
-	CSScriptExtensionsSystem::GetInstance()->Hook_RegisterFunctionTemplate(script, name, funcTemplate);
-}
+
+SH_DECL_HOOK0_void(CCSScript_EntityScript, InitializeFunctionTemplates, SH_NOATTRIB, false);
 
 bool CSScriptExtensionsSystem::ResolveSigs(CGameConfig* gameConfig)
 {
@@ -52,7 +44,7 @@ bool CSScriptExtensionsSystem::Initialize(CGameConfig* gameConfig)
 	}
 	//m_pHookRegisterInstanceTemplate = safetyhook::create_inline(reinterpret_cast<void*>(m_pfnRegisterInstanceTemplate), reinterpret_cast<void*>(Hook_RegisterInstanceTemplateA));
 
-	auto vtable = modules::server->FindVirtualTable("??_7CCSScript_EntityScript@@6B@", false);
+	auto vtable = modules::server->FindVirtualTable("CCSScript_EntityScript", true);
 	if (!vtable)
 		return false;
 
@@ -272,7 +264,7 @@ void CSScriptExtensionsSystem::OnScriptInstanceRegisterTemplates()
 			for (const auto& funcInfo : funcInfos)
 			{
 				RegisterNewFunction(prototypeTemplate, funcInfo);
-				Log_Msg(g_logChanScript, "Registered script extension function %s.%s\n", name, funcInfo.name.c_str());
+				Log_Msg(g_logChanScript, "Registered script extension function %s.%s\n", name.c_str(), funcInfo.name.c_str());
 			}
 		}
 	}
@@ -287,10 +279,6 @@ void CSScriptExtensionsSystem::OnScriptInstanceRegisterTemplates()
 
 	for (const auto& [templateName, templateInfo] : m_customFunctionTemplates)
 	{
-		// kinda ugly way before we do hooking onto post-script initialization method separately.
-		if (script->IsFunctionTemplateRegistered(templateName.c_str()))
-			continue;
-
 		v8::Local<v8::FunctionTemplate> tpl = v8::FunctionTemplate::New(
 			isolate,
 			templateInfo.constructor.has_value() ? *templateInfo.constructor : V8FakeObjectConstructorCallback
@@ -301,8 +289,9 @@ void CSScriptExtensionsSystem::OnScriptInstanceRegisterTemplates()
 		for (const auto& funcInfo : templateInfo.functions)
 		{
 			RegisterNewFunction(tpl->PrototypeTemplate(), funcInfo);
+			Log_Msg(g_logChanScript, "Registered script custom template function %s.%s\n", templateName.c_str(), funcInfo.name.c_str());
 		}
-		// inheritance won't really work at this stage, but this whole thing will be moved out later, as per the comment above.
+
 		if (templateInfo.inheritObject.has_value())
 		{
 			auto inheritTpl = script->GetFunctionTemplate(templateInfo.inheritObject.value().data());
