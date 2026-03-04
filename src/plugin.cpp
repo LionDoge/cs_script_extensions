@@ -262,12 +262,14 @@ static void RegisterScriptFunctions()
 			{ "MsgNew", V8Callbacks::V8NewMsg },
 			{ "AddSampleCallback", V8Callbacks::AddSampleCallback },
 			{ "OnUserMessage", ScriptUserMessage::OnUserMessage },
+			{ "CreateUserMessage", V8Callbacks::CreateUserMessage }
 		});
 
 	g_scriptExtensions->IncludeFunctions(
 		"Entity",
 		{
 			{ "GetSchemaField", V8Callbacks::V8GetSchemaField },
+			{ "SetMoveType", V8Callbacks::SetEntityMoveType }
 		});
 
 	g_scriptExtensions->IncludeFunctions(
@@ -282,6 +284,12 @@ static void RegisterScriptFunctions()
 		"UserMessageInfo",
 		{
 			{ "GetField", ScriptUserMessage::UserMessageInfo_GetField },
+			{ "SetField", ScriptUserMessage::UserMessageInfo_SetField },
+			{ "AddAllRecipients", ScriptUserMessage::UserMessageInfo_AddAllRecipients },
+			{ "AddRecipient", ScriptUserMessage::UserMessageInfo_AddRecipient },
+			{ "ClearRecipients", ScriptUserMessage::UserMessageInfo_ClearRecipients },
+			{ "RemoveRecipient", ScriptUserMessage::UserMessageInfo_RemoveRecipient },
+			{ "Send", ScriptUserMessage::UserMessageInfo_Send }
 		},
 		1, // internal fields
 		std::nullopt // Inherits from
@@ -679,17 +687,20 @@ void MMSPlugin::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nCli
 			if (!scriptCallbackInitialized)
 			{
 				auto msg = const_cast<CNetMessage*>(pData)->ToPB<google::protobuf::Message>();
-				userMessageInfo = new ScriptUserMessageInfo(msg, clients);
+				userMessageInfo = new ScriptUserMessageInfo(msg, *clients, nullptr);
 				scriptCallbackInitialized = true;
 			}
 			auto obj = ScriptUserMessage::CreateUserMessageInfoInstance(script, userMessageInfo);
 			v8::Local<v8::Value> jsArgs[] = { obj };
 
 			auto result = script->InvokeCallback(callbackSymbol, 1, jsArgs);
+			// update recipients in case script modified them
+			*const_cast<uint64*>(clients) = userMessageInfo->GetRecipients();
 			// script returned false - clear all recipients (block).
 			if (!result.IsEmpty() && result->IsBoolean() && !result->ToBoolean(v8::Isolate::GetCurrent())->Value())
 			{
 				*const_cast<uint64*>(clients) = 0;
+				break;
 			}
 		}
 	}

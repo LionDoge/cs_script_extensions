@@ -17,8 +17,8 @@
 class ScriptUserMessageInfo
 {
 public:
-	ScriptUserMessageInfo(CNetMessagePB<google::protobuf::Message>* pMessage, const uint64_t* recipients)
-		: m_pMessage(pMessage), m_recipients(recipients)
+	ScriptUserMessageInfo(CNetMessagePB<google::protobuf::Message>* pMessage, uint64_t recipients, INetworkMessageInternal* messageInteral)
+		: m_pMessage(pMessage), m_recipients(recipients), m_pNetMessageInternal(messageInteral)
 	{
 	}
 	bool GetFieldType(const char* fieldName, google::protobuf::FieldDescriptor::CppType& out, bool& outIsRepeated) const
@@ -33,6 +33,13 @@ public:
 		GET_FIELD()
 		IS_FIELD_NOT_REPEATED()
 		out = m_pMessage->GetReflection()->GetString(*m_pMessage, field);
+		return true;
+	}
+	bool GetBool(const char* fieldName, bool& out) const
+	{
+		GET_FIELD()
+		IS_FIELD_NOT_REPEATED()
+		out = m_pMessage->GetReflection()->GetBool(*m_pMessage, field);
 		return true;
 	}
 	bool SetString(const char* fieldName, const std::string& val) const
@@ -105,6 +112,13 @@ public:
 		out = m_pMessage->GetReflection()->GetDouble(*m_pMessage, field);
 		return true;
 	}
+	bool GetFloat(const char* fieldName, float& out) const
+	{
+		GET_FIELD()
+			IS_FIELD_NOT_REPEATED()
+			out = m_pMessage->GetReflection()->GetFloat(*m_pMessage, field);
+		return true;
+	}
 	bool SetDouble(const char* fieldName, double val) const
 	{
 		GET_FIELD()
@@ -112,7 +126,58 @@ public:
 		m_pMessage->GetReflection()->SetDouble(m_pMessage, field, val);
 		return true;
 	}
+	bool SetFloat(const char* fieldName, float val) const
+	{
+		GET_FIELD()
+			IS_FIELD_NOT_REPEATED()
+			m_pMessage->GetReflection()->SetFloat(m_pMessage, field, val);
+		return true;
+	}
+	bool SetBool(const char* fieldName, bool val) const
+	{
+		GET_FIELD()
+		IS_FIELD_NOT_REPEATED()
+		m_pMessage->GetReflection()->SetBool(m_pMessage, field, val);
+		return true;
+	}
+	bool SetEnum(const char* fieldName, int val) const
+	{
+		GET_FIELD()
+		IS_FIELD_NOT_REPEATED()
+			/*google::protobuf::DescriptorPool
+		m_pMessage->GetReflection()->SetEnum(m_pMessage, field, google::protobuf::EnumValueDescriptor());*/
+		return true;
+	}
+	void ClearRecipients()
+	{
+		m_recipients = 0;
+	}
+	void AddRecipient(uint64_t recipient)
+	{
+		m_recipients |= recipient;
+	}
+	void AddAllRecipients()
+	{
+		m_recipients = 0xFFFFFFFFFFFFFFFF;
+	}
+	void RemoveRecipient(uint64_t recipient)
+	{
+		m_recipients &= ~recipient;
+	}
+	uint64_t GetRecipients() const
+	{
+		return m_recipients;
+	}
+	CNetMessagePB<google::protobuf::Message>* GetMessage() const
+	{
+		return m_pMessage;
+	}
+	INetworkMessageInternal* GetNetMessageInternal() const
+	{
+		return m_pNetMessageInternal;
+	}
 private:
 	CNetMessagePB<google::protobuf::Message>* m_pMessage;
-	const uint64_t* m_recipients;
+	INetworkMessageInternal* m_pNetMessageInternal; // Only used when sending!
+	uint64_t m_recipients;
 };

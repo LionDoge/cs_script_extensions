@@ -11,6 +11,8 @@
 #include "hudhintmanager.h"
 #include "igameevents.h"
 #include "scriptclasses/schemaobject.h"
+#include "scriptExtensions/userMessagesScriptExt.h"
+#include "networksystem/inetworkmessages.h"
 
 extern LoggingChannelID_t g_logChanScript;
 
@@ -362,4 +364,34 @@ constexpr void V8Callbacks::SetV8NumericReturnValue(const v8::FunctionCallbackIn
 {
 	auto val = *reinterpret_cast<std::add_pointer_t<T>>(static_cast<unsigned char*>(ent) + offset);
 	args.GetReturnValue().Set(v8::Number::New(args.GetIsolate(), val));
+}
+
+void V8Callbacks::CreateUserMessage(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	V8_SETUP_AND_VERIFY("Domain", "CreateUserMessage");
+	if(args.Length() < 1 || !args[0]->IsString())
+	{
+		V8ThrowException(isolate, "Method Domain.CreateUserMessage requires 1 argument (messageName: string)");
+		return;
+	}
+	v8::String::Utf8Value v8StrMessageNameUtf8(isolate, args[0].As<v8::String>());
+	std::string messageName(*v8StrMessageNameUtf8);
+	INetworkMessageInternal* pNetMsg = g_pNetworkMessages->FindNetworkMessagePartial(messageName.c_str());
+	if(!pNetMsg)
+	{
+		V8ThrowException(isolate, std::format("Method Domain.CreateUserMessage failed to find message with name '{}'", messageName));
+		return;
+	}
+	auto data = pNetMsg->AllocateMessage()->ToPB<google::protobuf::Message>();
+	ScriptUserMessageInfo* msgInfo = new ScriptUserMessageInfo(data, 0, pNetMsg);
+	auto script = (CCSScript_EntityScript*)CSScriptExtensionsSystem::GetCurrentCsScriptInstance();
+	if (!script)
+	{
+		V8ThrowException(isolate, "Method Domain.CreateUserMessage invoked in incorrect scope.");
+		delete msgInfo;
+		return;
+	}
+
+	auto msg = ScriptUserMessage::CreateUserMessageInfoInstance(script, msgInfo);
+	args.GetReturnValue().Set(msg);
 }

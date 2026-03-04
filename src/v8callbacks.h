@@ -10,6 +10,8 @@ namespace V8Callbacks {
 	void AddSampleCallback(const v8::FunctionCallbackInfo<v8::Value>& args);
 	void SetEntityMoveType(const v8::FunctionCallbackInfo<v8::Value>& args);
 
+	void CreateUserMessage(const v8::FunctionCallbackInfo<v8::Value>& args);
+
 	template <typename T>
 	constexpr void SetV8NumericReturnValue(const v8::FunctionCallbackInfo<v8::Value>& args, void* ent, size_t offset);
 };
