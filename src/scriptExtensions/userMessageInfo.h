@@ -21,6 +21,11 @@ public:
 		: m_pMessage(pMessage), m_recipients(recipients), m_pNetMessageInternal(messageInteral)
 	{
 	}
+	~ScriptUserMessageInfo()
+	{
+		delete m_pMessage;
+		// never need to delete msgInternal - already done by game after event post, and it's only present in this struct if we're sending data anyways.
+	}
 	bool GetFieldType(const char* fieldName, google::protobuf::FieldDescriptor::CppType& out, bool& outIsRepeated) const
 	{
 	 	GET_FIELD()
@@ -175,6 +180,19 @@ public:
 	INetworkMessageInternal* GetNetMessageInternal() const
 	{
 		return m_pNetMessageInternal;
+	}
+	void PostSend()
+	{
+		// the game takes ownership and deallocates the resources if we're sending them
+		// this is not the case when we receive the data, this function should only be invoked after a PostEventAbstratct.
+		m_pMessage = nullptr;
+		m_pNetMessageInternal = nullptr;
+	}
+	bool CanBeSent() const
+	{
+		// this will both cover the scenario where this object was created from a callback (null message internal) 
+		// as well as the scenario where the message was already sent.
+		return m_pMessage != nullptr && m_pNetMessageInternal != nullptr;
 	}
 private:
 	CNetMessagePB<google::protobuf::Message>* m_pMessage;

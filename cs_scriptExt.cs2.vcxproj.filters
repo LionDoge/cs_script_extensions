@@ -95,6 +95,9 @@
     <ClInclude Include="src\cs2_sdk\entity\cbaseentity.h">
       <Filter>cs2_sdk\entity</Filter>
     </ClInclude>
+    <ClInclude Include="managedObject.h">
+      <Filter>scriptExtensions</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="cs2_sdk">

@@ -12,6 +12,7 @@
 #include "scriptcommon.h"
 #include "userMessageInfo.h"
 #include "src/plugin.h"
+#include "managedObject.h"
 
 extern LoggingChannelID_t g_logChanScript;
 
@@ -50,14 +51,17 @@ v8::Local<v8::Value> ScriptUserMessage::CreateUserMessageInfoInstance(CCSScript_
 
 	auto tpl = tplPointer->Get(isolate);
 	v8::Local<v8::Object> instance = tpl->InstanceTemplate()->NewInstance(script->GetContext().Get(isolate)).ToLocalChecked();
-	instance->SetAlignedPointerInInternalField(0, userMsgInfo);
+
+	auto obj = new ManagedObjectTest(isolate, instance, userMsgInfo);
+	instance->SetAlignedPointerInInternalField(0, obj);
 	return instance;
 	//return handleScope.Escape(instance);
 }
 
 ScriptUserMessageInfo* ScriptUserMessage::GetUserMessageInfoObject(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	return static_cast<ScriptUserMessageInfo*>(info.This()->GetAlignedPointerFromInternalField(0));
+	auto wrapper = static_cast<ManagedObjectTest*>(info.This()->GetAlignedPointerFromInternalField(0));
+	return wrapper->GetData();
 }
 
 void ScriptUserMessage::OnUserMessage(const v8::FunctionCallbackInfo<v8::Value>& info)
@@ -409,6 +413,11 @@ void ScriptUserMessage::UserMessageInfo_Send(const v8::FunctionCallbackInfo<v8::
 		return;
 	}
 	auto msgInfo = GetUserMessageInfoObject(info);
+	if(!msgInfo->CanBeSent())
+	{
+		V8ThrowException(isolate, "This usermessage cannot be sent (either already sent or is a received message)\n");
+		return;
+	}
 	auto data = msgInfo->GetMessage();
 	INetworkMessageInternal* netMsgInternal = msgInfo->GetNetMessageInternal();
 	if(!netMsgInternal)
@@ -428,4 +437,5 @@ void ScriptUserMessage::UserMessageInfo_Send(const v8::FunctionCallbackInfo<v8::
 		}
 	}
 	g_gameEventSystem->PostEventAbstract(-1, false, &filter, netMsgInternal, data, 0);
+	msgInfo->PostSend();
 }
