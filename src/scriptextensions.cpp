@@ -48,7 +48,8 @@ bool CSScriptExtensionsSystem::Initialize(CGameConfig* gameConfig)
 	if (!vtable)
 		return false;
 
-	m_registerTemplatesHook = SH_ADD_DVPHOOK(CCSScript_EntityScript, InitializeFunctionTemplates, vtable, SH_MEMBER(this, &CSScriptExtensionsSystem::OnScriptInstanceRegisterTemplates), true);
+	if (m_registerTemplatesHook == -1)
+		m_registerTemplatesHook = SH_ADD_DVPHOOK(CCSScript_EntityScript, InitializeFunctionTemplates, vtable, SH_MEMBER(this, &CSScriptExtensionsSystem::OnScriptInstanceRegisterTemplates), true);
 	g_logChanScript = LoggingSystem_FindChannel("cs_script");
 	return true;
 }

@@ -15,14 +15,20 @@ public:
 
 	virtual const char* GetName() const = 0;
 	virtual CGlobalSymbol GetNameSymbol() = 0;
+	// This is where all function templates, and enums are set up in this struct.
+	// This is a good place to hook when the script gets created and initialized
 	virtual void InitializeFunctionTemplates() = 0;
-	virtual void UnloadScript() = 0; // just cleans up all the fields and deallocates memory.
+	// Just cleans up all the fields and deallocates memory. May also be called when reloading?
+	virtual void UnloadScript() = 0;
 
 	bool operator==(const CCSBaseScript& rhs) const;
 	const v8::Global<v8::Context>& GetContext();
 	uint64_t GetScriptIndex();
 	void PrintSummary() const;
 
+	// Registers a callback function for this script.
+	// Callbacks are saved in a map by a string name, you may want to format the string if you need to specify arguments (like a entity input name).
+	// For example, native code registers script entity input callbacks as: 'OnScriptInput:InpuNameHere'
 	void AddCallback(CGlobalSymbol callbackName, v8::Local<v8::Function> callbackFunction);
 	v8::Local<v8::Value> InvokeCallback(CGlobalSymbol callbackName, int argc, v8::Local<v8::Value> argv[]);
 	bool IsCallbackRegistered(CGlobalSymbol callbackName) const;
@@ -46,9 +52,10 @@ private:
 	CUtlHashtable<CGlobalSymbol, v8::Global<v8::Object>*, GlobalSymbolHashFunctor, PointerEqualFunctor> m_enumMap; // 0x70 (112);
 	CUtlHashtable<CGlobalSymbol, v8::Global<v8::Function>*, GlobalSymbolHashFunctor, PointerEqualFunctor> m_callbackMap; // 0x90 (144);
 	CUtlHashtable<CEntityHandle, v8::Global<v8::Object>*, MurmurHash2HashFunctor> m_entityObjects; // 0xb0 (176);
-	CUtlHashtable<void*, v8::Global<v8::Object>*, MurmurHash2HashFunctor> m_otherObjects;
+	CUtlHashtable<void*, v8::Global<v8::Object>*, MurmurHash2HashFunctor> m_otherObjects; // Not fully known what this is for
 };
 
+// Entity script has potentially more fields that have not been reversed yet...
 class CCSScript_EntityScript : public CCSBaseScript {};
 
 enum ScriptHandleType
