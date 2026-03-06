@@ -3,6 +3,10 @@
 #include <ostream>
 #include "platform.h"
 
+#ifndef _WIN32
+#include <dlfcn.h>
+#endif
+
 // Likely just CUtlSymbolLarge utilizing a global symbol table.
 class CGlobalSymbol
 {
@@ -47,7 +51,7 @@ inline const char* MakeGlobalSymbol(const char* str)
 	}
 	return _makeGlobalSymbolFunc(str);
 #else
-	if (!g_makeGlobalSymbolFunc)
+	if (!_makeGlobalSymbolFunc)
 	{
 		void* hModule = dlopen("libtier0.so", RTLD_LAZY);
 		if (hModule == NULL) {

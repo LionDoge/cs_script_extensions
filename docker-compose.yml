@@ -1,5 +1,5 @@
 services:
-  cs2fixes-build:
+  plugin-build:
     image: ambuilder
     build: .
     volumes:

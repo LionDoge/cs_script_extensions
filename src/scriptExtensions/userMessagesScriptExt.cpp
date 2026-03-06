@@ -3,7 +3,7 @@
 #include "v8-object.h"
 #include "v8-isolate.h"
 #include "v8-exception.h"
-#include "protobuf/generated/usermessages.pb.h"
+#include "usermessages.pb.h"
 #include "scriptExtensions/scriptextensions.h"
 #include "igameevents.h"
 #include "igameeventsystem.h"

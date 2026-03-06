@@ -205,7 +205,7 @@ void Plat_WriteMemory(void* pPatchAddress, uint8_t* pPatch, int iPatchSize)
 	result = mprotect(align_addr, align_size, old_prot);
 }
 
-void* CModule::FindVirtualTable(const std::string& name)
+void* CModule::FindVirtualTable(const std::string& name, bool autoDecorate)
 {
 	auto readOnlyData = GetSection(".rodata");
 	auto readOnlyRelocations = GetSection(".data.rel.ro");

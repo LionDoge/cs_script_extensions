@@ -26,7 +26,7 @@ for sdk_target in MMSPlugin.sdk_targets:
     binary.compiler.postlink += [
       os.path.join(builder.sourcePath, 'vendor', 'funchook', 'lib', target_folder, 'libfunchook.a'),
       os.path.join(builder.sourcePath, 'vendor', 'funchook', 'lib', target_folder, 'libdistorm.a'),
-      os.path.join(builder.sourcePath, 'vendor', 'v8', 'lib', 'v8.dll.a'),
+      os.path.join(builder.sourcePath, 'vendor', 'v8', 'lib', 'libv8.so'),
       os.path.join(builder.sourcePath, 'sdks', 'hl2sdk-cs2', 'lib', 'linux64', 'release', 'libprotobuf.a'),
     ]
     binary.sources += ['src/utils/plat_unix.cpp']
