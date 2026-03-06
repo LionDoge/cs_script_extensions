@@ -1,11 +1,11 @@
 {
     "name": "cs_scriptExt",
-    "alias": "csext",
+    "alias": "cssext",
     "display_name": "cs_script extensions",
-    "description": "Sample basic plugin",
+    "description": "Extensions for cs_script",
     "author": "Lion Doge",
     "url": "http://www.sourcemm.net/",
     "log_tag": "CS_SCRIPT_EXT",
-    "license": "MIT",
+    "license": "GPL-3.0",
     "version": "1.0.0.{{git-shorthash}}"
 }
