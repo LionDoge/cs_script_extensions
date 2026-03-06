@@ -72,7 +72,7 @@ public:
 		return std::popcount(bits);
 	}
 
-	CPlayerSlot GetPredictedPlayerSlot() const override
+	CPlayerSlot GetPredictedPlayerSlot() const
 	{
 		return CPlayerSlot(m_Recipients.FindNextSetBit(0));
 	}

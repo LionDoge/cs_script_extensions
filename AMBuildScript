@@ -376,7 +376,7 @@ const char *PLUGIN_REVISION_COUNT = \"{revision_count}\";
       cxx.cflags += [
         '/W3',
         '/Zi',
-        '/std:c++20',
+        '/std:c++23preview',
       ]
       cxx.cxxflags += ['/TP']
       

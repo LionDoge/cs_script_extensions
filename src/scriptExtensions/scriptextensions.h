@@ -4,7 +4,6 @@
 #include "v8-template.h"
 #include "module.h"
 #include "csscript.h"
-#include "safetyhook.hpp"
 
 struct ScriptFunctionInfo {
 	std::string name; // Name of the function as seen from script.
