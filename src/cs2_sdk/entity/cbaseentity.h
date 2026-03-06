@@ -23,9 +23,8 @@
 #include "globaltypes.h"
 #include "mathlib/vector.h"
 #include "ehandle.h"
-//#include "../detours.h"
 #include "entitykeyvalues.h"
-#include "src/addresses.h"
+#include "addresses.h"
 
 
 class CGameUI;

@@ -3,16 +3,16 @@
 #include "v8-object.h"
 #include "v8-isolate.h"
 #include "v8-exception.h"
-#include "src/protobuf/generated/usermessages.pb.h"
-#include "src/scriptextensions.h"
+#include "protobuf/generated/usermessages.pb.h"
+#include "scriptExtensions/scriptextensions.h"
 #include "igameevents.h"
 #include "igameeventsystem.h"
 
-#include "src/recipientfilters.h"
+#include "recipientfilters.h"
 #include "scriptcommon.h"
 #include "userMessageInfo.h"
-#include "src/plugin.h"
 #include "managedObject.h"
+#include "plugin.h"
 
 extern LoggingChannelID_t g_logChanScript;
 
@@ -380,12 +380,12 @@ void ScriptUserMessage::UserMessageInfo_RemoveRecipient(const v8::FunctionCallba
 	v8::HandleScope handleScope(isolate);
 	if (info.This().IsEmpty())
 	{
-		V8ThrowException(isolate, "UserMessageInfo.AddRecipient invoked on an invalid 'this' value\n");
+		V8ThrowException(isolate, "UserMessageInfo.RemoveRecipient invoked on an invalid 'this' value\n");
 		return;
 	}
 	if (info.Length() != 1)
 	{
-		V8ThrowException(isolate, "UserMessageInfo.AddRecipient requires 1 argument: (playerSlot: number)\n");
+		V8ThrowException(isolate, "UserMessageInfo.RemoveRecipient requires 1 argument: (playerSlot: number)\n");
 		return;
 	}
 	if (info[0].IsEmpty() || !info[0]->IsString())
@@ -396,7 +396,7 @@ void ScriptUserMessage::UserMessageInfo_RemoveRecipient(const v8::FunctionCallba
 	double number = info[0]->ToNumber(isolate->GetCurrentContext()).ToLocalChecked()->Value();
 	if (number < 0 || number > 64)
 	{
-		V8ThrowException(isolate, "UserMessageInfo.AddRecipient argument 0 must be a number between 0 and 64 (player slot)\n");
+		V8ThrowException(isolate, "UserMessageInfo.RemoveRecipient argument 0 must be a number between 0 and 64 (player slot)\n");
 		return;
 	}
 	auto msgInfo = GetUserMessageInfoObject(info);

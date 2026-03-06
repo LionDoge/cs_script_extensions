@@ -1,12 +1,8 @@
 #include "scriptextensions.h"
-
 #include <vprof.h>
-#include "v8.h"
 #include "ehandle.h"
-#include "utlvector.h"
 #include "entity/cpointscript.h"
 #include "sigutils.h"
-#include "scriptExtensions/userMessagesScriptExt.h"
 #include "gameconfig.h"
 #include "scriptcommon.h"
 #include "plugin.h"
@@ -42,7 +38,6 @@ bool CSScriptExtensionsSystem::Initialize(CGameConfig* gameConfig)
 		MsgCrit("Failed to resolve one or more required signatures!\n");
 		return false;
 	}
-	//m_pHookRegisterInstanceTemplate = safetyhook::create_inline(reinterpret_cast<void*>(m_pfnRegisterInstanceTemplate), reinterpret_cast<void*>(Hook_RegisterInstanceTemplateA));
 
 	auto vtable = modules::server->FindVirtualTable("CCSScript_EntityScript", true);
 	if (!vtable)
@@ -133,98 +128,6 @@ v8::Local<v8::Object> CSScriptExtensionsSystem::CreateEntityObjectFromTemplate(c
 {
 	return m_pfnCreateEntintyObjectFromTemplate(templateName, entity);
 }
-
-//void CSScriptExtensionsSystem::Hook_RegisterFunctionTemplate(
-//	CCSBaseScript* script, 
-//	const char* name, 
-//	v8::Local<v8::FunctionTemplate> funcTemplate
-//)
-//{
-//	OnScriptInstanceRegisterFunctionTemplate(script, funcTemplate->PrototypeTemplate(), name);
-//	//m_pHookRegisterInstanceTemplate.call(script, name, funcTemplate);
-//}
-
-//void CSScriptExtensionsSystem::AddCallback(uint64_t scriptIdx, const char* callbackName, v8::Global<v8::Function>&& func, v8::Global<v8::Context>&& ctx)
-//{
-//    if (callbackName == nullptr)
-//        return;
-//
-//    // Get (or create) the callback map for this script index.
-//    auto& callbackMap = m_scriptCallbacks[scriptIdx];
-//    callbackMap[std::string(callbackName)] = { std::move(func), std::move(ctx) };
-//}
-//
-//void CSScriptExtensionsSystem::InvokeCallbacks(const char* cbName)
-//{
-//	auto script = CSScriptExtensionsSystem::GetCurrentCsScriptInstance();
-//	int idx = 0;
-//	for(CEntityInstance* scriptEnt : GetScripts())
-//	{
-//		auto script = GetScriptFromEntity(scriptEnt);
-//		if (!m_scriptCallbacks.contains(script->globalScriptIndex))
-//			continue;
-//
-//		const auto& callbackMap = m_scriptCallbacks.at(script->globalScriptIndex);
-//		
-//		if(!callbackMap.contains(cbName))
-//			continue;
-//
-//		g_scriptExtensions.SwitchScriptContext(script);
-//		auto isolate = v8::Isolate::GetCurrent();
-//		v8::HandleScope handleScope(isolate);
-//
-//		const auto& cbInfo = callbackMap.at(cbName);
-//		auto context = cbInfo.context.Get(isolate);
-//		context->Enter();
-//
-//		v8::TryCatch tryCatch(isolate);
-//		v8::Local<v8::Value> args[] = { v8::Number::New(isolate, idx) };
-//		auto func = cbInfo.callback.Get(isolate);
-//		func->Call(context, context->Global(), 1, args);
-//
-//		if(tryCatch.HasCaught())
-//		{
-//			v8::String::Utf8Value errorStr(isolate, tryCatch.Exception());
-//			Log_Warning(g_logChanScript, "InvokeCallbacks: Callback %d threw an exception: %s\n", idx, *errorStr);
-//		}
-//		
-//		context->Exit();
-//		idx++;
-//	}
-//}
-
-//void CSScriptExtensionsSystem::TestInvokeAllCallbacks()
-//{
-//	auto isolate = v8::Isolate::GetCurrent();
-//	for (CEntityInstance* scriptEnt : GetScripts())
-//	{
-//		v8::HandleScope handleScope(isolate);
-//		auto script = GetScriptFromEntity(scriptEnt);
-//		auto context = script->context.Get(isolate);
-//		context->Enter();
-//		SwitchScriptContext(script);
-//		FOR_EACH_HASHTABLE(script->callbackMap, i)
-//		{
-//			auto key = script->callbackMap.Key(i);
-//			auto val = script->callbackMap.Element(i);
-//			auto func = val->Get(isolate);
-//
-//			v8::TryCatch tryCatch(isolate);
-//			v8::Local<v8::Value> args[3];
-//			args[0] = v8::String::NewFromUtf8(isolate, "hello").ToLocalChecked();
-//			args[1] = v8::Number::New(isolate, 42);
-//			args[2] = v8::Boolean::New(isolate, true);
-//			func->Call(context, context->Global(), 3, args);
-//			if (tryCatch.HasCaught())
-//			{
-//				v8::Local<v8::Value> exception = tryCatch.Exception();
-//				v8::String::Utf8Value exception_str(isolate, exception);
-//				Log_Warning(g_logChanScript, "Exception: %s\n", *exception_str);
-//			}
-//		}
-//		context->Exit();
-//	}
-//}
 
 void CSScriptExtensionsSystem::InvokeCallbacks(const char* callbackName, int argc, v8::Local<v8::Value> argv[])
 {

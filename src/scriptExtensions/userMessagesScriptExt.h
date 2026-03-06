@@ -1,7 +1,7 @@
 #pragma once
 #include <v8-value.h>
 #include "userMessageInfo.h"
-#include "src/csscript.h"
+#include "csscript.h"
 
 namespace ScriptUserMessage {
 	// Callback registration

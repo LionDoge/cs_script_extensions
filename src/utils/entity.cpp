@@ -31,20 +31,6 @@
 
 extern CGameEntitySystem* GameEntitySystem();
 extern CGameConfig *g_GameConfig;
-//extern CCSGameRules *g_pGameRules;
-
-//Z_CBaseEntity *UTIL_FindPickerEntity(CBasePlayerController *pPlayer)
-//{
-//	static int offset = g_GameConfig->GetOffset("CGameRules_FindPickerEntity");
-//
-//	if (offset < 0)
-//	{
-//		Msg("Missing offset for CGameRules_FindPickerEntity!\n");
-//		return nullptr;
-//	}
-//
-//	return CALL_VIRTUAL(Z_CBaseEntity *, offset, g_pGameRules, pPlayer);
-//}
 
 CBaseEntity *UTIL_FindEntityByClassname(CEntityInstance *pStartEntity, const char *szName)
 {

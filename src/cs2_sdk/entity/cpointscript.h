@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "entity/cbaseentity.h"
-#include "../csscript.h"
+#include "scriptExtensions/csscript.h"
 
 class CPointScript : public CBaseEntity {
 public:

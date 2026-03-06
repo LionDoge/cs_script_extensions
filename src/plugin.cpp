@@ -1,50 +1,32 @@
-/**
- * vim: set ts=4 sw=4 tw=99 noet :
- * ======================================================
- * Metamod:Source Sample Plugin
- * Written by AlliedModders LLC.
- * ======================================================
- *
- * This software is provided 'as-is', without any express or implied warranty.
- * In no event will the authors be held liable for any damages arising from 
- * the use of this software.
- *
- * This sample plugin is public domain.
- */
-
-#include "v8.h"
-#include <stdio.h>
 #include "plugin.h"
-
 #include <fstream>
 #include <sstream>
 #include "entitysystem.h"
-#include "schema.h"
+#include "schemasystem/schemasystem.h"
+#include "convar.h"
+#include "iloopmode.h"
+#include "igameeventsystem.h"
+#include "recipientfilters.h"
+#include "serversideclient.h"
+#include "entity.h"
+#include "sigutils.h"
+#include "globalsymbol.h"
 #include "protobuf/generated/networkbasetypes.pb.h"
 #include "protobuf/generated/usermessages.pb.h"
 #include "module.h"
-#include "funchook.h"
-#include "csscript.h"
-#include "hudhintmanager.h"
-#include "schemasystem/schemasystem.h"
-#include "igameeventsystem.h"
-#include "recipientfilters.h"
-#include "vprof.h"
-#include "serversideclient.h"
-#include "scriptextensions.h"
-#include "v8callbacks.h"
-#include "gameconfig.h"
 #include "ctimer.h"
-#include "safetyhook.hpp"
-#include "convar.h"
-#include "CustomPlayer.h"
-#include "entity.h"
-#include "scriptclasses/schemaobject.h"
-#include "sigutils.h"
-#include "iloopmode.h"
+#include "funchook.h"
+#include "gameconfig.h"
+#include "hudhintmanager.h"
+#include <vprof.h>
+
+
+#include "scriptExtensions/csscript.h"
+#include "scriptExtensions/scriptDomainCallbacks.h"
+#include "scriptExtensions/scriptextensions.h"
 #include "scriptExtensions/userMessagesScriptExt.h"
 #include "scriptExtensions/userMessageInfo.h"
-#include "globalsymbol.h"
+#include "v8.h"
 
 SH_DECL_HOOK3_void(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, bool, bool, bool);
 SH_DECL_HOOK4_void(IServerGameClients, ClientActive, SH_NOATTRIB, 0, CPlayerSlot, bool, const char *, uint64);
@@ -60,7 +42,6 @@ SH_DECL_HOOK1_void(IServer, SetGameSpawnGroupMgr, SH_NOATTRIB, 0, IGameSpawnGrou
 SH_DECL_HOOK0_void(IServerGameDLL, GameServerSteamAPIActivated, SH_NOATTRIB, 0);
 SH_DECL_HOOK8_void(IGameEventSystem, PostEventAbstract, SH_NOATTRIB, 0, CSplitScreenSlot, bool, int, const uint64*,
 	INetworkMessageInternal*, const CNetMessage*, unsigned long, NetChannelBufType_t)
-//SH_DECL_HOOK3_void(INetworkServerService, StartupServer, SH_NOATTRIB, 0, const GameSessionConfiguration_t&, ISource2WorldSession*, const char*);
 //SH_DECL_MANUALHOOK1(sh_ConstructAutoList, 0, 0, 0, CUtlAutoList<CCSBaseScript>*, bool);
 
 MMSPlugin g_ThisPlugin;
@@ -70,9 +51,6 @@ IVEngineServer *engine = NULL;
 IGameEventManager2 *gameevents = NULL;
 ICvar *icvar = NULL;
 IGameEventSystem* g_gameEventSystem = NULL;
-//CSteamGameServerAPIContext g_steamAPI;
-
-HMODULE g_hV8Module = NULL;
 IGameEventManager2* g_gameEventManager = nullptr;
 IVEngineServer2* g_pEngineServer2 = nullptr;
 
@@ -90,26 +68,6 @@ LoggingChannelID_t g_logChanScript;
 	funchook_install(funchookHandle, 0);
 
 CSScriptExtensionsSystem* g_scriptExtensions;
-typedef CBaseEntity* (__fastcall* CreateEntityByNameFunc_t)(const char* className, int iForceEdictIndex);
-typedef CBaseEntity* (__fastcall* DispatchSpawnFunc_t)(CBaseEntity* ent, CEntityKeyValues* pEntityKeyValues);
-CreateEntityByNameFunc_t g_pfnCreateEntityByName = nullptr;
-DispatchSpawnFunc_t g_pfnDispatchSpawn = nullptr;
-
-std::vector<CustomPlayer*> m_vecCustomPlayers(64);
-//template <typename T = CBaseEntity>
-//T* CreateEntityByName(const char* className)
-//{
-//	return reinterpret_cast<T*>(g_pfnCreateEntityByName(className, -1));
-//}
-//
-//void DispatchSpawn(CBaseEntity* ent, CEntityKeyValues* pEntityKeyValues = nullptr)
-//{
-//	g_pfnDispatchSpawn(ent, pEntityKeyValues);
-//}
-typedef CServerSideClient* (FASTCALL* GetFreeClientFunc_t)(int64_t unk1, const __m128i* unk2, unsigned int unk3, int64_t unk4, char unk5, void* unk6);
-GetFreeClientFunc_t g_pfnGetFreeClient = nullptr;
-funchook_t* hook_getFreeClient;
-CServerSideClient* FASTCALL Detour_GetFreeClient(int64_t unk1, const __m128i* unk2, unsigned int unk3, int64_t unk4, char unk5, void* unk6);
 
 void ClientPrintAll(int hud_dest, const char* msg, ...)
 {
@@ -255,31 +213,29 @@ int Hook_LoadEventsFromFile(const char* filename, bool bSearchAll)
 
 static void RegisterScriptFunctions()
 {
-
 	g_scriptExtensions->IncludeFunctions(
 		"Domain",
 		{
-			{ "MsgNew", V8Callbacks::V8NewMsg },
-			{ "AddSampleCallback", V8Callbacks::AddSampleCallback },
+			{ "MsgNew", ScriptDomainCallbacks::V8NewMsg },
+			{ "AddSampleCallback", ScriptDomainCallbacks::AddSampleCallback },
 			{ "OnUserMessage", ScriptUserMessage::OnUserMessage },
-			{ "CreateUserMessage", V8Callbacks::CreateUserMessage }
+			{ "CreateUserMessage", ScriptDomainCallbacks::CreateUserMessage }
 		});
 
 	g_scriptExtensions->IncludeFunctions(
 		"Entity",
 		{
-			{ "GetSchemaField", V8Callbacks::V8GetSchemaField },
-			{ "SetMoveType", V8Callbacks::SetEntityMoveType }
+			{ "GetSchemaField", ScriptDomainCallbacks::V8GetSchemaField },
+			{ "SetMoveType", ScriptDomainCallbacks::SetEntityMoveType }
 		});
 
 	g_scriptExtensions->IncludeFunctions(
 		"CSPlayerController",
 		{
-			{ "ShowHudHint", V8Callbacks::V8ShowHudHint },
-			{ "ShowHudMessageHTML", V8Callbacks::V8ShowHTMLMessage },
+			{ "ShowHudHint", ScriptDomainCallbacks::V8ShowHudHint },
+			{ "ShowHudMessageHTML", ScriptDomainCallbacks::V8ShowHTMLMessage },
 		});
 
-	//g_scriptExtensions->RegisterCustomFunctionTemplate(ScriptUserMessage::InitUserMessageInfoTemplate);
 	g_scriptExtensions->RegisterCustomFunctionTemplate(
 		"UserMessageInfo",
 		{
@@ -294,43 +250,6 @@ static void RegisterScriptFunctions()
 		1, // internal fields
 		std::nullopt // Inherits from
 	);
-}
-
-void SetupDetours()
-{
-	g_pfnGetFreeClient = (GetFreeClientFunc_t)(g_GameConfig->ResolveSignature("GetFreeClient"));
-	if (g_pfnGetFreeClient)
-	{
-		Msg("[cs_script_extensions] Failed to find GetFreeClient signature");
-		return;
-	}
-	CREATE_FUNCHOOK_BASIC(hook_getFreeClient, g_pfnGetFreeClient, Detour_GetFreeClient);
-}
-
-static uint64 g_iFlagsToRemove = (FCVAR_HIDDEN | FCVAR_DEVELOPMENTONLY);
-static constexpr const char* pUnCheatCmds[] = { "report_entities" };
-static constexpr const char* pUnCheatCvars[] = { "bot_stop", "bot_freeze", "bot_zombie" };
-void UnlockConVars()
-{
-	if (!g_pCVar)
-		return;
-
-	int iUnhiddenConVars = 0;
-
-	for (ConVarRefAbstract ref(ConVarRef((uint16)0)); ref.IsValidRef(); ref = ConVarRefAbstract(ConVarRef(ref.GetAccessIndex() + 1)))
-	{
-		for (int i = 0; i < sizeof(pUnCheatCvars) / sizeof(*pUnCheatCvars); i++)
-			if (!V_strcmp(ref.GetName(), pUnCheatCvars[i]))
-				ref.RemoveFlags(FCVAR_CHEAT);
-
-		if (!ref.IsFlagSet(g_iFlagsToRemove))
-			continue;
-
-		ref.RemoveFlags(g_iFlagsToRemove);
-		iUnhiddenConVars++;
-	}
-
-	Msg("Removed hidden flags from %d convars\n", iUnhiddenConVars);
 }
 
 PLUGIN_EXPOSE(MMSPlugin, g_ThisPlugin);
@@ -351,10 +270,7 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 	GET_V_IFACE_ANY(GetEngineFactory, g_pNetworkMessages, INetworkMessages, NETWORKMESSAGES_INTERFACE_VERSION);
 	GET_V_IFACE_ANY(GetEngineFactory, g_pGameTypes, IGameTypes, GAMETYPES_INTERFACE_VERSION);
 	GET_V_IFACE_ANY(GetFileSystemFactory, g_pFullFileSystem, IFileSystem, FILESYSTEM_INTERFACE_VERSION);
-	//GET_V_IFACE_ANY(GetEngineFactory, g_pNetworkStringTableServer, INetworkStringTableContainer, INTERFACENAME_NETWORKSTRINGTABLESERVER);
-	// Currently doesn't work from within mm side, use GetGameGlobals() in the mean time instead
-	// gpGlobals = ismm->GetCGlobals();
-	// Required to get the IMetamodListener events
+	
 	g_SMAPI->AddListener( this, this );
 	
 	META_CONPRINTF( "Starting plugin.\n" );
@@ -367,16 +283,8 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 	SH_ADD_HOOK(IServerGameClients, ClientConnect, g_pSource2GameClients, SH_MEMBER(this, &MMSPlugin::Hook_ClientConnect), false);
 	SH_ADD_HOOK(IServerGameClients, ClientCommand, g_pSource2GameClients, SH_MEMBER(this, &MMSPlugin::Hook_ClientCommand), false);
 	SH_ADD_HOOK(IGameEventSystem, PostEventAbstract, g_gameEventSystem, SH_MEMBER(this, &MMSPlugin::Hook_PostEvent), false);
-	//SH_ADD_HOOK(INetworkServerService, StartupServer, g_pNetworkServerService, SH_MEMBER(this, &MMSPlugin::Hook_StartupServer), true);
-	//SH_ADD_HOOK(IServerGameDLL, GameServerSteamAPIActivated, g_pSource2Server, SH_MEMBER(this, &MMSPlugin::Hook_GameServerSteamAPIActivated), false);
 
-	// CUtlAutoList<class CCSBaseScript>
-	//auto vtbl = g_serverModule->FindVirtualTable("?$CUtlAutoList@VCCSBaseScript@@");
-	//SH_ADD_MANUALDVPHOOK(sh_ConstructAutoList, vtbl, Hook_ConstructScriptAutoList, true);
-
-	META_CONPRINTF( "All hooks started!\n" );
-
-	META_CONPRINT("Loading gamedata...");
+	META_CONPRINT("[cs_script_ext] Loading gamedata...");
 	CBufferStringGrowable<256> gamedirpath;
 	g_pEngineServer2->GetGameDir(gamedirpath);
 	std::string gamedir = CGameConfig::GetDirectoryName(gamedirpath.Get());
@@ -408,106 +316,12 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 		return false;
 	}
 
-	SetupDetours();
-	UnlockConVars();
 	META_CONVAR_REGISTER(FCVAR_RELEASE | FCVAR_GAMEDLL);
 	g_pEngineServer2->ServerCommand("sv_long_frame_ms 50.0");
 
-	// You can get a convar reference to an already existing cvar via CConVarRef.
-	// This will pre-register it if it's not yet registered and would use default data until
-	// the actual cvar is registered. You can assert data existance via IsConVarDataAvailable().
-	// Make sure the type is correct here otherwise it might prevent actual convar being registered,
-	// since you pre-registered it with a different type or if convar already exists you'd be left with 
-	// an invalid ref, so a check for IsValidRef() is also nice to have.
-	// Generally with these you should just know the type of a cvar you are referencing beforehand
-	// and if not, refer to ConVarRefAbstract usage
-	// 
-	// Side Note: Always make sure you are working with a valid ref (IsValidRef()) before reading/writing to it
-	// as otherwise you'd be reading/writing off of default convar data which is shared across
-	// all the invalid convar refs.
-	//CConVarRef<int> ccvar_ref_example( "mp_limitteams" );
-
-	//if(ccvar_ref_example.IsValidRef() && ccvar_ref_example.IsConVarDataAvailable())
-	//{
-	//	META_CONPRINTF( "CConVarRef \"%s\" got value pre = %d [float = %f, bool = %d, string = \"%s\"]\n",
-	//					ccvar_ref_example.GetName(), ccvar_ref_example.Get(),
-	//					ccvar_ref_example.GetFloat(), ccvar_ref_example.GetBool(),
-	//					ccvar_ref_example.GetString() );
-	//	
-	//	// By default if you are using CConVar or CConVarRef you should be using Get()/Set()
-	//	// methods to read/write values, as these are templated for the particular type the cvar is of.
-	//	// It also is usually faster since it skips all the type conversion logic of non templated methods
-	//	ccvar_ref_example.Set( 5 );
-
-	//	// As noted above there are methods that support value conversion between certain types
-	//	// so stuff like this is possible on an int typed cvar for example,
-	//	// refer to ConVarRefAbstract declaration for more info on these methods
-	//	ccvar_ref_example.SetFloat( 8.5f );
-
-	//	META_CONPRINTF( "CConVarRef \"%s\" got value after = %d [float = %f, bool = %d, string = \"%s\"]\n",
-	//					ccvar_ref_example.GetName(), ccvar_ref_example.Get(),
-	//					ccvar_ref_example.GetFloat(), ccvar_ref_example.GetBool(),
-	//					ccvar_ref_example.GetString() );
-	//}
-
-	//// You can also use ConVarRefAbstract class if you don't want typisation support
-	//// or don't know the actual type used, since you are responsible for picking the correct type there!
-	//// And ConVarRefAbstract won't pre-register the convar in the system, as it acts as a plain ref,
-	//// so make sure to check the ref for validity before usage via IsValidRef()
-	//ConVarRefAbstract cvar_ref_example( "mp_limitteams" );
-
-	//if(cvar_ref_example.IsValidRef())
-	//{
-	//	META_CONPRINTF( "ConVarRefAbstract \"%s\" got value pre [float = %f, bool = %d, string = \"%s\"]\n",
-	//					cvar_ref_example.GetName(), cvar_ref_example.GetFloat(), cvar_ref_example.GetBool(), cvar_ref_example.GetString() );
-
-	//	// Since the ref is not typed, you can't use direct Get() and Set() methods,
-	//	// instead you need to use methods with type conversion support.
-	//	cvar_ref_example.SetFloat( 10.0f );
-
-	//	// If you work with convars of non primitive types, you can also use SetAs() methods
-	//	// to try to set the value as a specific type, if type mismatches it would try to do 
-	//	// conversion if possible and if not it would do nothing.
-	//	// There's also an equvialent methods for reading the value, GetAs()
-	//	cvar_ref_example.SetAs<Vector>( Vector( 1.0f, 2.0f, 3.0f ) );
-
-	//	// Alternatively you can "promote" plain ref to a typed variant by passing plain ref to a constructor
-	//	// but be careful, as there's a type checker in place that would invalidate convar ref
-	//	// if cast to a wrong type was attempted, you can check for that either via IsValidRef()
-	//	// or IsConVarDataValid() (usually IsValidRef() is enough) afterwards, but generally you should
-	//	// just know the correct type of the cvar you are casting to beforehand.
-	//	CConVarRef<int> promoted_ref( cvar_ref_example );
-	//	if(promoted_ref.IsValidRef() && promoted_ref.IsConVarDataValid())
-	//	{
-	//		// If the promoted ref is valid, you can use its templated methods like with CConVarRef/CConVar
-	//		promoted_ref.Set( 5 );
-	//	}
-
-	//	META_CONPRINTF( "ConVarRefAbstract \"%s\" got value after [float = %f, bool = %d, string = \"%s\"]\n",
-	//					cvar_ref_example.GetName(), cvar_ref_example.GetFloat(), cvar_ref_example.GetBool(), cvar_ref_example.GetString() );
-	//}
-
-	/*ConCommandRef ccmd_ref_rents("report_entities");
-	if (ccmd_ref_rents.IsValidRef())
-	{
-		ccmd_ref_rents.RemoveFlags(FCVAR_DEVELOPMENTONLY | FCVAR_CHEAT);
-	}
-
-	ConVarRefAbstract cvar_ref_c4timer("mp_c4timer");
-	if (cvar_ref_c4timer.IsValidRef())
-	{
-		cvar_ref_c4timer.RemoveFlags(FCVAR_NOTIFY);
-	}
-
-	ConCommandRef ccmd_ref_timescale("host_timescale");
-	if (ccmd_ref_timescale.IsValidRef())
-	{
-		ccmd_ref_timescale.RemoveFlags(FCVAR_CHEAT);
-	}*/
-
 	auto gameEventMgrVtbl = (IGameEventManager2*)modules::server->FindVirtualTable("CGameEventManager");
 	SH_ADD_DVPHOOK(IGameEventManager2, LoadEventsFromFile, gameEventMgrVtbl, Hook_LoadEventsFromFile, false);\
-
+	
 	return true;
 }
 
@@ -521,31 +335,17 @@ bool MMSPlugin::Unload(char *error, size_t maxlen)
 	SH_REMOVE_HOOK(IServerGameClients, OnClientConnected, gameclients, SH_MEMBER(this, &MMSPlugin::Hook_OnClientConnected), false);
 	SH_REMOVE_HOOK(IServerGameClients, ClientConnect, gameclients, SH_MEMBER(this, &MMSPlugin::Hook_ClientConnect), false);
 	SH_REMOVE_HOOK(IServerGameClients, ClientCommand, gameclients, SH_MEMBER(this, &MMSPlugin::Hook_ClientCommand), false);
-	//SH_REMOVE_HOOK(INetworkServerService, StartupServer, g_pNetworkServerService, SH_MEMBER(this, &MMSPlugin::Hook_StartupServer), true);
 	delete g_scriptExtensions;
 
 	return true;
 }
-//
-//CON_COMMAND(test_script, "")
-//{
-//	CBaseEntity* script = CreateEntityByName("point_script");
-//	CEntityKeyValues* kv = new CEntityKeyValues();
-//	kv->SetString("cs_script", "scripts/main.vjs");
-//	DispatchSpawn(script, kv);
-//}
+
 void MMSPlugin::Hook_GameServerSteamAPIActivated()
 {
-	//g_steamAPI.Init();
-	//m_CallbackValidateAuthTicketResponse.Register(this, &MMSPlugin::OnValidateAuthTicket);
 }
 
 void MMSPlugin::AllPluginsLoaded()
 {
-	/* This is where we'd do stuff that relies on the mod or other plugins 
-	 * being initialized (for example, cvars added and events registered).
-	 */
-	
 }
 
 void MMSPlugin::Hook_ClientActive( CPlayerSlot slot, bool bLoadGame, const char *pszName, uint64 xuid )
@@ -566,21 +366,12 @@ void MMSPlugin::Hook_ClientSettingsChanged( CPlayerSlot slot )
 void MMSPlugin::Hook_OnClientConnected( CPlayerSlot slot, const char *pszName, uint64 xuid, const char *pszNetworkID, const char *pszAddress, bool bFakePlayer )
 {
 	//META_CONPRINTF( "Hook_OnClientConnected(%d, \"%s\", %d, \"%s\", \"%s\", %d)\n", slot, pszName, xuid, pszNetworkID, pszAddress, bFakePlayer );
-	if (bFakePlayer)
-	{
-		auto plr = new CustomPlayer(slot.Get(), true);
-		m_vecCustomPlayers[slot.Get()] = plr;
-	}
-	
 }
 
 bool MMSPlugin::Hook_ClientConnect( CPlayerSlot slot, const char *pszName, uint64 xuid, const char *pszNetworkID, bool unk1, CBufferString *pRejectReason )
 {
-	auto plr = new CustomPlayer(slot.Get());
-	plr->SetUnauthenticatedSteamId(xuid);
-	m_vecCustomPlayers[slot.Get()] = plr;
-	RETURN_META_VALUE(MRES_IGNORED, true);
 	//META_CONPRINTF( "Hook_ClientConnect(%d, \"%s\", %d, \"%s\", %d, \"%s\")\n", slot, pszName, xuid, pszNetworkID, unk1, pRejectReason->Get() );
+	RETURN_META_VALUE(MRES_IGNORED, true);
 }
 
 void MMSPlugin::Hook_ClientPutInServer( CPlayerSlot slot, char const *pszName, int type, uint64 xuid )
@@ -599,7 +390,6 @@ void MMSPlugin::Hook_ClientPutInServer( CPlayerSlot slot, char const *pszName, i
 
 void MMSPlugin::Hook_ClientDisconnect( CPlayerSlot slot, ENetworkDisconnectionReason reason, const char *pszName, uint64 xuid, const char *pszNetworkID )
 {
-	delete m_vecCustomPlayers[slot.Get()];
 	//META_CONPRINTF( "Hook_ClientDisconnect(%d, %d, \"%s\", %d, \"%s\")\n", slot, reason, pszName, xuid, pszNetworkID );
 }
 
@@ -647,17 +437,8 @@ void MMSPlugin::Hook_SetGameSpawnGroupMgr(IGameSpawnGroupMgr* pSpawnGroupMgr)
 
 void MMSPlugin::Hook_StartupServer(const GameSessionConfiguration_t& config, ISource2WorldSession* pSession, const char* pszMapName)
 {
-
 	if (g_pNetworkServerService->GetIGameServer())
 		g_iSetGameSpawnGroupMgrId = SH_ADD_HOOK(IServer, SetGameSpawnGroupMgr, g_pNetworkServerService->GetIGameServer(), SH_MEMBER(this, &MMSPlugin::Hook_SetGameSpawnGroupMgr), false);
-
-	Msg("Hook_StartupServer: %s\n", pszMapName);
-
-	/*RegisterEventListeners();
-
-	if (g_bHasTicked)
-		RemoveTimers(TIMERFLAG_MAP);*/
-	auto entitySystem = GameEntitySystem();
 
 	g_bHasTicked = false;
 }
@@ -706,29 +487,6 @@ void MMSPlugin::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nCli
 	}
 }
 
-CServerSideClient* FASTCALL Detour_GetFreeClient(int64_t unk1, const __m128i* unk2, unsigned int unk3, int64_t unk4, char unk5, void* unk6)
-{
-	// Not sure if this function can even be called in this state, but if it is, we can't do shit anyways
-	if (!GetClientList() || !GetGameGlobals())
-		return nullptr;
-
-	// Check if there is still unused slots, this should never break so just fall back to original behaviour for ease (we don't have a CServerSideClient constructor)
-	if (GetGameGlobals()->maxClients != GetClientList()->Count())
-		return g_pfnGetFreeClient(unk1, unk2, unk3, unk4, unk5, unk6);
-
-	// Phantom client fix
-	for (int i = 0; i < GetClientList()->Count(); i++)
-	{
-		CServerSideClient* pClient = (*GetClientList())[i];
-
-		if (pClient && pClient->GetSignonState() < SIGNONSTATE_CONNECTED)
-			return pClient;
-	}
-
-	// Server is actually full for real
-	return nullptr;
-}
-
 // remember the script path by its id for reloading purposes
 // yes this doesn't get cleaned properly, but I don't care right now.
 static std::unordered_map<uint64_t, std::string> scriptPathMap;
@@ -766,7 +524,7 @@ CON_COMMAND_F(csscript_load, "Creates a script entity and loads the provided fil
 {
 	if (args.ArgC() < 2)
 	{
-		META_CONPRINT("Usage: script_load <script_file> [script_entity_name]\n");
+		META_CONPRINT("Usage: csscript_load <script_file> [script_entity_name]\n");
 	}
 
 	const char* scriptName = "script";
@@ -790,7 +548,7 @@ CON_COMMAND_F(csscript_reload, "Reload a script (loaded by script_load only)", F
 {
 	if (args.ArgC() < 2)
 	{
-		META_CONPRINT("Usage: script_reload <script_entity_name>\n");
+		META_CONPRINT("Usage: csscript_reload <script_entity_name>\n");
 	}
 
 	CBaseEntity* ent = nullptr;
@@ -822,6 +580,7 @@ CON_COMMAND_F(remove_scripts, "Remove all point_script entities", FCVAR_NONE)
 	scriptPathMap.clear();
 }
 
+// Currently non-functional
 CON_COMMAND_F(script_run_code, "Run code inside an existing script", FCVAR_NONE)
 {
 	if (args.ArgC() < 3)

@@ -1,6 +1,6 @@
 #pragma once
 #include "v8.h"
-#include "src/scriptExtensions/userMessageInfo.h"
+#include "scriptExtensions/userMessageInfo.h"
 
 struct ManagedObjectTest {
     ScriptUserMessageInfo* data;

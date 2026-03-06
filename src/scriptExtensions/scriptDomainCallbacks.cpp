@@ -1,18 +1,17 @@
 ﻿
-#include "v8callbacks.h"
+#include "scriptExtensions/scriptDomainCallbacks.h"
 #include "v8-object.h"
 #include "v8-isolate.h"
-#include "csscript.h"
 #include "protobuf/generated/usermessages.pb.h"
-#include "interfaces/interfaces.h"
 #include "entity/ccsplayercontroller.h"
-#include "scriptextensions.h"
-#include "schemasystem/schemasystem.h"
-#include "hudhintmanager.h"
-#include "igameevents.h"
-#include "scriptclasses/schemaobject.h"
-#include "scriptExtensions/userMessagesScriptExt.h"
+#include "interfaces/interfaces.h"
 #include "networksystem/inetworkmessages.h"
+#include "schemasystem/schemasystem.h"
+#include "igameevents.h"
+#include "csscript.h"
+#include "scriptextensions.h"
+#include "hudhintmanager.h"
+#include "scriptExtensions/userMessagesScriptExt.h"
 
 extern LoggingChannelID_t g_logChanScript;
 
@@ -76,15 +75,11 @@ std::optional<SchemaClassFieldData_t*> GetSchemaFieldInfo(const char* className,
 		{
 			return &currentField;
 		}
-
-#ifdef _DEBUG
-		//Msg("%s::%s found at -> 0x%X - %llx\n", pClassInfo->m_pszName, field.m_pszName, field.m_nSingleInheritanceOffset, &field);
-#endif
 	}
 	return std::nullopt;
 }
 
-void V8Callbacks::V8NewMsg(const v8::FunctionCallbackInfo<v8::Value>& args)
+void ScriptDomainCallbacks::V8NewMsg(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	auto isolate = v8::Isolate::GetCurrent();
 	v8::HandleScope handleScope(isolate);
@@ -105,7 +100,7 @@ void V8Callbacks::V8NewMsg(const v8::FunctionCallbackInfo<v8::Value>& args)
 	Msg("[cs_script] CustomMsg: %s", cppString.c_str());
 }
 
-void V8Callbacks::V8GetSchemaField(const v8::FunctionCallbackInfo<v8::Value>& args)
+void ScriptDomainCallbacks::V8GetSchemaField(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	auto isolate = v8::Isolate::GetCurrent();
 	v8::HandleScope handleScope(isolate);
@@ -205,7 +200,7 @@ void V8Callbacks::V8GetSchemaField(const v8::FunctionCallbackInfo<v8::Value>& ar
 	}
 }
 
-void V8Callbacks::V8ShowHTMLMessage(const v8::FunctionCallbackInfo<v8::Value>& args)
+void ScriptDomainCallbacks::V8ShowHTMLMessage(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	auto isolate = v8::Isolate::GetCurrent();
 	v8::HandleScope handleScope(isolate);
@@ -241,7 +236,7 @@ void V8Callbacks::V8ShowHTMLMessage(const v8::FunctionCallbackInfo<v8::Value>& a
 	g_hudHintManager.AddHintMessage(controller->GetPlayerSlot(), text, duration);
 }
 
-void V8Callbacks::V8ShowHudHintAll(const v8::FunctionCallbackInfo<v8::Value>& args)
+void ScriptDomainCallbacks::V8ShowHudHintAll(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	auto isolate = v8::Isolate::GetCurrent();
 	v8::HandleScope handleScope(isolate);
@@ -267,7 +262,7 @@ void V8Callbacks::V8ShowHudHintAll(const v8::FunctionCallbackInfo<v8::Value>& ar
 	ClientPrintAll(isAlert ? HUD_PRINTALERT : HUD_PRINTCENTER, *v8StrTextUtf8);
 }
 
-void V8Callbacks::V8ShowHudHint(const v8::FunctionCallbackInfo<v8::Value>& args)
+void ScriptDomainCallbacks::V8ShowHudHint(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	auto isolate = v8::Isolate::GetCurrent();
 	v8::HandleScope handleScope(isolate);
@@ -306,17 +301,11 @@ void V8Callbacks::V8ShowHudHint(const v8::FunctionCallbackInfo<v8::Value>& args)
 	ClientPrint(controller, isAlert ? HUD_PRINTALERT : HUD_PRINTCENTER, *v8StrTextUtf8);
 }
 
-void V8Callbacks::AddSampleCallback(const v8::FunctionCallbackInfo<v8::Value>& args)
+void ScriptDomainCallbacks::AddSampleCallback(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	auto isolate = args.GetIsolate();
 	auto script = (CCSScript_EntityScript*)CSScriptExtensionsSystem::GetCurrentCsScriptInstance();
-	//CUtlStringToken testToken("OnPlayerPing");
-	//CUtlStringToken testToken2("OnPlayerPing2");
-	//auto elem = script->callbackMap.Insert("OnPlayerPing", (void*)&script);
-	//auto exists = script->callbackMap.HasElement("OnScriptInput:Test");
-	//auto elem = script->callbackMap.GetPtr("OnScriptInput:Test");
 	v8::HandleScope handleScope(isolate);
-	//auto count = script->callbackMap.Count();
 	
 	if (args.Length() < 1)
 	{
@@ -332,7 +321,7 @@ void V8Callbacks::AddSampleCallback(const v8::FunctionCallbackInfo<v8::Value>& a
 	script->AddCallback("OnSampleCallback", callback);
 }
 
-void V8Callbacks::SetEntityMoveType(const v8::FunctionCallbackInfo<v8::Value>& args)
+void ScriptDomainCallbacks::SetEntityMoveType(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	V8_SETUP_AND_VERIFY("Entity", "SetMoveType");
 
@@ -360,13 +349,13 @@ void V8Callbacks::SetEntityMoveType(const v8::FunctionCallbackInfo<v8::Value>& a
 }
 
 template <typename T>
-constexpr void V8Callbacks::SetV8NumericReturnValue(const v8::FunctionCallbackInfo<v8::Value>& args, void* ent, size_t offset)
+constexpr void ScriptDomainCallbacks::SetV8NumericReturnValue(const v8::FunctionCallbackInfo<v8::Value>& args, void* ent, size_t offset)
 {
 	auto val = *reinterpret_cast<std::add_pointer_t<T>>(static_cast<unsigned char*>(ent) + offset);
 	args.GetReturnValue().Set(v8::Number::New(args.GetIsolate(), val));
 }
 
-void V8Callbacks::CreateUserMessage(const v8::FunctionCallbackInfo<v8::Value>& args)
+void ScriptDomainCallbacks::CreateUserMessage(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	V8_SETUP_AND_VERIFY("Domain", "CreateUserMessage");
 	if(args.Length() < 1 || !args[0]->IsString())
