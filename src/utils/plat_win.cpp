@@ -18,6 +18,9 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
+ * 
+ * Modified by liondoge on 06.03.2026
+ * Changes: Added a toggle for FindVirtualTable to disable name decoration.
  */
 
 #include "module.h"

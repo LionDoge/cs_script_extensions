@@ -1,3 +1,25 @@
+/**
+ * =============================================================================
+ * cs_script_extensions
+ * Copyright (C) 2026 liondoge
+ *
+ * CS2Fixes
+ * Copyright (C) 2023-2026 Source2ZE
+ * =============================================================================
+ *
+ * This program is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License, version 3.0, as published by the
+ * Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include "plugin.h"
 #include <fstream>
 #include <sstream>
@@ -69,6 +91,7 @@ LoggingChannelID_t g_logChanScript;
 
 CSScriptExtensionsSystem* g_scriptExtensions;
 
+// Snippet from: CS2Fixes
 void ClientPrintAll(int hud_dest, const char* msg, ...)
 {
 	va_list args;
@@ -94,6 +117,7 @@ void ClientPrintAll(int hud_dest, const char* msg, ...)
 	ConMsg("%s\n", buf);
 }
 
+// Snippet from: CS2Fixes
 void ClientPrint(CCSPlayerController* player, int hud_dest, const char* msg, ...)
 {
 	va_list args;
@@ -147,6 +171,8 @@ CServerSideClient* GetClientBySlot(CPlayerSlot slot)
 	return list->Element(slot.Get());
 }
 
+// Snippet from: CS2Fixes
+// modified by liondoge to change log tag.
 void Panic(const char* msg, ...)
 {
 	va_list args;
@@ -161,6 +187,7 @@ void Panic(const char* msg, ...)
 }
 
 
+// Snippet from: CS2Fixes
 // Should only be called within the active game loop (i e map should be loaded and active)
 // otherwise that'll be nullptr!
 CGlobalVars *GetGameGlobals()
@@ -393,6 +420,8 @@ void MMSPlugin::Hook_ClientDisconnect( CPlayerSlot slot, ENetworkDisconnectionRe
 	//META_CONPRINTF( "Hook_ClientDisconnect(%d, %d, \"%s\", %d, \"%s\")\n", slot, reason, pszName, xuid, pszNetworkID );
 }
 
+
+// Snippet from: CS2Fixes
 void MMSPlugin::Hook_GameFrame( bool simulating, bool bFirstTick, bool bLastTick )
 {
 	/**
