@@ -60,7 +60,10 @@ bool CSScriptExtensionsSystem::Initialize(CGameConfig* gameConfig)
 
 	auto vtable = modules::server->FindVirtualTable("CCSScript_EntityScript", true);
 	if (!vtable)
+	{
+		MsgCrit("Failed to find CCSScript_EntityScript vtable!\n");
 		return false;
+	}
 
 	if (m_registerTemplatesHook == -1)
 		m_registerTemplatesHook = SH_ADD_DVPHOOK(CCSScript_EntityScript, InitializeFunctionTemplates, vtable, SH_MEMBER(this, &CSScriptExtensionsSystem::OnScriptInstanceRegisterTemplates), true);
