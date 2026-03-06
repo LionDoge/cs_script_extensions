@@ -9,6 +9,9 @@ RUN cd ambuild && python setup.py install && cd ..
 RUN git clone https://github.com/alliedmodders/metamod-source
 RUN git config --global --add safe.directory /app
 
+# Workaround SourceHook bug.
+RUN sed -i 's/return input/return (OutputClass)input/' /app/metamod-source/core/sourcehook/sh_memfuncinfo.h
+
 COPY ./docker-entrypoint.sh ./
 ENV HL2SDKCS2=/app/source/sdk
 ENV MMSOURCE_DEV=/app/metamod-source
