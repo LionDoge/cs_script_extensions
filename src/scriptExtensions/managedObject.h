@@ -2,28 +2,32 @@
 #include "v8.h"
 #include "scriptExtensions/userMessageInfo.h"
 
-struct ManagedObjectTest {
-    ScriptUserMessageInfo* data;
-    v8::Persistent<v8::Object> persistent;
-
-    ManagedObjectTest(v8::Isolate* isolate, v8::Local<v8::Object> obj, ScriptUserMessageInfo* d)
+template<typename T>
+class ManagedObject 
+{
+public:
+    ManagedObject(v8::Isolate* isolate, v8::Local<v8::Object> obj, T* d)
         : data(d), persistent(isolate, obj)
     {
         persistent.SetWeak(
             this,
-            &ManagedObjectTest::WeakCallback,
+            &ManagedObject::WeakCallback,
             v8::WeakCallbackType::kParameter
         );
     }
 
-    static void WeakCallback(const v8::WeakCallbackInfo<ManagedObjectTest>& info) {
-        ManagedObjectTest* self = info.GetParameter();
+    T* GetData() const {
+        return data;
+    }
+
+protected:
+    static void WeakCallback(const v8::WeakCallbackInfo<ManagedObject>& info) {
+        ManagedObject* self = info.GetParameter();
         self->persistent.Reset();
         delete self->data;
         delete self;
     }
 
-    ScriptUserMessageInfo* GetData() const {
-        return data;
-	}
+    T* data;
+    v8::Persistent<v8::Object> persistent;
 };

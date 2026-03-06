@@ -52,7 +52,7 @@ v8::Local<v8::Value> ScriptUserMessage::CreateUserMessageInfoInstance(CCSScript_
 	auto tpl = tplPointer->Get(isolate);
 	v8::Local<v8::Object> instance = tpl->InstanceTemplate()->NewInstance(script->GetContext().Get(isolate)).ToLocalChecked();
 
-	auto obj = new ManagedObjectTest(isolate, instance, userMsgInfo);
+	auto obj = new ManagedObject(isolate, instance, userMsgInfo);
 	instance->SetAlignedPointerInInternalField(0, obj);
 	return instance;
 	//return handleScope.Escape(instance);
@@ -60,7 +60,7 @@ v8::Local<v8::Value> ScriptUserMessage::CreateUserMessageInfoInstance(CCSScript_
 
 ScriptUserMessageInfo* ScriptUserMessage::GetUserMessageInfoObject(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	auto wrapper = static_cast<ManagedObjectTest*>(info.This()->GetAlignedPointerFromInternalField(0));
+	auto wrapper = static_cast<ManagedObject<ScriptUserMessageInfo>*>(info.This()->GetAlignedPointerFromInternalField(0));
 	return wrapper->GetData();
 }
 
