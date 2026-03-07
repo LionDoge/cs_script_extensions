@@ -40,11 +40,7 @@ public:
 		: m_pMessage(pMessage), m_recipients(recipients), m_pNetMessageInternal(messageInteral)
 	{
 	}
-	~ScriptUserMessageInfo()
-	{
-		delete m_pMessage;
-		// never need to delete msgInternal - already done by game after event post, and it's only present in this struct if we're sending data anyways.
-	}
+	~ScriptUserMessageInfo() = default;
 	bool GetFieldType(const char* fieldName, google::protobuf::FieldDescriptor::CppType& out, bool& outIsRepeated) const
 	{
 	 	GET_FIELD()
