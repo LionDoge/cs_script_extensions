@@ -72,6 +72,7 @@ private:
 	v8::Global<v8::Context> m_context; // 0x28 (40);
 	bool m_isActive; // 0x30 (48); string: Invalid script. No valid imports found.\n
 	bool m_isUsingLegacyTypescript; // 0x31 (49); Is using deprecated SourceTS feature set.
+	// NOTE: this might not be just a CUtlString, inserting something here manually and letting the game deallocate, causes some kind of memory corruption.
 	CUtlVector<CUtlString> m_registeredTypes; // 0x40 (64);  // NOLINT(clang-diagnostic-padded)
 	CUtlHashtable<CGlobalSymbol, v8::Global<v8::FunctionTemplate>*, GlobalSymbolHashFunctor, PointerEqualFunctor> m_functionTemplateMap; // 0x50 (80);
 	CUtlHashtable<CGlobalSymbol, v8::Global<v8::Object>*, GlobalSymbolHashFunctor, PointerEqualFunctor> m_enumMap; // 0x70 (112);

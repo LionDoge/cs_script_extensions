@@ -17,6 +17,10 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <typeinfo>
+#ifndef _WIN32
+#include <cxxabi.h>
+#endif // !_WIN32
 #include "scriptextensions.h"
 #include <vprof.h>
 #include "ehandle.h"
@@ -268,8 +272,6 @@ CCSScript_EntityScript* CSScriptExtensionsSystem::GetScriptFromEntity(CEntityIns
 {
 	if (!ent)
 		return nullptr;
-	/*if (dynamic_cast<CCSPointScriptEntity*>(ent) == nullptr)
-		return nullptr;*/
 
 	// scans a memory range relative to entity, trying to find rtti of csscript, and caches the result.
 #ifdef _WIN32
@@ -293,12 +295,52 @@ CCSScript_EntityScript* CSScriptExtensionsSystem::GetScriptFromEntity(CEntityIns
 			return nullptr;
 		}
 	}
-
-	return reinterpret_cast<CCSScript_EntityScript*>((unsigned char*)ent + _csScriptOffset);
 #else
+	if (_csScriptOffset == -1)
+	{
+		for (int i = 0; i < 0x800; i += sizeof(void*))
+		{
+			void* ptr = *(void**)((unsigned char*)ent + i);
+			if (!modules::server->IsAddressInRange(ptr))
+				continue;
+
+			void** vtable = (void**)ptr;
+
+			if (!modules::server->IsAddressInRange((void*)&vtable[-1]))
+				continue;
+
+			std::type_info* ti = nullptr;
+			ti = (std::type_info*)(vtable[-1]);
+			
+			if (!ti || !modules::server->IsAddressInRange((void*)ti))
+				continue;
+
+			const char* mangled = ti->name();
+			int status = 0;
+			char* demangled = abi::__cxa_demangle(mangled, nullptr, nullptr, &status);
+
+			if (status == 0 && demangled)
+			{
+				if (V_stristr(demangled, "CCSScript") != nullptr)
+				{
+					_csScriptOffset = i;
+					free(demangled);
+					break;
+				}
+				free(demangled);
+			}
+		}
+		if (_csScriptOffset == -1)
+		{
+			MsgCrit("!!!!! Failed to find CCSScript_EntityScript offset!\n");
+			return nullptr;
+		}
+	}
+
 	// TODO: linux impl
-	return reinterpret_cast<CCSScript_EntityScript*>((unsigned char*)ent+0x798);
+	//return reinterpret_cast<CCSScript_EntityScript*>((unsigned char*)ent+0x798);
 #endif
+	return reinterpret_cast<CCSScript_EntityScript*>((unsigned char*)ent + _csScriptOffset);
 }
 
 CSScriptHeader* CSScriptExtensionsSystem::GetScriptHeaderFromEntity(CEntityInstance* ent)

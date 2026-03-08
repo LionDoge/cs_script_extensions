@@ -144,8 +144,10 @@ void CCSBaseScript::PrintSummary() const
 
 void CCSBaseScript::AddFunctionTemplate(const char* name, const v8::Local<v8::FunctionTemplate>& functionTemplate)
 {
-	// Use the signature game function, as apparently trying to insert ourselves leads to heap corruption
-	// causing crashes down the line...
+	// Use the signature game function, as apparently trying to insert ourselves leads to some kind of memory corruption
+	// after the script is deallocated.
+	// TODO: figure out why. m_registeredTypes field has to be also populated with the template name apparently
+	// just inserting into the map is not enough
 	g_scriptExtensions->ScriptRegisterFunctionTemplate(this, name, functionTemplate);
 }
 
