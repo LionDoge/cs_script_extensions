@@ -64,7 +64,7 @@ v8::Local<v8::Value> ScriptUserMessage::CreateUserMessageInfoInstance(CCSScript_
 	auto tplPointer = script->GetFunctionTemplate("UserMessageInfo");
 	if (!tplPointer)
 	{
-		Log_Warning(g_logChanScript, "UserMessageInfo template not initialized!");
+		Log_Warning(g_logChanScript, "UserMessageInfo template not initialized!\n");
 		return {};
 	}
 

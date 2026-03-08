@@ -37,7 +37,7 @@ class ScriptUserMessageInfo
 {
 public:
 	ScriptUserMessageInfo(CNetMessagePB<google::protobuf::Message>* pMessage, uint64_t recipients, INetworkMessageInternal* messageInteral)
-		: m_pMessage(pMessage), m_recipients(recipients), m_pNetMessageInternal(messageInteral)
+		: m_pMessage(pMessage), m_pNetMessageInternal(messageInteral), m_recipients(recipients)
 	{
 	}
 	~ScriptUserMessageInfo() = default;

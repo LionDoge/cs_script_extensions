@@ -23,6 +23,7 @@
 #include "globalsymbol.h"
 #include "utlatuolist.h"
 #include "v8-function.h"
+#include "ehandle.h"
 
 class CCSBaseScript : public IEntityListener, public CUtlAutoList<CCSBaseScript>
 {
@@ -31,6 +32,11 @@ public:
 	CCSBaseScript() = delete;
 	CCSBaseScript(const CCSBaseScript&) = delete;
 	void operator=(const CCSBaseScript&) = delete;
+
+#ifndef _WIN32
+	virtual void unk01() = 0;
+	virtual void unk02() = 0;
+#endif
 
 	virtual const char* GetName() const = 0;
 	virtual CGlobalSymbol GetNameSymbol() = 0;
@@ -75,7 +81,9 @@ private:
 };
 
 // Entity script has potentially more fields that have not been reversed yet...
-class CCSScript_EntityScript : public CCSBaseScript {};
+class CCSScript_EntityScript : public IEntityListener, public CCSBaseScript {
+	//virtual ~CCSScript_EntityScript() = default;
+};
 
 enum ScriptHandleType
 {

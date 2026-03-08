@@ -25,6 +25,7 @@
 #include "gameconfig.h"
 #include "scriptcommon.h"
 #include "plugin.h"
+#include "ehandle.h"
 
 extern LoggingChannelID_t g_logChanScript;
 
@@ -166,7 +167,6 @@ void CSScriptExtensionsSystem::InvokeCallbacks(const char* callbackName, int arg
 
 void CSScriptExtensionsSystem::ScriptRegisterFunctionTemplate(CCSBaseScript* script, const char* name, const v8::Local<v8::FunctionTemplate>& functionTemplate)
 {
-	//m_pHookRegisterInstanceTemplate.call(script, name, functionTemplate);
 	m_pfnRegisterInstanceTemplate(script, name, functionTemplate);
 }
 
@@ -268,8 +268,8 @@ CCSScript_EntityScript* CSScriptExtensionsSystem::GetScriptFromEntity(CEntityIns
 {
 	if (!ent)
 		return nullptr;
-	if (dynamic_cast<CCSPointScriptEntity*>(ent) == nullptr)
-		return nullptr;
+	/*if (dynamic_cast<CCSPointScriptEntity*>(ent) == nullptr)
+		return nullptr;*/
 
 	// scans a memory range relative to entity, trying to find rtti of csscript, and caches the result.
 #ifdef _WIN32
@@ -287,12 +287,17 @@ CCSScript_EntityScript* CSScriptExtensionsSystem::GetScriptFromEntity(CEntityIns
 				break;
 			}
 		}
+		if (_csScriptOffset == -1)
+		{
+			MsgCrit("!!!!! Failed to find CCSScript_EntityScript offset!\n");
+			return nullptr;
+		}
 	}
 
 	return reinterpret_cast<CCSScript_EntityScript*>((unsigned char*)ent + _csScriptOffset);
 #else
 	// TODO: linux impl
-	return reinterpret_cast<CCSScript_EntityScript*>((unsigned char*)ent+0x4C0);
+	return reinterpret_cast<CCSScript_EntityScript*>((unsigned char*)ent+0x798);
 #endif
 }
 
