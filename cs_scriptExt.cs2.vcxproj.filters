@@ -40,15 +40,36 @@
     <ClCompile Include="src\utils\entity.cpp">
       <Filter>Source Files\utils</Filter>
     </ClCompile>
-    <ClCompile Include="sdks\hl2sdk-cs2\public\tier0\memoverride.cpp" />
-    <ClCompile Include="sdks\hl2sdk-cs2\tier1\convar.cpp" />
-    <ClCompile Include="src/utils/plat_win.cpp" />
-    <ClCompile Include="src/plugin.cpp" />
-    <ClCompile Include="src/cs2_sdk/schema.cpp" />
-    <ClCompile Include="sdks\hl2sdk-cs2\entity2\entitysystem.cpp" />
-    <ClCompile Include="sdks\hl2sdk-cs2\entity2\entityidentity.cpp" />
-    <ClCompile Include="sdks\hl2sdk-cs2\entity2\entitykeyvalues.cpp" />
-    <ClCompile Include="sdks\hl2sdk-cs2\tier1\keyvalues3.cpp" />
+    <ClCompile Include="sdks\hl2sdk-cs2\tier1\convar.cpp">
+      <Filter>Source Files\HL2SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="sdks\hl2sdk-cs2\entity2\entityidentity.cpp">
+      <Filter>Source Files\HL2SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="sdks\hl2sdk-cs2\entity2\entitykeyvalues.cpp">
+      <Filter>Source Files\HL2SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="sdks\hl2sdk-cs2\entity2\entitysystem.cpp">
+      <Filter>Source Files\HL2SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="sdks\hl2sdk-cs2\tier1\keyvalues3.cpp">
+      <Filter>Source Files\HL2SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="sdks\hl2sdk-cs2\public\tier0\memoverride.cpp">
+      <Filter>Source Files\HL2SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\plat_unix.cpp">
+      <Filter>Source Files\cs2_sdk</Filter>
+    </ClCompile>
+    <ClCompile Include="src/utils/plat_win.cpp">
+      <Filter>Source Files\cs2_sdk</Filter>
+    </ClCompile>
+    <ClCompile Include="src/plugin.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src/cs2_sdk/schema.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cpointscript.h">

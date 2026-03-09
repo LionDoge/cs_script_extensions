@@ -96,6 +96,9 @@ sdks\hl2sdk-cs2\devtools\bin\protoc.exe --proto_path="sdks\hl2sdk-cs2\networksys
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Default|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\scriptextensions\userMessagesScriptExt.cpp" />
+    <ClCompile Include="src\utils\plat_unix.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Default|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="vendor\safetyhook\safetyhook.cpp" />
     <ClCompile Include="vendor\safetyhook\Zydis.c" />
     <ClCompile Include="sdks\hl2sdk-cs2\public\tier0\memoverride.cpp" />
