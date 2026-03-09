@@ -86,7 +86,7 @@ private:
 };
 
 // Entity script has potentially more fields that have not been reversed yet...
-class CCSScript_EntityScript : public IEntityListener, public CCSBaseScript {
+class CCSScript_EntityScript : public CCSBaseScript {
 	//virtual ~CCSScript_EntityScript() = default;
 };
 
