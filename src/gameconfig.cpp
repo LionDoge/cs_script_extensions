@@ -112,24 +112,8 @@ CModule** CGameConfig::GetModule(const char* name)
 	if (!library)
 		return nullptr;
 
-	if (strcmp(library, "engine") == 0)
-		return &modules::engine;
-	else if (strcmp(library, "server") == 0)
+	if (strcmp(library, "server") == 0)
 		return &modules::server;
-	else if (strcmp(library, "client") == 0)
-		return &modules::client;
-	else if (strcmp(library, "vscript") == 0)
-		return &modules::vscript;
-	else if (strcmp(library, "tier0") == 0)
-		return &modules::tier0;
-	else if (strcmp(library, "networksystem") == 0)
-		return &modules::networksystem;
-	else if (strcmp(library, "matchmaking") == 0)
-		return &modules::matchmaking;
-#ifdef _WIN32
-	else if (strcmp(library, "hammer") == 0)
-		return &modules::hammer;
-#endif
 	return nullptr;
 }
 

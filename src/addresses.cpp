@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  * 
- * Modified by liondoge on 06.03.2026
+ * Modified by liondoge on 09.03.2026
  * Changes: Removed unused signatures.
  */
 
@@ -34,24 +34,7 @@
 
 bool addresses::Initialize(CGameConfig* g_GameConfig)
 {
-	modules::engine = new CModule(ROOTBIN, "engine2");
-	modules::tier0 = new CModule(ROOTBIN, "tier0");
 	modules::server = new CModule(GAMEBIN, "server");
-	modules::schemasystem = new CModule(ROOTBIN, "schemasystem");
-	modules::vscript = new CModule(ROOTBIN, "vscript");
-	modules::networksystem = new CModule(ROOTBIN, "networksystem");
-	modules::vphysics2 = new CModule(ROOTBIN, "vphysics2");
-	modules::matchmaking = new CModule(GAMEBIN, "matchmaking");
-	modules::client = nullptr;
-
-	if (!CommandLine()->HasParm("-dedicated"))
-		modules::client = new CModule(GAMEBIN, "client");
-
-#ifdef _WIN32
-	modules::hammer = nullptr;
-	if (CommandLine()->HasParm("-tools"))
-		modules::hammer = new CModule(ROOTBIN, "tools/hammer");
-#endif
 
 	RESOLVE_SIG(g_GameConfig, "UTIL_Remove", addresses::UTIL_Remove);
 	RESOLVE_SIG(g_GameConfig, "CEntityInstance_AcceptInput", addresses::CEntityInstance_AcceptInput);

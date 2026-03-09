@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  * 
- * Modified by liondoge on 06.03.2026
- * Changes: Added IsAddressInRange function
+ * Modified by liondoge on 09.03.2026
+ * Changes: Added IsAddressInRange function, make messages debug only.
  */
 
 #pragma once
@@ -105,10 +105,12 @@ public:
 			Error("Failed to get module info for %s, error %d\n", szModule, e);
 #endif
 
+#ifdef _DEBUG
 		for (auto& section : m_sections)
 			Msg("Section %s base: 0x%p | size: %d\n", section.m_szName.c_str(), section.m_pBase, section.m_iSize);
 
 		Msg("Initialized module %s base: 0x%p | size: %d\n", m_pszModule, m_base, m_size);
+#endif
 	}
 
 	void* FindSignature(const byte* pData, size_t iSigLength, int& error)

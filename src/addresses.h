@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  * 
- * Modified by liondoge on 06.03.2026
+ * Modified by liondoge on 09.03.2026
  * Changes: Removed some definitions that are unnecessary for the project's use case.
  */
 
@@ -29,18 +29,7 @@
 
 namespace modules
 {
-	inline CModule* engine;
-	inline CModule* tier0;
 	inline CModule* server;
-	inline CModule* schemasystem;
-	inline CModule* vscript;
-	inline CModule* client;
-	inline CModule* networksystem;
-	inline CModule* vphysics2;
-	inline CModule* matchmaking;
-#ifdef _WIN32
-	inline CModule* hammer;
-#endif
 } // namespace modules
 
 class CEntityInstance;

@@ -202,25 +202,9 @@ CGlobalVars *GetGameGlobals()
 
 CGameEntitySystem* GameEntitySystem()
 {
-#ifdef PLATFORM_WINDOWS
-	static int offset = 88;
-#else
-	static int offset = 80;
-#endif
+	static int offset = g_GameConfig->GetOffset("GameEntitySystem");
 	return *reinterpret_cast<CGameEntitySystem**>((uintptr_t)(g_pGameResourceServiceServer)+offset);
 }
-
-void SampleCvarFChangeCB( CConVar<float> *cvar, CSplitScreenSlot slot, const float *new_val, const float *old_val )
-{
-	META_CONPRINTF( "Sample convar \"%s\" was changed from %f to %f [%s]\n",
-					cvar->GetName(), *old_val, *new_val,
-					// When convar is first initialised with a default value, it would have FCVAR_INITIAL_SETVALUE
-					// flag set, so you can check for it if needed.
-					cvar->IsFlagSet( FCVAR_INITIAL_SETVALUE ) ? "initialised" : "change" );
-}
-
-CConVar<int> sample_cvari("sample_cvari", FCVAR_NONE, "help string", 42);
-CConVar<float> sample_cvarf("sample_cvarf", FCVAR_NONE, "help string", 69.69f, true, 10.0f, true, 100.0f, SampleCvarFChangeCB );
 
 uint64_t DecodeAddrRipRelativeMov(uint64_t code_addr) {
 	// 3 bytes for Long mode MOV and first operand.
