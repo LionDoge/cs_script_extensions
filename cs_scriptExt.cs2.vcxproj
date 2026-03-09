@@ -28,10 +28,10 @@
   <PropertyGroup Label="UserMacros">
   </PropertyGroup>
   <PropertyGroup>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Default|x64'">C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\game\csgo\addons\cs_scriptExt\bin\win64</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Default|x64'">build\package\cs2\addons\cs_scriptExt\bin\win64</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Default|x64'">$(ProjectName) - $(Configuration)\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Default|x64'">true</LinkIncremental>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Default|x64'">scriptext</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Default|x64'">cs_scriptExt</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Default|x64'">
     <PreBuildEvent>
