@@ -87,12 +87,8 @@ void ScriptUserMessage::OnUserMessage(const v8::FunctionCallbackInfo<v8::Value>&
 {
 	const auto isolate = v8::Isolate::GetCurrent();
 	const auto baseScript = CSScriptExtensionsSystem::GetCurrentCsScriptInstance();
-	const auto script = dynamic_cast<CCSScript_EntityScript*>(baseScript);
-	if (!script)
-	{
-		V8ThrowException(isolate, "OnUserMessage invoked in incorrect scope\n");
-		return;
-	}
+	const auto script = static_cast<CCSScript_EntityScript*>(baseScript);
+
 	v8::HandleScope handleScope(isolate);
 	if (info.Length() != 1)
 	{

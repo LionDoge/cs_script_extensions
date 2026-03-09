@@ -33,6 +33,10 @@ public:
 	CCSBaseScript(const CCSBaseScript&) = delete;
 	void operator=(const CCSBaseScript&) = delete;
 
+// These actually only appears between IEntityListener and the base class in the EntityScript derived class.
+// I'm not sure what's going on here, likely some shenanigans with how Itanium ABI sets up vtables.
+// For our use cases this works, since we're basically never interacting with a base class directly,
+// as map scripts are the only types of script, for this moment at least.
 #ifndef _WIN32
 	virtual void unk01() = 0;
 	virtual void unk02() = 0;

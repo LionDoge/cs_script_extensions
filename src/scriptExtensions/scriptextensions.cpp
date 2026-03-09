@@ -266,6 +266,11 @@ std::vector<CEntityInstance*> CSScriptExtensionsSystem::GetScripts() {
 namespace {
 	struct DummyBase { virtual ~DummyBase() = default; };
 	static size_t _csScriptOffset = -1;
+
+	bool IsInSectionRange(Section* section, void* addr)
+	{
+		return (addr >= section->m_pBase && addr < (void*)((uintptr_t)section->m_pBase + section->m_iSize));
+	}
 }
 class CCSPointScriptEntity {};
 CCSScript_EntityScript* CSScriptExtensionsSystem::GetScriptFromEntity(CEntityInstance* ent)
@@ -274,18 +279,22 @@ CCSScript_EntityScript* CSScriptExtensionsSystem::GetScriptFromEntity(CEntityIns
 		return nullptr;
 
 	// scans a memory range relative to entity, trying to find rtti of csscript, and caches the result.
+	// all of this is probably not 100% safe, if for example some garbage data happens to fall within the pointer range.
+	// there are probably more safeguards for this method.
 #ifdef _WIN32
+	auto roDataSection = modules::server->GetSection(".rdata");
 	if (_csScriptOffset == -1)
 	{
 		for (int i = 0; i < 0x800; i += sizeof(void*))
 		{
-			if (!modules::server->IsAddressInRange(*(void**)((unsigned char*)ent + i)))
+			if (!IsInSectionRange(roDataSection, *(void**)((unsigned char*)ent + i)))
 				continue;
 
 			DummyBase* obj = (DummyBase*)((unsigned char*)ent + i);
 			if (V_stristr(typeid(*obj).name(), "CCSScript") != nullptr)
 			{
 				_csScriptOffset = i;
+				Msg("Found CCSScript entity offset at: %x\n", _csScriptOffset);
 				break;
 			}
 		}
@@ -296,38 +305,21 @@ CCSScript_EntityScript* CSScriptExtensionsSystem::GetScriptFromEntity(CEntityIns
 		}
 	}
 #else
+	auto roDataSection = modules::server->GetSection(".data.rel.ro");
 	if (_csScriptOffset == -1)
 	{
 		for (int i = 0; i < 0x800; i += sizeof(void*))
 		{
 			void* ptr = *(void**)((unsigned char*)ent + i);
-			if (!modules::server->IsAddressInRange(ptr))
+			if (!IsInSectionRange(roDataSection, ptr))
 				continue;
 
-			void** vtable = (void**)ptr;
-
-			if (!modules::server->IsAddressInRange((void*)&vtable[-1]))
-				continue;
-
-			std::type_info* ti = nullptr;
-			ti = (std::type_info*)(vtable[-1]);
-			
-			if (!ti || !modules::server->IsAddressInRange((void*)ti))
-				continue;
-
-			const char* mangled = ti->name();
-			int status = 0;
-			char* demangled = abi::__cxa_demangle(mangled, nullptr, nullptr, &status);
-
-			if (status == 0 && demangled)
+			DummyBase* obj = (DummyBase*)((unsigned char*)ent + i);
+			if (V_stristr(typeid(*obj).name(), "CCSScript") != nullptr)
 			{
-				if (V_stristr(demangled, "CCSScript") != nullptr)
-				{
-					_csScriptOffset = i;
-					free(demangled);
-					break;
-				}
-				free(demangled);
+				_csScriptOffset = static_cast<size_t>(i) - 8;
+				Msg("Found CCSScript entity offset at: %x\n", _csScriptOffset);
+				break;
 			}
 		}
 		if (_csScriptOffset == -1)
@@ -336,9 +328,6 @@ CCSScript_EntityScript* CSScriptExtensionsSystem::GetScriptFromEntity(CEntityIns
 			return nullptr;
 		}
 	}
-
-	// TODO: linux impl
-	//return reinterpret_cast<CCSScript_EntityScript*>((unsigned char*)ent+0x798);
 #endif
 	return reinterpret_cast<CCSScript_EntityScript*>((unsigned char*)ent + _csScriptOffset);
 }
