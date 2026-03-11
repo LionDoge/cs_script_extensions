@@ -19,6 +19,10 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <safetyhook.hpp>
+#ifndef _WIN32
+#include <dlfcn.h>
+#endif // !_WIN32
 
 #include "plugin.h"
 #include <fstream>
@@ -90,6 +94,86 @@ LoggingChannelID_t g_logChanScript;
 	funchook_install(funchookHandle, 0);
 
 CSScriptExtensionsSystem* g_scriptExtensions;
+SafetyHookInline g_v8ExceptionHook{};
+
+bool Hook_V8_TryCatch_HasCaught(v8::TryCatch* tryCatch)
+{
+	auto res = g_v8ExceptionHook.call<bool>(tryCatch);
+	if (!res)
+	{
+		return res;
+	}
+
+	auto script = CSScriptExtensionsSystem::GetCurrentCsScriptInstance();
+	if (!script)
+	{
+		Msg("[cs_script_extensions] V8 exception thrown but no current script context found! Stack trace unavailable.\n");
+		return res;
+	}
+
+	auto isolate = v8::Isolate::GetCurrent();
+	v8::HandleScope handleScope(isolate);
+	v8::Local<v8::Context> context = isolate->GetCurrentContext();
+
+	v8::Local<v8::Message> message = tryCatch->Message();
+	if (message.IsEmpty())
+	{
+		Msg("[cs_script_extensions] V8 exception thrown but no message available! Stack trace unavailable.\n");
+		return res;
+	}
+	auto stackTrace = message->GetStackTrace();
+	if (!stackTrace.IsEmpty()) {
+		int frameCount = stackTrace->GetFrameCount();
+		Log_Warning(g_logChanScript, "Stack trace (top is latest call):\n");
+
+		for (int i = 0; i < frameCount; i++) {
+			v8::Local<v8::StackFrame> frame = stackTrace->GetFrame(isolate, i);
+
+			v8::String::Utf8Value funcName(isolate, frame->GetFunctionName());
+			v8::String::Utf8Value scriptName(isolate, frame->GetScriptName());
+			int line = frame->GetLineNumber();
+			int col = frame->GetColumn();
+
+			Log_Warning(g_logChanScript, "  at %s (%s:%d:%d)\n",
+				*funcName ? *funcName : "<anonymous>",
+				*scriptName ? *scriptName : "<unknown>",
+				line, col
+			);
+		}
+	}
+	return res;
+}
+
+
+void InitScriptExceptionHook()
+{
+#ifdef _WIN32
+	HMODULE hModule = GetModuleHandleA("v8.dll");
+	if (hModule == NULL) {
+		Msg("Failed to get module handle for v8. Error: %s\n", GetLastError());
+		return;
+	}
+	FARPROC funcAddress = GetProcAddress(hModule, "?HasCaught@TryCatch@v8@@QEBA_NXZ");
+	if (!funcAddress)
+	{
+		Msg("Failed to get address for v8::TryCatch::HasCaught. Error: %s\n", GetLastError());
+		return;
+	}
+#else
+	void* hModule = dlopen("libv8.so", RTLD_LAZY);
+	if (!hModule) {
+		Msg("Failed to get module handle for v8. Error: %s\n", dlerror());
+		return;
+	}
+	void* funcAddress = dlsym(hModule, "_ZNK2v88TryCatch9HasCaughtEv");
+	if (!funcAddress)
+	{
+		Msg("Failed to get address for v8::TryCatch::HasCaught. Error: %s\n", dlerror());
+		return;
+	}
+#endif
+	g_v8ExceptionHook = safetyhook::create_inline((void*)funcAddress, Hook_V8_TryCatch_HasCaught);
+}
 
 // Snippet from: CS2Fixes
 void ClientPrintAll(int hud_dest, const char* msg, ...)
@@ -331,7 +415,8 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 	g_pEngineServer2->ServerCommand("sv_long_frame_ms 50.0");
 
 	auto gameEventMgrVtbl = (IGameEventManager2*)modules::server->FindVirtualTable("CGameEventManager");
-	SH_ADD_DVPHOOK(IGameEventManager2, LoadEventsFromFile, gameEventMgrVtbl, Hook_LoadEventsFromFile, false);\
+	SH_ADD_DVPHOOK(IGameEventManager2, LoadEventsFromFile, gameEventMgrVtbl, Hook_LoadEventsFromFile, false);
+	InitScriptExceptionHook();
 	
 	return true;
 }
@@ -347,6 +432,7 @@ bool MMSPlugin::Unload(char *error, size_t maxlen)
 	SH_REMOVE_HOOK(IServerGameClients, ClientConnect, gameclients, SH_MEMBER(this, &MMSPlugin::Hook_ClientConnect), false);
 	SH_REMOVE_HOOK(IServerGameClients, ClientCommand, gameclients, SH_MEMBER(this, &MMSPlugin::Hook_ClientCommand), false);
 	delete g_scriptExtensions;
+	g_v8ExceptionHook = {};
 
 	return true;
 }
@@ -519,7 +605,7 @@ bool RunScriptFromFile(CCSScript_EntityScript* script, std::string_view relative
 	if (std::ifstream inFile(pathStream.str(), std::ios::in); inFile.good())
 	{
 		std::string fileContents{ std::istreambuf_iterator<char>(inFile), std::istreambuf_iterator<char>() };
-		g_scriptExtensions->RunScriptString(script, "nul.vjs_c", fileContents.c_str());
+		g_scriptExtensions->RunScriptString(script, relativePath.data(), fileContents.c_str());
 
 		if (savePath)
 			scriptPathMap[script->GetScriptIndex()] = std::string(relativePath);
@@ -546,7 +632,7 @@ CON_COMMAND_F(csscript_load, "Creates a script entity and loads the provided fil
 
 	auto point_script = addresses::CreateEntityByName("point_script", -1);
 	auto kv = new CEntityKeyValues();
-	kv->SetString("cs_script", "nul.vjs_c");
+	kv->SetString("cs_script", args[1]);
 	kv->SetString("targetname", scriptName);
 	addresses::DispatchSpawn(point_script, kv);
 
@@ -605,43 +691,70 @@ CON_COMMAND_F(script_run_code, "Run code inside an existing script", FCVAR_NONE)
 	CBaseEntity* ent = nullptr;
 	while ((ent = UTIL_FindEntityByName(ent, args[1])))
 	{
-		if (!V_stricmp_fast(ent->GetClassname(), "point_script"))
+		if (V_stricmp_fast(ent->GetClassname(), "point_script"))
+			continue;
+
+		if (const auto script = CSScriptExtensionsSystem::GetScriptFromEntity(ent))
 		{
-			if (const auto script = CSScriptExtensionsSystem::GetScriptFromEntity(ent))
+			v8::HandleScope handleScope(isolate);
+			const auto& scriptContext = script->GetContext().Get(isolate);
+			//scriptContext->Enter();
+			g_scriptExtensions->SwitchScriptContext(script);
+
+			v8::Local<v8::Object> global = scriptContext->Global();
+			v8::MaybeLocal<v8::Value> mbShellEval = global->Get(scriptContext, v8::String::NewFromUtf8(isolate, "__shellEval").ToLocalChecked());
+			if (mbShellEval.IsEmpty())
 			{
-				v8::HandleScope handleScope(isolate);
-				const auto& scriptContext = script->GetContext().Get(isolate);
-				g_scriptExtensions->SwitchScriptContext(script);
-				v8::TryCatch tryCatch(isolate);
+				META_CONPRINT("No shell eval function found on script context\n");
+				return;
+			}
+			v8::Local<v8::Value> shellEvalLocal = mbShellEval.ToLocalChecked();
+			if (!shellEvalLocal->IsFunction())
+			{
+				META_CONPRINT("Shell eval property is not a function\n");
+				return;
+			}
+			v8::Local<v8::Function> shellEval = shellEvalLocal.As<v8::Function>();
 
-				v8::Local<v8::String> source =
-					v8::String::NewFromUtf8(isolate, args[2]).ToLocalChecked();
+			v8::Local<v8::Value> arg = v8::String::NewFromUtf8(isolate, args[2]).ToLocalChecked();
+			v8::Local<v8::Value> argv[] = { arg };
 
-				v8::Local<v8::Script> compiledScript;
-				if (!v8::Script::Compile(scriptContext, source).ToLocal(&compiledScript))
-				{
-					v8::Local<v8::String> exceptionStr;
-					if (exceptionStr->ToString(scriptContext).ToLocal(&exceptionStr)) {
-						v8::String::Utf8Value error_msg(isolate, exceptionStr);
-						META_CONPRINTF("Error: %s\n", *error_msg);
-					}
-					META_CONPRINTF("Failed to compile string: %s\n", *exceptionStr);
-					return;
-				}
-
-				v8::Local<v8::Value> result;
-				if (!compiledScript->Run(scriptContext).ToLocal(&result))
-				{
-					v8::Local<v8::Value> exception = tryCatch.Exception();
-
-					v8::Local<v8::String> exceptionStr;
-					if (exception->ToString(scriptContext).ToLocal(&exceptionStr)) {
-						v8::String::Utf8Value error_msg(isolate, exceptionStr);
-						META_CONPRINTF("Error: %s\n", *error_msg);
-					}
-				}
+			v8::TryCatch try_catch(isolate);
+			v8::Local<v8::Value> result;
+			if (!shellEval->Call(scriptContext, v8::Undefined(isolate), 1, argv).ToLocal(&result)) {
+				v8::String::Utf8Value error(isolate, try_catch.Exception());
+				Msg("Error: %s\n", *error);
 			}
 
+			/*v8::TryCatch tryCatch(isolate);
+			v8::ScriptOrigin origin(isolate, v8::String::NewFromUtf8(isolate, "console").ToLocalChecked());
+
+			v8::Local<v8::String> source =
+				v8::String::NewFromUtf8(isolate, args[2]).ToLocalChecked();
+
+			v8::Local<v8::Script> compiledScript;
+			if (!v8::Script::Compile(scriptContext, source).ToLocal(&compiledScript))
+			{
+				v8::Local<v8::String> exceptionStr;
+				if (exceptionStr->ToString(scriptContext).ToLocal(&exceptionStr)) {
+					v8::String::Utf8Value error_msg(isolate, exceptionStr);
+					META_CONPRINTF("Error: %s\n", *error_msg);
+				}
+				META_CONPRINTF("Failed to compile string: %s\n", *exceptionStr);
+				return;
+			}
+
+			v8::Local<v8::Value> result;
+			if (!compiledScript->Run(scriptContext).ToLocal(&result))
+			{
+				v8::Local<v8::Value> exception = tryCatch.Exception();
+
+				v8::Local<v8::String> exceptionStr;
+				if (exception->ToString(scriptContext).ToLocal(&exceptionStr)) {
+					v8::String::Utf8Value error_msg(isolate, exceptionStr);
+					META_CONPRINTF("Error: %s\n", *error_msg);
+				}
+			}*/
 		}
 	}
 }

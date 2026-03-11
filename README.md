@@ -17,6 +17,10 @@ To run your addon in tools mode, you need to run it from the command line. eg: `
 
 If you wish you can also develop outside of tools, by using some of the commands mentionted below:
 
+## Other features
+Some quality of life changes might be added down the line, however they will be kept limited to keep this project in scope.
+One of them currently is printing the stack trace and line numbers during exceptions for easier debugging.
+
 ## Console commands
 This plugin additonally provides some commands to make developing, and testing easier.
 
@@ -70,11 +74,11 @@ On how to actually register custom functions and templates, check `RegisterScrip
 It is possible to manually get scripts and invoke callbacks on them individually, with a function of the same name. This one however provides access to the return value. See an example of this in `Hook_PostEvent` inside `plugin.cpp`
 
 ### Notes about how to reverse and find signatures yourself
-... Coming soon, it's a bit to go through ...
+There's some useful info in gamedata file. This section might get more filled in later.
 
 ## Included examples
 These are the currently included functions.
-These include extensions for existing types, a custom new class, and a custom callback function. Every one of those can be treated as experimental, as they have been tested only in some basic scenarios. Use at your own risk!
+They include extensions for existing types, a custom new class, and a custom callback function. Every one of those can be treated as experimental, as they have been tested only in some basic scenarios. Use at your own risk!
 
 ```ts
 class Domain {
