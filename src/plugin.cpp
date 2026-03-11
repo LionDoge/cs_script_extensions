@@ -314,7 +314,8 @@ static void RegisterScriptFunctions()
 			{ "MsgNew", ScriptDomainCallbacks::V8NewMsg },
 			{ "AddSampleCallback", ScriptDomainCallbacks::AddSampleCallback },
 			{ "OnUserMessage", ScriptUserMessage::OnUserMessage },
-			{ "CreateUserMessage", ScriptDomainCallbacks::CreateUserMessage }
+			{ "CreateUserMessage", ScriptDomainCallbacks::CreateUserMessage },
+			{ "EmitSound", ScriptDomainCallbacks::EmitSound }
 		});
 
 	g_scriptExtensions->IncludeFunctions(
