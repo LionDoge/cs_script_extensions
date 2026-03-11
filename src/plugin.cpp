@@ -412,12 +412,12 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 		return false;
 	}
 
-	META_CONVAR_REGISTER(FCVAR_RELEASE | FCVAR_GAMEDLL);
-	g_pEngineServer2->ServerCommand("sv_long_frame_ms 50.0");
 
 	auto gameEventMgrVtbl = (IGameEventManager2*)modules::server->FindVirtualTable("CGameEventManager");
 	SH_ADD_DVPHOOK(IGameEventManager2, LoadEventsFromFile, gameEventMgrVtbl, Hook_LoadEventsFromFile, false);
 	InitScriptExceptionHook();
+
+	META_CONVAR_REGISTER(FCVAR_RELEASE | FCVAR_GAMEDLL);
 	
 	return true;
 }
