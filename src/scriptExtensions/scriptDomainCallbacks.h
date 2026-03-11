@@ -28,6 +28,7 @@ namespace ScriptDomainCallbacks {
 	void V8ShowHudHint(const v8::FunctionCallbackInfo<v8::Value>& args);
 	void AddSampleCallback(const v8::FunctionCallbackInfo<v8::Value>& args);
 	void SetEntityMoveType(const v8::FunctionCallbackInfo<v8::Value>& args);
+	void EmitSound(const v8::FunctionCallbackInfo<v8::Value>& args);
 
 	void CreateUserMessage(const v8::FunctionCallbackInfo<v8::Value>& args);
 

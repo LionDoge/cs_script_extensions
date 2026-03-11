@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  * 
- * Modified by liondoge on 06.03.2026
+ * Modified by liondoge on 11.03.2026
  * Changes: Removed definitions and fields that are unnecessary for the project's use case.
  */
 
@@ -168,72 +168,12 @@ public:
 	void SetAbsVelocity(Vector vecVelocity) { m_vecAbsVelocity = vecVelocity; }
 	void SetBaseVelocity(Vector vecVelocity) { m_vecBaseVelocity = vecVelocity; }
 
-	/*void SetName(const char *pName)
-	{
-		addresses::CEntityIdentity_SetEntityName(m_pEntity, pName);
-	}
-
-	void TakeDamage(CTakeDamageInfo &info)
-	{
-		Detour_CBaseEntity_TakeDamageOld(this, &info);
-	}
-
-	void Teleport(const Vector *position, const QAngle *angles, const Vector *velocity)
-	{
-		static int offset = g_GameConfig->GetOffset("Teleport");
-		CALL_VIRTUAL(void, offset, this, position, angles, velocity);
-	}
-
-	void SetCollisionGroup(StandardCollisionGroups_t nCollisionGroup)
-	{
-		if (!m_pCollision())
-			return;
-
-		m_pCollision->m_collisionAttribute().m_nCollisionGroup = COLLISION_GROUP_DEBRIS;
-		m_pCollision->m_CollisionGroup = COLLISION_GROUP_DEBRIS;
-		CollisionRulesChanged();
-	}
-
-	void CollisionRulesChanged()
-	{
-		static int offset = g_GameConfig->GetOffset("CollisionRulesChanged");
-		CALL_VIRTUAL(void, offset, this);
-	}
-
-	bool IsPawn()
-	{
-		static int offset = g_GameConfig->GetOffset("IsPlayerPawn");
-		return CALL_VIRTUAL(bool, offset, this);
-	}
-
-	bool IsController()
-	{
-		static int offset = g_GameConfig->GetOffset("IsPlayerController");
-		return CALL_VIRTUAL(bool, offset, this);
-	}
-
-	void AcceptInput(const char *pInputName, variant_t value = variant_t(""), CEntityInstance *pActivator = nullptr, CEntityInstance *pCaller = nullptr)
-	{
-		addresses::CEntityInstance_AcceptInput(this, pInputName, pActivator, pCaller, &value, 0);
-	}*/
-
 	bool IsAlive() { return m_lifeState == LifeState_t::LIFE_ALIVE; }
 
 	CHandle<CBaseEntity> GetHandle() { return m_pEntity->m_EHandle; }
 
 	// A double pointer to entity VData is available 4 bytes past m_nSubclassID, if applicable
 	CEntitySubclassVDataBase* GetVData() { return *(CEntitySubclassVDataBase**)((uint8*)(m_nSubclassID()) + 4); }
-
-	//void DispatchSpawn(CEntityKeyValues *pEntityKeyValues = nullptr)
-	//{
-	//	addresses::DispatchSpawn(this, pEntityKeyValues);
-	//}
-
-	//// Emit a sound event
-	//void EmitSound(const char *pszSound, int nPitch = 100, float flVolume = 1.0, float flDelay = 0.0)
-	//{
-	//	addresses::CBaseEntity_EmitSoundParams(this, pszSound, nPitch, flVolume, flDelay);
-	//}
 
 	SndOpEventGuid_t EmitSoundFilter(IRecipientFilter &filter, const char *pszSound, float flVolume = 1.0, float flPitch = 1.0)
 	{
@@ -251,12 +191,6 @@ public:
 	//	addresses::DispatchParticleEffect(pszParticleName, nAttachType, this, iAttachmentPoint, iAttachmentName, false, 0, pFilter, 0);
 	//}
 
-	//// This was needed so we can parent to nameless entities using pointers
-	//void SetParent(CBaseEntity *pNewParent)
-	//{
-	//	addresses::CBaseEntity_SetParent(this, pNewParent, 0, nullptr);
-	//}
-
 	void Remove()
 	{
 		addresses::UTIL_Remove(this);
@@ -266,11 +200,6 @@ public:
 	{
 		addresses::CBaseEntity_SetMoveType(this, nMoveType, m_MoveCollide);
 	}
-
-	//void SetGroundEntity(CBaseEntity *pGround)
-	//{
-	//	addresses::SetGroundEntity(this, pGround, nullptr);
-	//}
 
 	const char* GetName() const { return m_pEntity->m_name.String(); }
 

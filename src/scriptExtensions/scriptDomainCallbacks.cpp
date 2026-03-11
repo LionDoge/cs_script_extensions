@@ -19,8 +19,7 @@
 
 #include <format>
 #include "scriptExtensions/scriptDomainCallbacks.h"
-#include "v8-object.h"
-#include "v8-isolate.h"
+#include "v8.h"
 #include "usermessages.pb.h"
 #include "entity/ccsplayercontroller.h"
 #include "interfaces/interfaces.h"
@@ -30,6 +29,8 @@
 #include "csscript.h"
 #include "scriptextensions.h"
 #include "hudhintmanager.h"
+#include "recipientfilters.h"
+#include "common.h"
 #include "scriptExtensions/userMessagesScriptExt.h"
 
 extern LoggingChannelID_t g_logChanScript;
@@ -365,6 +366,133 @@ void ScriptDomainCallbacks::SetEntityMoveType(const v8::FunctionCallbackInfo<v8:
 
 	int moveType = static_cast<int>(args[0].As<v8::Number>()->Value());
 	baseEnt->SetMoveType(static_cast<MoveType_t>(moveType));
+}
+
+void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	auto isolate = v8::Isolate::GetCurrent();
+	v8::HandleScope handleScope(isolate);
+
+	if (!VerifyScriptScope("Domain", "EmitSound"))
+		return;
+	auto context = isolate->GetCurrentContext();
+
+	if (args.Length() != 1)
+	{
+		V8ThrowException(args.GetIsolate(), "Method Domain.EmitSound requires 2 arguments (moveType: number)");
+		return;
+	}
+	if (!args[0]->IsObject())
+	{
+		V8ThrowException(isolate, "EmitSound argument 0 must be an object {soundName: string, source?: Entity, volume?: number, pitch?: number, recipients?: CSPlayerController[]}\n");
+		return;
+	}
+
+	auto obj = args[0]->ToObject(context).ToLocalChecked();
+	auto maybeSoundName = obj->Get(context, v8::String::NewFromUtf8(isolate, "soundName").ToLocalChecked());
+	if (maybeSoundName.IsEmpty())
+		return;
+	auto soundName = maybeSoundName.ToLocalChecked();
+	if (!soundName->IsString())
+	{
+		V8ThrowException(isolate, "EmitSound argument 0.msgName must be a string\n");
+		return;
+	}
+	v8::String::Utf8Value soundNameUtf8(isolate, soundName);
+	auto maybeSourceEntity = obj->Get(context, v8::String::NewFromUtf8(isolate, "source").ToLocalChecked());
+	// entIndex -1 should be fine, it will just play globally.
+	CEntityIndex entIndex = -1;
+	if (!maybeSourceEntity.IsEmpty())
+	{
+		auto sourceEntityVal = maybeSourceEntity.ToLocalChecked();
+		if (!sourceEntityVal->IsObject())
+		{
+			V8ThrowException(isolate, "EmitSound argument 0.source must be an Entity");
+			return;
+		}
+		auto sourceEntityObj = sourceEntityVal.As<v8::Object>();
+		auto entity = CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(sourceEntityObj);
+		if (!entity)
+		{
+			V8ThrowException(isolate, "EmitSound argument 0.source is not a valid Entity");
+			return;
+		}
+		entIndex = entity->GetEntityIndex();
+	}
+
+	float volume = 1.0f;
+	auto maybeVolume = obj->Get(context, v8::String::NewFromUtf8(isolate, "volume").ToLocalChecked());
+	if (!maybeVolume.IsEmpty())
+	{
+		auto volumeVal = maybeVolume.ToLocalChecked();
+		if (!volumeVal->IsNumber())
+		{
+			V8ThrowException(isolate, "EmitSound argument 0.volume must be a number");
+			return;
+		}
+		volume = static_cast<float>(volumeVal.As<v8::Number>()->Value());
+		if (volume < 0.0f)
+			volume = 0.0f;
+	}
+
+	int pitch = 100;
+	auto maybePitch = obj->Get(context, v8::String::NewFromUtf8(isolate, "pitch").ToLocalChecked());
+	if (!maybePitch.IsEmpty())
+	{
+		auto pitchVal = maybePitch.ToLocalChecked();
+		if (!pitchVal->IsNumber())
+		{
+			V8ThrowException(isolate, "EmitSound argument 0.pitch must be a number");
+			return;
+		}
+		pitch = static_cast<int>(pitchVal.As<v8::Number>()->Value());
+		if (pitch < 0)
+			pitch = 0;
+	}
+
+	CRecipientFilter filter;
+	auto maybeRecipientsArr = obj->Get(context, v8::String::NewFromUtf8(isolate, "recipients").ToLocalChecked());
+	if (!maybeRecipientsArr.IsEmpty())
+	{
+		if (const auto recipientsVal = maybeRecipientsArr.ToLocalChecked(); recipientsVal->IsArray())
+		{
+			auto recipientsArr = recipientsVal.As<v8::Array>();
+			uint32_t length = recipientsArr->Length();
+			for (uint32_t i = 0; i < length; ++i)
+			{
+				auto recipientVal = recipientsArr->Get(context, i).ToLocalChecked();
+				if (!recipientVal->IsObject())
+				{
+					V8ThrowException(isolate, "EmitSound argument 0.recipients must be an array of CSPlayerController objects");
+					return;
+				}
+				auto recipientObj = recipientVal.As<v8::Object>();
+				auto recipientEnt = CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(recipientObj);
+				if (!recipientEnt || recipientEnt->GetEntityIndex().Get() > (MAXPLAYERS + 1))
+				{
+					V8ThrowException(isolate, "EmitSound argument 0.recipients must be an array of CSPlayerController objects");
+					return;
+				}
+				auto recipientController = (CCSPlayerController*)recipientEnt;
+				filter.AddRecipient(recipientController->GetPlayerSlot());
+			}
+		}
+		else
+		{
+			V8ThrowException(isolate, "EmitSound argument 0.recipients must be an array of CSPlayerController objects");
+			return;
+		}
+
+	}
+	else
+	{
+		filter.AddAllPlayers();
+	}
+	EmitSound_t emitSoundInfo;
+	emitSoundInfo.m_pSoundName = *soundNameUtf8;
+	emitSoundInfo.m_flVolume = volume;
+	emitSoundInfo.m_nPitch = static_cast<int>(pitch);
+	addresses::CBaseEntity_EmitSoundFilter(filter, entIndex, emitSoundInfo);
 }
 
 template <typename T>
