@@ -83,6 +83,8 @@ sdks\hl2sdk-cs2\devtools\bin\protoc.exe --proto_path="sdks\hl2sdk-cs2\networksys
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\addresses.cpp" />
+    <ClCompile Include="src\entitylistener.cpp" />
+    <ClCompile Include="src\playermanager.cpp" />
     <ClCompile Include="src\scriptExtensions\csscript.cpp" />
     <ClCompile Include="src\ctimer.cpp" />
     <ClCompile Include="src\gameconfig.cpp" />
@@ -112,6 +114,9 @@ sdks\hl2sdk-cs2\devtools\bin\protoc.exe --proto_path="sdks\hl2sdk-cs2\networksys
     <ClCompile Include="sdks\hl2sdk-cs2\tier1\keyvalues3.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\checktransmitinfo.h" />
+    <ClInclude Include="src\entitylistener.h" />
+    <ClInclude Include="src\playermanager.h" />
     <ClInclude Include="src\scriptExtensions\managedObject.h" />
     <ClInclude Include="src\scriptExtensions\scriptcommon.h" />
     <ClInclude Include="src\addresses.h" />

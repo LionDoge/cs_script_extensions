@@ -46,13 +46,16 @@
 #include "hudhintmanager.h"
 #include <vprof.h>
 
-
 #include "scriptExtensions/csscript.h"
 #include "scriptExtensions/scriptDomainCallbacks.h"
 #include "scriptExtensions/scriptextensions.h"
 #include "scriptExtensions/userMessagesScriptExt.h"
 #include "scriptExtensions/userMessageInfo.h"
 #include "v8.h"
+#include "playermanager.h"
+#include "checktransmitinfo.h"
+#include "entitylistener.h"
+
 
 SH_DECL_HOOK3_void(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, bool, bool, bool);
 SH_DECL_HOOK4_void(IServerGameClients, ClientActive, SH_NOATTRIB, 0, CPlayerSlot, bool, const char *, uint64);
@@ -67,8 +70,8 @@ SH_DECL_HOOK2_void( IServerGameClients, ClientCommand, SH_NOATTRIB, 0, CPlayerSl
 SH_DECL_HOOK1_void(IServer, SetGameSpawnGroupMgr, SH_NOATTRIB, 0, IGameSpawnGroupMgr*);
 SH_DECL_HOOK0_void(IServerGameDLL, GameServerSteamAPIActivated, SH_NOATTRIB, 0);
 SH_DECL_HOOK8_void(IGameEventSystem, PostEventAbstract, SH_NOATTRIB, 0, CSplitScreenSlot, bool, int, const uint64*,
-	INetworkMessageInternal*, const CNetMessage*, unsigned long, NetChannelBufType_t)
-//SH_DECL_MANUALHOOK1(sh_ConstructAutoList, 0, 0, 0, CUtlAutoList<CCSBaseScript>*, bool);
+	INetworkMessageInternal*, const CNetMessage*, unsigned long, NetChannelBufType_t);
+SH_DECL_HOOK7_void(ISource2GameEntities, CheckTransmit, SH_NOATTRIB, 0, CCheckTransmitInfo**, int, CBitVec<16384>&, CBitVec<16384>&, const Entity2Networkable_t**, const uint16*, int);
 
 MMSPlugin g_ThisPlugin;
 IServerGameDLL *server = NULL;
@@ -86,6 +89,8 @@ double g_flLastTickedTime = 0.0;
 int g_iSetGameSpawnGroupMgrId = -1;
 CSpawnGroupMgrGameSystem* g_pSpawnGroupMgr = NULL;
 HudHintManager g_hudHintManager;
+PlayerManager g_playerManager;
+CEntityListener g_entityListener;
 LoggingChannelID_t g_logChanScript;
 
 #define CREATE_FUNCHOOK_BASIC(funchookHandle, originalFunction, hookedFunction) \
@@ -322,7 +327,9 @@ static void RegisterScriptFunctions()
 		"Entity",
 		{
 			{ "GetSchemaField", ScriptDomainCallbacks::V8GetSchemaField },
-			{ "SetMoveType", ScriptDomainCallbacks::SetEntityMoveType }
+			{ "SetMoveType", ScriptDomainCallbacks::SetEntityMoveType },
+			{ "SetTransmitState", ScriptDomainCallbacks::SetTransmitState },
+			{ "SetTransmitStateAll", ScriptDomainCallbacks::SetTransmitStateAll }
 		});
 
 	g_scriptExtensions->IncludeFunctions(
@@ -379,6 +386,7 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 	SH_ADD_HOOK(IServerGameClients, ClientConnect, g_pSource2GameClients, SH_MEMBER(this, &MMSPlugin::Hook_ClientConnect), false);
 	SH_ADD_HOOK(IServerGameClients, ClientCommand, g_pSource2GameClients, SH_MEMBER(this, &MMSPlugin::Hook_ClientCommand), false);
 	SH_ADD_HOOK(IGameEventSystem, PostEventAbstract, g_gameEventSystem, SH_MEMBER(this, &MMSPlugin::Hook_PostEvent), false);
+	SH_ADD_HOOK(ISource2GameEntities, CheckTransmit, g_pSource2GameEntities, SH_MEMBER(this, &MMSPlugin::Hook_CheckTransmit), true);
 
 	META_CONPRINT("[cs_script_ext] Loading gamedata...");
 	CBufferStringGrowable<256> gamedirpath;
@@ -432,6 +440,7 @@ bool MMSPlugin::Unload(char *error, size_t maxlen)
 	SH_REMOVE_HOOK(IServerGameClients, OnClientConnected, gameclients, SH_MEMBER(this, &MMSPlugin::Hook_OnClientConnected), false);
 	SH_REMOVE_HOOK(IServerGameClients, ClientConnect, gameclients, SH_MEMBER(this, &MMSPlugin::Hook_ClientConnect), false);
 	SH_REMOVE_HOOK(IServerGameClients, ClientCommand, gameclients, SH_MEMBER(this, &MMSPlugin::Hook_ClientCommand), false);
+	SH_REMOVE_HOOK(ISource2GameEntities, CheckTransmit, g_pSource2GameEntities, SH_MEMBER(this, &MMSPlugin::Hook_CheckTransmit), true);
 	delete g_scriptExtensions;
 	g_v8ExceptionHook = {};
 
@@ -469,6 +478,7 @@ void MMSPlugin::Hook_OnClientConnected( CPlayerSlot slot, const char *pszName, u
 bool MMSPlugin::Hook_ClientConnect( CPlayerSlot slot, const char *pszName, uint64 xuid, const char *pszNetworkID, bool unk1, CBufferString *pRejectReason )
 {
 	//META_CONPRINTF( "Hook_ClientConnect(%d, \"%s\", %d, \"%s\", %d, \"%s\")\n", slot, pszName, xuid, pszNetworkID, unk1, pRejectReason->Get() );
+	g_playerManager.OnPlayerConnect(slot);
 	RETURN_META_VALUE(MRES_IGNORED, true);
 }
 
@@ -488,7 +498,7 @@ void MMSPlugin::Hook_ClientPutInServer( CPlayerSlot slot, char const *pszName, i
 
 void MMSPlugin::Hook_ClientDisconnect( CPlayerSlot slot, ENetworkDisconnectionReason reason, const char *pszName, uint64 xuid, const char *pszNetworkID )
 {
-	//META_CONPRINTF( "Hook_ClientDisconnect(%d, %d, \"%s\", %d, \"%s\")\n", slot, reason, pszName, xuid, pszNetworkID );
+	g_playerManager.OnPlayerDisconnect(slot);
 }
 
 
@@ -521,12 +531,12 @@ void MMSPlugin::OnLevelInit( char const *pMapName,
 									 bool loadGame,
 									 bool background )
 {
-	META_CONPRINTF("OnLevelInit(%s)\n", pMapName);
+	GameEntitySystem()->AddListenerEntity(&g_entityListener);
 }
 
 void MMSPlugin::OnLevelShutdown()
 {
-	META_CONPRINTF("OnLevelShutdown()\n");
+	GameEntitySystem()->RemoveListenerEntity(&g_entityListener);
 }
 
 void MMSPlugin::Hook_SetGameSpawnGroupMgr(IGameSpawnGroupMgr* pSpawnGroupMgr)
@@ -583,6 +593,29 @@ void MMSPlugin::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nCli
 				*const_cast<uint64*>(clients) = 0;
 				break;
 			}
+		}
+	}
+}
+
+void MMSPlugin::Hook_CheckTransmit(CCheckTransmitInfo** ppInfoList, int infoCount, CBitVec<16384>& unionTransmitEdicts,
+	CBitVec<16384>&, const Entity2Networkable_t** pNetworkables, const uint16* pEntityIndicies, int nEntities)
+{
+	VPROF("CCSScriptExtensions::Hook_CheckTransmit");
+	auto ppInfoListC = (CCheckTransmitInfoCustom**)ppInfoList;
+
+	for (int i = 0; i < infoCount; i++)
+	{
+		auto& pInfo = ppInfoListC[i];
+		auto plrSlot = pInfo->m_nPlayerSlot;
+		auto plr = g_playerManager.GetPlayer(plrSlot);
+		if (!plr)
+			continue;
+
+		const auto& blockedTransmits = plr->GetBlockedEntityTransmits();
+		for (auto entIndex : blockedTransmits)
+		{
+			pInfo->m_pTransmitEntity->Clear(entIndex.Get());
+			// TODO: check for player pawns, and if they're dead or no, otherwise we might crash clients!
 		}
 	}
 }

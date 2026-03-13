@@ -32,6 +32,7 @@
 #include "recipientfilters.h"
 #include "common.h"
 #include "scriptExtensions/userMessagesScriptExt.h"
+#include "playermanager.h"
 
 extern LoggingChannelID_t g_logChanScript;
 
@@ -41,6 +42,7 @@ extern ISchemaSystem* g_pSchemaSystem;
 extern IGameEventManager2* g_gameEventManager;
 extern HudHintManager g_hudHintManager;
 extern CSScriptExtensionsSystem g_scriptExtensions;
+extern PlayerManager g_playerManager;
 
 static void V8ThrowException(v8::Isolate* isolate, const std::string_view& message)
 {
@@ -405,19 +407,22 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 	if (!maybeSourceEntity.IsEmpty())
 	{
 		auto sourceEntityVal = maybeSourceEntity.ToLocalChecked();
-		if (!sourceEntityVal->IsObject())
+		if (!sourceEntityVal->IsUndefined())
 		{
-			V8ThrowException(isolate, "EmitSound argument 0.source must be an Entity");
-			return;
+			if (!sourceEntityVal->IsObject())
+			{
+				V8ThrowException(isolate, "EmitSound argument 0.source must be an Entity");
+				return;
+			}
+			auto sourceEntityObj = sourceEntityVal.As<v8::Object>();
+			auto entity = CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(sourceEntityObj);
+			if (!entity)
+			{
+				V8ThrowException(isolate, "EmitSound argument 0.source is not a valid Entity");
+				return;
+			}
+			entIndex = entity->GetEntityIndex();
 		}
-		auto sourceEntityObj = sourceEntityVal.As<v8::Object>();
-		auto entity = CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(sourceEntityObj);
-		if (!entity)
-		{
-			V8ThrowException(isolate, "EmitSound argument 0.source is not a valid Entity");
-			return;
-		}
-		entIndex = entity->GetEntityIndex();
 	}
 
 	float volume = 1.0f;
@@ -425,27 +430,35 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 	if (!maybeVolume.IsEmpty())
 	{
 		auto volumeVal = maybeVolume.ToLocalChecked();
-		if (!volumeVal->IsNumber())
+		if (!volumeVal->IsUndefined())
 		{
-			V8ThrowException(isolate, "EmitSound argument 0.volume must be a number");
-			return;
+			if (!volumeVal->IsNumber())
+			{
+				V8ThrowException(isolate, "EmitSound argument 0.volume must be a number");
+				return;
+			}
+			volume = static_cast<float>(volumeVal.As<v8::Number>()->Value());
 		}
-		volume = static_cast<float>(volumeVal.As<v8::Number>()->Value());
+
 		if (volume < 0.0f)
 			volume = 0.0f;
 	}
 
-	int pitch = 100;
+	int pitch = 1;
 	auto maybePitch = obj->Get(context, v8::String::NewFromUtf8(isolate, "pitch").ToLocalChecked());
 	if (!maybePitch.IsEmpty())
 	{
 		auto pitchVal = maybePitch.ToLocalChecked();
-		if (!pitchVal->IsNumber())
+		if (!pitchVal->IsUndefined())
 		{
-			V8ThrowException(isolate, "EmitSound argument 0.pitch must be a number");
-			return;
+			if (!pitchVal->IsNumber())
+			{
+				V8ThrowException(isolate, "EmitSound argument 0.pitch must be a number");
+				return;
+			}
+			pitch = static_cast<int>(pitchVal.As<v8::Number>()->Value());
 		}
-		pitch = static_cast<int>(pitchVal.As<v8::Number>()->Value());
+			
 		if (pitch < 0)
 			pitch = 0;
 	}
@@ -461,7 +474,7 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 			for (uint32_t i = 0; i < length; ++i)
 			{
 				auto recipientVal = recipientsArr->Get(context, i).ToLocalChecked();
-				if (!recipientVal->IsObject())
+				if (!recipientsVal->IsUndefined() && !recipientVal->IsObject())
 				{
 					V8ThrowException(isolate, "EmitSound argument 0.recipients must be an array of CSPlayerController objects");
 					return;
@@ -479,20 +492,98 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 		}
 		else
 		{
-			V8ThrowException(isolate, "EmitSound argument 0.recipients must be an array of CSPlayerController objects");
-			return;
+			if (recipientsVal->IsUndefined())
+			{
+				filter.AddAllPlayers();
+			}
+			else
+			{
+				V8ThrowException(isolate, "EmitSound argument 0.recipients must be an array of CSPlayerController objects");
+				return;
+			}
 		}
 
-	}
-	else
-	{
-		filter.AddAllPlayers();
 	}
 	EmitSound_t emitSoundInfo;
 	emitSoundInfo.m_pSoundName = *soundNameUtf8;
 	emitSoundInfo.m_flVolume = volume;
 	emitSoundInfo.m_nPitch = static_cast<int>(pitch);
 	addresses::CBaseEntity_EmitSoundFilter(filter, entIndex, emitSoundInfo);
+}
+
+void ScriptDomainCallbacks::SetTransmitState(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	auto isolate = v8::Isolate::GetCurrent();
+	auto context = isolate->GetCurrentContext();
+	v8::HandleScope handleScope(isolate);
+
+	if (!VerifyScriptScope("Entity", "SetTransmitState"))
+		return;
+
+	if (args.Length() < 2 || !args.This()->IsObject() || !args[0]->IsObject() || !args[1]->IsBoolean())
+	{
+		V8ThrowException(args.GetIsolate(), "Method Entity.SetTransmitState requires 2 arguments (player: CSPlayerController, state: boolean)");
+		return;
+	}
+
+	auto targetObj = args.This()->ToObject(context).ToLocalChecked();
+	auto targetEnt = CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(targetObj);
+	if (!targetEnt)
+	{
+		V8ThrowException(isolate, "Method Entity.SetTransmitState failed to get entity from 'this' object.");
+		return;
+	}
+	auto entIndex = targetEnt->GetEntityIndex();
+	if (entIndex.Get() >= 0 && entIndex.Get() < MAXPLAYERS + 1)
+	{
+		V8ThrowException(isolate, "Can not set transmit state on player controllers");
+		return;
+	}
+
+	auto plrObject = args[0]->ToObject(context).ToLocalChecked();
+	auto targetPlr = (CCSPlayerController*)CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(plrObject);
+	auto plrEntIndex = targetPlr->GetEntityIndex();
+	if (!targetPlr || plrEntIndex.Get() <= 0 || plrEntIndex.Get() > MAXPLAYERS + 1)
+	{
+		V8ThrowException(isolate, "Method Entity.SetTransmitState first argument must be a CSPlayerController instance");
+		return;
+	}
+
+	bool state = args[1].As<v8::Boolean>()->Value();
+	g_playerManager.SetEntityTransmitBlocked(targetPlr->GetPlayerSlot(), entIndex, !state);
+}
+
+void ScriptDomainCallbacks::SetTransmitStateAll(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	auto isolate = v8::Isolate::GetCurrent();
+	auto context = isolate->GetCurrentContext();
+	v8::HandleScope handleScope(isolate);
+
+	if (!VerifyScriptScope("Entity", "SetTransmitStateAll"))
+		return;
+
+	if (args.Length() < 1 || !args.This()->IsObject() || !args[0]->IsBoolean())
+	{
+		V8ThrowException(args.GetIsolate(), "Method Entity.SetTransmitStateAll requires 1 argument (state: boolean)");
+		return;
+	}
+
+	auto targetObj = args.This()->ToObject(context).ToLocalChecked();
+	auto targetEnt = CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(targetObj);
+	if (!targetEnt)
+	{
+		V8ThrowException(isolate, "Method Entity.SetTransmitStateAll failed to get entity from 'this' object.");
+		return;
+	}
+	auto entIndex = targetEnt->GetEntityIndex();
+	if (entIndex.Get() >= 0 && entIndex.Get() < MAXPLAYERS + 1)
+	{
+		V8ThrowException(isolate, "Can not set transmit state on player controllers");
+		return;
+	}
+
+	bool state = args[1].As<v8::Boolean>()->Value();
+	g_playerManager.SetEntityTransmitBlockedForAll(entIndex, !state);
 }
 
 template <typename T>

@@ -26,6 +26,7 @@
 
 extern double g_flUniversalTime;
 extern INetworkMessages* g_pNetworkMessages;
+class CCheckTransmitInfoCustom;
 
 class MMSPlugin : public ISmmPlugin, public IMetamodListener
 {
@@ -43,6 +44,7 @@ public: //hooks
 	void Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nClientCount, const uint64* clients,
 	                    INetworkMessageInternal* pEvent, const CNetMessage* pData, unsigned long nSize,
 	                    NetChannelBufType_t bufType);
+	void Hook_CheckTransmit(CCheckTransmitInfo** ppInfoList, int infoCount, CBitVec<16384>& unionTransmitEdicts, CBitVec<16384>&, const Entity2Networkable_t** pNetworkables, const uint16* pEntityIndicies, int nEntities);
 	void OnLevelShutdown();
 	void Hook_GameFrame( bool simulating, bool bFirstTick, bool bLastTick );
 	void Hook_ClientActive( CPlayerSlot slot, bool bLoadGame, const char *pszName, uint64 xuid );

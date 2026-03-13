@@ -70,6 +70,12 @@
     <ClCompile Include="src/cs2_sdk/schema.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\playermanager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\entitylistener.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cpointscript.h">
@@ -197,6 +203,15 @@
     </ClInclude>
     <ClInclude Include="src\object_wrap.h">
       <Filter>Header Files\Script Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="src\playermanager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\checktransmitinfo.h">
+      <Filter>Header Files\cs2_sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="src\entitylistener.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
