@@ -35,12 +35,36 @@
 #include "stdint.h"
 #include "tier0/dbg.h"
 #include "virtual.h"
+#include "schemasystem/schematypes.h"
 #undef schema
+
+// Relevant for cs_script, since we don't have static typing there
+enum SchemaKeyType : uint8_t
+{
+	// These are basically copied from builtin types
+	Void,
+	Char,
+	Int8,
+	Uint8,
+	Int16,
+	Uint16,
+	Int32,
+	Uint32,
+	Int64,
+	Uint64,
+	Float32,
+	Float64,
+	Bool,
+	// Declared classes
+	UtlString,
+	GameTime
+};
 
 struct SchemaKey
 {
 	int32 offset;
 	bool networked;
+	SchemaKeyType keyType;
 };
 
 class CNetworkVarChainer

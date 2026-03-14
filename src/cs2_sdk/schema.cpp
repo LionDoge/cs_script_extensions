@@ -43,6 +43,63 @@ static bool IsFieldNetworked(SchemaClassFieldData_t& field)
 	return false;
 }
 
+static SchemaKeyType GetNumericKeyTypeBySize(uint8_t size)
+{
+	switch (size) {
+		case 1:
+			return SchemaKeyType::Int8;
+		case 2:
+			return SchemaKeyType::Int16;
+		case 4:
+			return SchemaKeyType::Int32;
+		case 8:
+			return SchemaKeyType::Int64;
+		default:
+			return SchemaKeyType::Void; // Invalid/unsupported type
+	}
+}
+
+static SchemaKeyType GetKeyType(CSchemaType* type)
+{
+	switch (type->m_eTypeCategory)
+	{
+	case SCHEMA_TYPE_DECLARED_ENUM:
+		return GetNumericKeyTypeBySize(type->ReinterpretAs<CSchemaType_DeclaredEnum>()->m_pEnumInfo->m_nSize);
+	case SCHEMA_TYPE_BUILTIN:
+	{
+		switch (type->ReinterpretAs<CSchemaType_Builtin>()->m_eBuiltinType)
+		{
+		case SCHEMA_BUILTIN_TYPE_INT8: return SchemaKeyType::Int8;
+		case SCHEMA_BUILTIN_TYPE_UINT8: return SchemaKeyType::Uint8;
+		case SCHEMA_BUILTIN_TYPE_INT16: return SchemaKeyType::Int16;
+		case SCHEMA_BUILTIN_TYPE_UINT16: return SchemaKeyType::Uint16;
+		case SCHEMA_BUILTIN_TYPE_INT32: return SchemaKeyType::Int32;
+		case SCHEMA_BUILTIN_TYPE_UINT32: return SchemaKeyType::Uint32;
+		case SCHEMA_BUILTIN_TYPE_INT64: return SchemaKeyType::Int64;
+		case SCHEMA_BUILTIN_TYPE_UINT64: return SchemaKeyType::Uint64;
+		case SCHEMA_BUILTIN_TYPE_FLOAT32: return SchemaKeyType::Float32;
+		case SCHEMA_BUILTIN_TYPE_FLOAT64: return SchemaKeyType::Float64;
+		case SCHEMA_BUILTIN_TYPE_CHAR: return SchemaKeyType::Char;
+		case SCHEMA_BUILTIN_TYPE_BOOL: return SchemaKeyType::Bool;
+		}
+	}
+	case SCHEMA_TYPE_DECLARED_CLASS:
+	{
+		auto classType = type->ReinterpretAs<CSchemaType_DeclaredClass>();
+		const char* className = classType->m_pClassInfo->m_pszName;
+		if (!V_strcmp(className, "CUtlString"))
+		{
+			return SchemaKeyType::UtlString;
+		}
+
+		if (!V_strcmp(className, "GameTime_t"))
+		{
+			return SchemaKeyType::UtlString;
+		}
+	}
+	}
+}
+
 // Try to recursively find __m_pChainEntity in base classes
 // (e.g. CCSGameRules -> CTeamplayRules -> CMultiplayRules -> CGameRules, in this case it's in CGameRules)
 static void InitChainOffset(SchemaClassInfoData_t* pClassInfo, SchemaKeyValueMap_t& keyValueMap)
@@ -61,6 +118,7 @@ static void InitChainOffset(SchemaClassInfoData_t* pClassInfo, SchemaKeyValueMap
 		keyValuePair.first = g_ChainKey;
 		keyValuePair.second.offset = field.m_nSingleInheritanceOffset;
 		keyValuePair.second.networked = IsFieldNetworked(field);
+		keyValuePair.second.keyType = GetKeyType(field.m_pType);
 
 		keyValueMap.insert(keyValuePair);
 		return;
@@ -88,6 +146,7 @@ static void InitSchemaKeyValueMap(SchemaClassInfoData_t* pClassInfo, SchemaKeyVa
 		keyValuePair.first = hash_32_fnv1a_const(field.m_pszName);
 		keyValuePair.second.offset = field.m_nSingleInheritanceOffset;
 		keyValuePair.second.networked = IsFieldNetworked(field);
+		keyValuePair.second.keyType = GetKeyType(field.m_pType);
 
 		keyValueMap.insert(keyValuePair);
 	}

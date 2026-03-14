@@ -33,6 +33,7 @@
 #include "common.h"
 #include "scriptExtensions/userMessagesScriptExt.h"
 #include "playermanager.h"
+#include "schema.h"
 
 extern LoggingChannelID_t g_logChanScript;
 
@@ -74,33 +75,6 @@ bool VerifyScriptScope(const std::string_view& instName, const std::string_view&
 	g_scriptExtensions.AddNewFunction(classname, scopename, #name, name##_V8ScriptCallback); \
 	void name##_V8ScriptCallback(const v8::FunctionCallbackInfo<v8::Value>& args)
 
-
-std::optional<SchemaClassFieldData_t*> GetSchemaFieldInfo(const char* className, const char* fieldName)
-{
-	CSchemaSystemTypeScope* pType = g_pSchemaSystem->FindTypeScopeForModule(MODULE_PREFIX "server" MODULE_EXT);
-
-	if (!pType)
-		return std::nullopt;
-
-	SchemaClassInfoData_t* pClassInfo = pType->FindDeclaredClass(className).Get();
-	if (!pClassInfo)
-		return std::nullopt;
-
-	short fieldsSize = pClassInfo->m_nFieldCount;
-	SchemaClassFieldData_t* pFields = pClassInfo->m_pFields;
-
-	SchemaClassFieldData_t* field = nullptr;
-	for (int i = 0; i < fieldsSize; ++i)
-	{
-		SchemaClassFieldData_t& currentField = pFields[i];
-		if (V_strcmp(fieldName, currentField.m_pszName) == 0)
-		{
-			return &currentField;
-		}
-	}
-	return std::nullopt;
-}
-
 void ScriptDomainCallbacks::V8NewMsg(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	auto isolate = v8::Isolate::GetCurrent();
@@ -127,33 +101,32 @@ void ScriptDomainCallbacks::V8GetSchemaField(const v8::FunctionCallbackInfo<v8::
 	auto isolate = v8::Isolate::GetCurrent();
 	v8::HandleScope handleScope(isolate);
 
-	if (!VerifyScriptScope("point_script", "GetSchemaField"))
+	if (!VerifyScriptScope("Entity", "GetSchemaField"))
 		return;
 
 	if (!args.This()->IsObject())
 	{
-		V8ThrowException(isolate, "Method point_script.GetSchemaField invoked with incorrect 'this' value.");
+		V8ThrowException(isolate, "Method Entity.GetSchemaField invoked with incorrect 'this' value.");
 		return;
 	}
 
 	if (args.Length() < 2 || !args[0]->IsString() || !args[1]->IsString())
 	{
-		V8ThrowException(isolate, "Method point_script.GetSchemaField requires 2 arguments (className: string, fieldName: string)");
+		V8ThrowException(isolate, "Method Entity.GetSchemaField requires 2 arguments (className: string, fieldName: string)");
 		return;
 	}
 
 	CEntityHandle entHandle = ScriptExtensions::GetEntityHandleFromScriptObject(args.This().As<v8::Object>());
 	if (!entHandle.IsValid())
 	{
-		// not in-built type, maybe our SchemaObject?
-		V8ThrowException(isolate, "Method point_script.GetSchemaField failed to get entity from 'this' object.");
+		V8ThrowException(isolate, "Method Entity.GetSchemaField failed to get entity from 'this' object.");
 		return;
 	}
 
 	auto ent = dynamic_cast<CBaseEntity*>(entHandle.Get());
 	if (!ent)
 	{
-		V8ThrowException(isolate, "Method point_script.GetSchemaField called on invalid entity instance.");
+		V8ThrowException(isolate, "Method Entity.GetSchemaField called on invalid entity instance.");
 		return;
 	}
 
@@ -165,58 +138,26 @@ void ScriptDomainCallbacks::V8GetSchemaField(const v8::FunctionCallbackInfo<v8::
 	v8::String::Utf8Value v8StrFieldnameUtf8(isolate, v8StrFieldname);
 	std::string strFieldname(*v8StrFieldnameUtf8);
 
-	auto fieldInfo = GetSchemaFieldInfo(strClassname.c_str(), strFieldname.c_str());
-	if (fieldInfo.has_value())
-	{
-		auto type = fieldInfo.value()->m_pType;
-		auto offset = fieldInfo.value()->m_nSingleInheritanceOffset;
-		if (!type)
-			return;
-		switch (type->m_eTypeCategory) {
-		case SCHEMA_TYPE_DECLARED_ENUM:
-		{
-			auto val = *(uint32_t*)((unsigned char*)ent + offset);
-			args.GetReturnValue().Set(v8::Number::New(isolate, val));
-			break;
-		}
-		case SCHEMA_TYPE_BUILTIN:
-		{
-			if (type->IsBuiltinType(SCHEMA_BUILTIN_TYPE_INT8)) SetV8NumericReturnValue<int8_t>(args, ent, offset);
-			else if (type->IsBuiltinType(SCHEMA_BUILTIN_TYPE_UINT8)) SetV8NumericReturnValue<uint8_t>(args, ent, offset);
-			else if (type->IsBuiltinType(SCHEMA_BUILTIN_TYPE_INT16)) SetV8NumericReturnValue<int16_t>(args, ent, offset);
-			else if (type->IsBuiltinType(SCHEMA_BUILTIN_TYPE_UINT16)) SetV8NumericReturnValue<uint16_t>(args, ent, offset);
-			else if (type->IsBuiltinType(SCHEMA_BUILTIN_TYPE_INT32)) SetV8NumericReturnValue<int32_t>(args, ent, offset);
-			else if (type->IsBuiltinType(SCHEMA_BUILTIN_TYPE_UINT32)) SetV8NumericReturnValue<uint32_t>(args, ent, offset);
-			else if (type->IsBuiltinType(SCHEMA_BUILTIN_TYPE_INT64)) SetV8NumericReturnValue<int64_t>(args, ent, offset);
-			else if (type->IsBuiltinType(SCHEMA_BUILTIN_TYPE_UINT64)) SetV8NumericReturnValue<uint64_t>(args, ent, offset);
-			else if (type->IsBuiltinType(SCHEMA_BUILTIN_TYPE_FLOAT32)) SetV8NumericReturnValue<float>(args, ent, offset);
-			else if (type->IsBuiltinType(SCHEMA_BUILTIN_TYPE_FLOAT64)) SetV8NumericReturnValue<double>(args, ent, offset);
-			/*else if (type->IsBuiltinType(SCHEMA_BUILTIN_TYPE_BOOL)) SetV8NumericReturnValue<bool>(args, ent, offset);
-			else if (type->IsBuiltinType(SCHEMA_BUILTIN_TYPE_CHAR)) SetV8NumericReturnValue<char>(args, ent, offset);*/
-			break;
-		}
-		case SCHEMA_TYPE_DECLARED_CLASS:
-		{
-			if (type->IsDeclaredClass("CUtlString"))
-			{
-				CUtlString* str = reinterpret_cast<std::add_pointer_t<CUtlString>>((unsigned char*)ent + offset);
-				if (str)
-				{
-					auto v8Str = v8::String::NewFromUtf8(isolate, str->Get()).ToLocalChecked();
-					args.GetReturnValue().Set(v8Str);
-				}
-			}
-			else if (type->IsDeclaredClass("GameTime_t"))
-			{
-				GameTime_t* time = reinterpret_cast<std::add_pointer_t<GameTime_t>>((unsigned char*)ent + offset);
-				if (time)
-				{
-					args.GetReturnValue().Set(v8::Number::New(isolate, time->GetTime()));
-				}
-			}
-			break;
-		}
-		}
+	uint32_t classNameHash = hash_32_fnv1a_const(strClassname.c_str());
+	uint32_t fieldNameHash = hash_32_fnv1a_const(strFieldname.c_str());
+
+	SchemaKey schemaFieldInfo = schema::GetOffset(strClassname.c_str(), classNameHash, strFieldname.c_str(), fieldNameHash);
+
+	auto offset = schemaFieldInfo.offset;
+	switch (schemaFieldInfo.keyType) {
+	case SchemaKeyType::Int8: SetSchemaReturnValue<int8_t>(args, ent, offset); break;
+	case SchemaKeyType::Uint8: SetSchemaReturnValue<uint8_t>(args, ent, offset); break;
+	case SchemaKeyType::Int16: SetSchemaReturnValue<int16_t>(args, ent, offset); break;
+	case SchemaKeyType::Uint16: SetSchemaReturnValue<uint16_t>(args, ent, offset); break;
+	case SchemaKeyType::Int32: SetSchemaReturnValue<int32_t>(args, ent, offset); break;
+	case SchemaKeyType::Uint32: SetSchemaReturnValue<uint32_t>(args, ent, offset); break;
+	case SchemaKeyType::Int64: SetSchemaReturnValue<int64_t>(args, ent, offset); break;
+	case SchemaKeyType::Uint64: SetSchemaReturnValue<uint64_t>(args, ent, offset); break;
+	case SchemaKeyType::Bool: SetSchemaReturnValue<bool>(args, ent, offset); break;
+	case SchemaKeyType::UtlString: SetSchemaReturnValue<CUtlString>(args, ent, offset); break;
+	case SchemaKeyType::GameTime: SetSchemaReturnValue<GameTime_t>(args, ent, offset); break;
+	default:
+		V8ThrowException(isolate, "This schema field's type is not supported in script");
 	}
 }
 
@@ -585,11 +526,34 @@ void ScriptDomainCallbacks::SetTransmitStateAll(const v8::FunctionCallbackInfo<v
 	g_playerManager.SetEntityTransmitBlockedForAll(entIndex, !state);
 }
 
+template<typename T>
+inline constexpr bool always_false_v = false;
+
 template <typename T>
-constexpr void ScriptDomainCallbacks::SetV8NumericReturnValue(const v8::FunctionCallbackInfo<v8::Value>& args, void* ent, size_t offset)
+constexpr void ScriptDomainCallbacks::SetSchemaReturnValue(const v8::FunctionCallbackInfo<v8::Value>& args, void* ent, size_t offset)
 {
 	auto val = *reinterpret_cast<std::add_pointer_t<T>>(static_cast<unsigned char*>(ent) + offset);
-	args.GetReturnValue().Set(v8::Number::New(args.GetIsolate(), val));
+
+	if constexpr (std::is_arithmetic_v<T>)
+	{
+		args.GetReturnValue().Set(v8::Number::New(args.GetIsolate(), val));
+	}
+	else if constexpr (std::is_same_v<T, bool>)
+	{
+		args.GetReturnValue().Set(v8::Boolean::New(args.GetIsolate(), val));
+	}
+	else if constexpr (std::is_same_v<T, CUtlString>)
+	{
+		args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), val.Get()).ToLocalChecked());
+	}
+	else if constexpr (std::is_same_v<T, GameTime_t>)
+	{
+		args.GetReturnValue().Set(v8::Number::New(args.GetIsolate(), val.GetTime()));
+	}
+	else 
+	{
+		static_assert(always_false_v<T>, "Unsupported type for SetSchemaReturnValue");
+	}
 }
 
 void ScriptDomainCallbacks::CreateUserMessage(const v8::FunctionCallbackInfo<v8::Value>& args)

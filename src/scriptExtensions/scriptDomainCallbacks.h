@@ -35,5 +35,5 @@ namespace ScriptDomainCallbacks {
 	void CreateUserMessage(const v8::FunctionCallbackInfo<v8::Value>& args);
 
 	template <typename T>
-	constexpr void SetV8NumericReturnValue(const v8::FunctionCallbackInfo<v8::Value>& args, void* ent, size_t offset);
+	constexpr void SetSchemaReturnValue(const v8::FunctionCallbackInfo<v8::Value>& args, void* ent, size_t offset);
 };
