@@ -153,6 +153,11 @@ void ScriptUserMessage::UserMessageInfo_GetField(const v8::FunctionCallbackInfo<
 		return;
 	}
 	auto value = GetUserMessageInfoObject(info);
+	if (!value->IsValid())
+	{
+		V8ThrowException(isolate, "UserMessageInfo object is no longer valid\n");
+		return;
+	}
 	
 	bool isRepeated = false;
 	auto cppType = google::protobuf::FieldDescriptor::CPPTYPE_INT32;
@@ -253,6 +258,11 @@ void ScriptUserMessage::UserMessageInfo_SetField(const v8::FunctionCallbackInfo<
 		return;
 	}
 	auto value = GetUserMessageInfoObject(info);
+	if (!value->IsValid())
+	{
+		V8ThrowException(isolate, "UserMessageInfo object is no longer valid\n");
+		return;
+	}
 
 	bool isRepeated = false;
 	auto cppType = google::protobuf::FieldDescriptor::CPPTYPE_INT32;
@@ -344,6 +354,11 @@ void ScriptUserMessage::UserMessageInfo_ClearRecipients(const v8::FunctionCallba
 		return;
 	}
 	auto msgInfo = GetUserMessageInfoObject(info);
+	if (!msgInfo->IsValid())
+	{
+		V8ThrowException(isolate, "UserMessageInfo object is no longer valid\n");
+		return;
+	}
 	msgInfo->ClearRecipients();
 }
 
@@ -373,6 +388,11 @@ void ScriptUserMessage::UserMessageInfo_AddRecipient(const v8::FunctionCallbackI
 		return;
 	}
 	auto msgInfo = GetUserMessageInfoObject(info);
+	if (!msgInfo->IsValid())
+	{
+		V8ThrowException(isolate, "UserMessageInfo object is no longer valid\n");
+		return;
+	}
 	msgInfo->AddRecipient(static_cast<int>(number));
 }
 
@@ -386,6 +406,11 @@ void ScriptUserMessage::UserMessageInfo_AddAllRecipients(const v8::FunctionCallb
 		return;
 	}
 	auto msgInfo = GetUserMessageInfoObject(info);
+	if (!msgInfo->IsValid())
+	{
+		V8ThrowException(isolate, "UserMessageInfo object is no longer valid\n");
+		return;
+	}
 	msgInfo->AddAllRecipients();
 }
 
@@ -415,6 +440,11 @@ void ScriptUserMessage::UserMessageInfo_RemoveRecipient(const v8::FunctionCallba
 		return;
 	}
 	auto msgInfo = GetUserMessageInfoObject(info);
+	if (!msgInfo->IsValid())
+	{
+		V8ThrowException(isolate, "UserMessageInfo object is no longer valid\n");
+		return;
+	}
 	msgInfo->RemoveRecipient(number);
 }
 

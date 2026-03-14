@@ -199,8 +199,16 @@ public:
 	void PostSend()
 	{
 		delete m_pMessage;
+		Invalidate();
+	}
+	void Invalidate()
+	{
 		m_pMessage = nullptr;
 		m_pNetMessageInternal = nullptr;
+	}
+	bool IsValid()
+	{
+		return m_pMessage != nullptr;
 	}
 	bool CanBeSent() const
 	{
