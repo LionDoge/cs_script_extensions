@@ -98,7 +98,7 @@ LoggingChannelID_t g_logChanScript;
 	funchook_prepare(funchookHandle, (void**)(&originalFunction), reinterpret_cast<void*>(hookedFunction)); \
 	funchook_install(funchookHandle, 0);
 
-CSScriptExtensionsSystem* g_scriptExtensions;
+ScriptExtensions* g_scriptExtensions;
 SafetyHookInline g_v8ExceptionHook{};
 
 bool Hook_V8_TryCatch_HasCaught(v8::TryCatch* tryCatch)
@@ -109,7 +109,7 @@ bool Hook_V8_TryCatch_HasCaught(v8::TryCatch* tryCatch)
 		return res;
 	}
 
-	auto script = CSScriptExtensionsSystem::GetCurrentCsScriptInstance();
+	auto script = ScriptExtensions::GetCurrentCsScriptInstance();
 	if (!script)
 	{
 		Msg("[cs_script_extensions] V8 exception thrown but no current script context found! Stack trace unavailable.\n");
@@ -409,7 +409,7 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 		bRequiredInitLoaded = false;
 
 
-	g_scriptExtensions = CSScriptExtensionsSystem::GetInstance();
+	g_scriptExtensions = ScriptExtensions::GetInstance();
 	RegisterScriptFunctions();
 	if(!g_scriptExtensions->Initialize(g_GameConfig))
 		bRequiredInitLoaded = false;
@@ -556,7 +556,7 @@ void MMSPlugin::Hook_StartupServer(const GameSessionConfiguration_t& config, ISo
 void MMSPlugin::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nClientCount, const uint64* clients,
 	INetworkMessageInternal* pEvent, const CNetMessage* pData, unsigned long nSize, NetChannelBufType_t bufType)
 {
-	auto scripts = CSScriptExtensionsSystem::GetScripts();
+	auto scripts = ScriptExtensions::GetScripts();
 
 	if (!scripts.empty())
 	{
@@ -571,7 +571,7 @@ void MMSPlugin::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nCli
 		for (CEntityInstance* scriptEnt : scripts)
 		{
 			v8::HandleScope handleScope(v8::Isolate::GetCurrent());
-			auto script = CSScriptExtensionsSystem::GetScriptFromEntity(scriptEnt);
+			auto script = ScriptExtensions::GetScriptFromEntity(scriptEnt);
 			if (!script || !script->IsCallbackRegistered(callbackSymbol))
 				continue;
 
@@ -670,7 +670,7 @@ CON_COMMAND_F(csscript_load, "Creates a script entity and loads the provided fil
 	kv->SetString("targetname", scriptName);
 	addresses::DispatchSpawn(point_script, kv);
 
-	auto script = CSScriptExtensionsSystem::GetScriptFromEntity(point_script);
+	auto script = ScriptExtensions::GetScriptFromEntity(point_script);
 	if (!RunScriptFromFile(script, args[1], true))
 	{
 		point_script->Remove();
@@ -687,7 +687,7 @@ CON_COMMAND_F(csscript_reload, "Reload a script (loaded by script_load only)", F
 	CBaseEntity* ent = nullptr;
 	while ((ent = UTIL_FindEntityByName(ent, args[1])))
 	{
-		auto script = CSScriptExtensionsSystem::GetScriptFromEntity(ent);
+		auto script = ScriptExtensions::GetScriptFromEntity(ent);
 		if (!script)
 			continue;
 
@@ -728,7 +728,7 @@ CON_COMMAND_F(script_run_code, "Run code inside an existing script", FCVAR_NONE)
 		if (V_stricmp_fast(ent->GetClassname(), "point_script"))
 			continue;
 
-		if (const auto script = CSScriptExtensionsSystem::GetScriptFromEntity(ent))
+		if (const auto script = ScriptExtensions::GetScriptFromEntity(ent))
 		{
 			v8::HandleScope handleScope(isolate);
 			const auto& scriptContext = script->GetContext().Get(isolate);
@@ -796,10 +796,10 @@ CON_COMMAND_F(script_run_code, "Run code inside an existing script", FCVAR_NONE)
 CON_COMMAND_F(script_summary, "List registered function templates on scripts", FCVAR_NONE)
 {
 	auto isolate = v8::Isolate::GetCurrent();
-	for (CEntityInstance* scriptEnt : CSScriptExtensionsSystem::GetScripts())
+	for (CEntityInstance* scriptEnt : ScriptExtensions::GetScripts())
 	{
 		v8::HandleScope handleScope(isolate);
-		auto script = CSScriptExtensionsSystem::GetScriptFromEntity(scriptEnt);
+		auto script = ScriptExtensions::GetScriptFromEntity(scriptEnt);
 		script->PrintSummary();
 	}
 }

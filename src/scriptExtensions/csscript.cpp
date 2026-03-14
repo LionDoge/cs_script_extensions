@@ -23,7 +23,7 @@
 #include "v8.h"
 
 extern LoggingChannelID_t g_logChanScript;
-extern CSScriptExtensionsSystem* g_scriptExtensions;
+extern ScriptExtensions* g_scriptExtensions;
 
 const v8::Global<v8::Context>& CCSBaseScript::GetContext()
 {

@@ -37,14 +37,14 @@ struct ScriptCustomTemplateInfo {
 	std::optional<std::string_view> inheritObject;
 };
 
-class CSScriptExtensionsSystem {
+class ScriptExtensions {
 public:
-	CSScriptExtensionsSystem() = default;
-	~CSScriptExtensionsSystem();
+	ScriptExtensions() = default;
+	~ScriptExtensions();
 
-	CSScriptExtensionsSystem(CSScriptExtensionsSystem& other) = delete;
-	void operator=(const CSScriptExtensionsSystem&) = delete;
-	static CSScriptExtensionsSystem* GetInstance();
+	ScriptExtensions(ScriptExtensions& other) = delete;
+	void operator=(const ScriptExtensions&) = delete;
+	static ScriptExtensions* GetInstance();
 
 	bool Initialize(CGameConfig* gameConfig);
 
@@ -137,5 +137,5 @@ private:
 	int m_registerTemplatesHook = -1;
 
 protected:
-	inline static CSScriptExtensionsSystem* m_instance;
+	inline static ScriptExtensions* m_instance;
 };

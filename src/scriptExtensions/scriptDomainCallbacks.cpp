@@ -41,7 +41,7 @@ void ClientPrint(CCSPlayerController* player, int hud_dest, const char* msg, ...
 extern ISchemaSystem* g_pSchemaSystem;
 extern IGameEventManager2* g_gameEventManager;
 extern HudHintManager g_hudHintManager;
-extern CSScriptExtensionsSystem g_scriptExtensions;
+extern ScriptExtensions g_scriptExtensions;
 extern PlayerManager g_playerManager;
 
 static void V8ThrowException(v8::Isolate* isolate, const std::string_view& message)
@@ -52,7 +52,7 @@ static void V8ThrowException(v8::Isolate* isolate, const std::string_view& messa
 
 bool VerifyScriptScope(const std::string_view& instName, const std::string_view& methodName)
 {
-	if (!CSScriptExtensionsSystem::GetCurrentCsScriptInstance())
+	if (!ScriptExtensions::GetCurrentCsScriptInstance())
 	{
 		V8ThrowException(
 			v8::Isolate::GetCurrent(),
@@ -142,7 +142,7 @@ void ScriptDomainCallbacks::V8GetSchemaField(const v8::FunctionCallbackInfo<v8::
 		return;
 	}
 
-	CEntityHandle entHandle = CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(args.This().As<v8::Object>());
+	CEntityHandle entHandle = ScriptExtensions::GetEntityHandleFromScriptObject(args.This().As<v8::Object>());
 	if (!entHandle.IsValid())
 	{
 		// not in-built type, maybe our SchemaObject?
@@ -238,7 +238,7 @@ void ScriptDomainCallbacks::V8ShowHTMLMessage(const v8::FunctionCallbackInfo<v8:
 		V8ThrowException(args.GetIsolate(), "Method Entity.ShowHudMessageHTML requires 1 string argument.");
 		return;
 	}
-	auto controllerHandle = CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(args.This().As<v8::Object>());
+	auto controllerHandle = ScriptExtensions::GetEntityHandleFromScriptObject(args.This().As<v8::Object>());
 	if (!controllerHandle.IsValid())
 	{
 		V8ThrowException(args.GetIsolate(), "Method Entity.ShowHudMessageHTML failed to get entity from 'this' object.");
@@ -305,7 +305,7 @@ void ScriptDomainCallbacks::V8ShowHudHint(const v8::FunctionCallbackInfo<v8::Val
 	}
 	isAlert = args[1].As<v8::Boolean>()->Value();
 
-	CEntityHandle entHandle = CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(args.This().As<v8::Object>());
+	CEntityHandle entHandle = ScriptExtensions::GetEntityHandleFromScriptObject(args.This().As<v8::Object>());
 	if (!entHandle.IsValid())
 	{
 		V8ThrowException(args.GetIsolate(), "Method Entity.ShowHudHint failed to get entity from 'this' object.");
@@ -325,7 +325,7 @@ void ScriptDomainCallbacks::V8ShowHudHint(const v8::FunctionCallbackInfo<v8::Val
 void ScriptDomainCallbacks::AddSampleCallback(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	auto isolate = args.GetIsolate();
-	auto script = (CCSScript_EntityScript*)CSScriptExtensionsSystem::GetCurrentCsScriptInstance();
+	auto script = (CCSScript_EntityScript*)ScriptExtensions::GetCurrentCsScriptInstance();
 	v8::HandleScope handleScope(isolate);
 	
 	if (args.Length() < 1)
@@ -352,7 +352,7 @@ void ScriptDomainCallbacks::SetEntityMoveType(const v8::FunctionCallbackInfo<v8:
 		return;
 	}
 
-	CEntityHandle entHandle = CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(args.This().As<v8::Object>());
+	CEntityHandle entHandle = ScriptExtensions::GetEntityHandleFromScriptObject(args.This().As<v8::Object>());
 	if (!entHandle.IsValid())
 	{
 		V8ThrowException(args.GetIsolate(), "Method Entity.SetMoveType failed to get entity from 'this' object.");
@@ -414,7 +414,7 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 				return;
 			}
 			auto sourceEntityObj = sourceEntityVal.As<v8::Object>();
-			CEntityHandle entHandle = CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(sourceEntityObj);
+			CEntityHandle entHandle = ScriptExtensions::GetEntityHandleFromScriptObject(sourceEntityObj);
 			if (!entHandle.IsValid())
 			{
 				V8ThrowException(isolate, "EmitSound argument 0.source is not a valid Entity");
@@ -479,7 +479,7 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 					return;
 				}
 				auto recipientObj = recipientVal.As<v8::Object>();
-				auto recipientEntHandle = CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(recipientObj);
+				auto recipientEntHandle = ScriptExtensions::GetEntityHandleFromScriptObject(recipientObj);
 				if (!recipientEntHandle.IsValid() || recipientEntHandle.GetEntryIndex() > (MAXPLAYERS + 1))
 				{
 					V8ThrowException(isolate, "EmitSound argument 0.recipients must be an array of CSPlayerController objects");
@@ -526,7 +526,7 @@ void ScriptDomainCallbacks::SetTransmitState(const v8::FunctionCallbackInfo<v8::
 	}
 
 	auto targetObj = args.This()->ToObject(context).ToLocalChecked();
-	auto targetEnt = CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(targetObj);
+	auto targetEnt = ScriptExtensions::GetEntityHandleFromScriptObject(targetObj);
 	if (!targetEnt.IsValid())
 	{
 		V8ThrowException(isolate, "Method Entity.SetTransmitState failed to get entity from 'this' object.");
@@ -540,7 +540,7 @@ void ScriptDomainCallbacks::SetTransmitState(const v8::FunctionCallbackInfo<v8::
 	}
 
 	auto plrObject = args[0]->ToObject(context).ToLocalChecked();
-	CEntityHandle targetPlrHandle = CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(plrObject);
+	CEntityHandle targetPlrHandle = ScriptExtensions::GetEntityHandleFromScriptObject(plrObject);
 	if (!targetPlrHandle.IsValid() || targetPlrHandle.GetEntryIndex() <= 0 || targetPlrHandle.GetEntryIndex() > MAXPLAYERS + 1)
 	{
 		V8ThrowException(isolate, "Method Entity.SetTransmitState first argument must be a CSPlayerController instance");
@@ -568,7 +568,7 @@ void ScriptDomainCallbacks::SetTransmitStateAll(const v8::FunctionCallbackInfo<v
 	}
 
 	auto targetObj = args.This()->ToObject(context).ToLocalChecked();
-	auto targetEntHandle = CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(targetObj);
+	auto targetEntHandle = ScriptExtensions::GetEntityHandleFromScriptObject(targetObj);
 	if (!targetEntHandle.IsValid())
 	{
 		V8ThrowException(isolate, "Method Entity.SetTransmitStateAll failed to get entity from 'this' object.");
@@ -610,7 +610,7 @@ void ScriptDomainCallbacks::CreateUserMessage(const v8::FunctionCallbackInfo<v8:
 	}
 	auto data = pNetMsg->AllocateMessage()->ToPB<google::protobuf::Message>();
 	ScriptUserMessageInfo* msgInfo = new ScriptUserMessageInfo(data, 0, pNetMsg);
-	auto script = (CCSScript_EntityScript*)CSScriptExtensionsSystem::GetCurrentCsScriptInstance();
+	auto script = (CCSScript_EntityScript*)ScriptExtensions::GetCurrentCsScriptInstance();
 	if (!script)
 	{
 		V8ThrowException(isolate, "Method Domain.CreateUserMessage invoked in incorrect scope.");

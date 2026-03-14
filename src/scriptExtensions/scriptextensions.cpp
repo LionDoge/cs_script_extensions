@@ -28,7 +28,7 @@ extern LoggingChannelID_t g_logChanScript;
 
 SH_DECL_HOOK0_void(CCSScript_EntityScript, InitializeFunctionTemplates, SH_NOATTRIB, false);
 
-bool CSScriptExtensionsSystem::ResolveSigs(CGameConfig* gameConfig)
+bool ScriptExtensions::ResolveSigs(CGameConfig* gameConfig)
 {
 	RESOLVE_SIG(gameConfig, "CSScript_RegisterFunctionTemplate", m_pfnRegisterInstanceTemplate)
 	RESOLVE_SIG(gameConfig, "CSScript_SwitchContext", m_pfnSwitchScriptContext)
@@ -40,15 +40,15 @@ bool CSScriptExtensionsSystem::ResolveSigs(CGameConfig* gameConfig)
 	return true;
 }
 
-CSScriptExtensionsSystem* CSScriptExtensionsSystem::GetInstance()
+ScriptExtensions* ScriptExtensions::GetInstance()
 {
 	if (m_instance == nullptr)
-		m_instance = new CSScriptExtensionsSystem();
+		m_instance = new ScriptExtensions();
 
 	return m_instance;
 }
 
-bool CSScriptExtensionsSystem::Initialize(CGameConfig* gameConfig)
+bool ScriptExtensions::Initialize(CGameConfig* gameConfig)
 {
 	if (!ResolveSigs(gameConfig))
 	{
@@ -64,13 +64,13 @@ bool CSScriptExtensionsSystem::Initialize(CGameConfig* gameConfig)
 	}
 
 	if (m_registerTemplatesHook == -1)
-		m_registerTemplatesHook = SH_ADD_DVPHOOK(CCSScript_EntityScript, InitializeFunctionTemplates, vtable, SH_MEMBER(this, &CSScriptExtensionsSystem::OnScriptInstanceRegisterTemplates), true);
+		m_registerTemplatesHook = SH_ADD_DVPHOOK(CCSScript_EntityScript, InitializeFunctionTemplates, vtable, SH_MEMBER(this, &ScriptExtensions::OnScriptInstanceRegisterTemplates), true);
 	g_logChanScript = LoggingSystem_FindChannel("cs_script");
 	return true;
 }
 
 
-CSScriptExtensionsSystem::~CSScriptExtensionsSystem()
+ScriptExtensions::~ScriptExtensions()
 {
 	if (m_registerTemplatesHook != -1)
 	{
@@ -79,7 +79,7 @@ CSScriptExtensionsSystem::~CSScriptExtensionsSystem()
 	}
 }
 
-void CSScriptExtensionsSystem::IncludeFunctions(const std::string& templateName,
+void ScriptExtensions::IncludeFunctions(const std::string& templateName,
 	std::initializer_list<std::pair<std::string, v8::FunctionCallback>> functions)
 {
 	auto vec = std::vector<ScriptFunctionInfo>();
@@ -91,7 +91,7 @@ void CSScriptExtensionsSystem::IncludeFunctions(const std::string& templateName,
 	m_registeredFunctions[templateName] = vec;
 }
 
-void CSScriptExtensionsSystem::RegisterCustomFunctionTemplate(const std::string& templateName,
+void ScriptExtensions::RegisterCustomFunctionTemplate(const std::string& templateName,
 	std::initializer_list<std::pair<std::string, v8::FunctionCallback>> functions, unsigned int internalFields,
 	const std::optional<v8::FunctionCallback>& constructor, const std::optional<std::string_view>& inheritFrom)
 {	
@@ -111,12 +111,12 @@ void CSScriptExtensionsSystem::RegisterCustomFunctionTemplate(const std::string&
 	m_customFunctionTemplates[templateName] = std::move(info);
 }
 
-void CSScriptExtensionsSystem::RegisterCustomFunctionTemplate(void (*callback)(CCSBaseScript*))
+void ScriptExtensions::RegisterCustomFunctionTemplate(void (*callback)(CCSBaseScript*))
 {
 	m_functionTemplateInitializers.push_back(callback);
 }
 
-CEntityHandle CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(v8::Local<v8::Object> obj)
+CEntityHandle ScriptExtensions::GetEntityHandleFromScriptObject(v8::Local<v8::Object> obj)
 {
 	if (obj->InternalFieldCount() != 3) {
 		return {}; // default, invalid handle
@@ -134,22 +134,22 @@ CEntityHandle CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(v8::Loca
 	return entPointer->handle;
 }
 
-CCSBaseScript* CSScriptExtensionsSystem::GetCurrentCsScriptInstance()
+CCSBaseScript* ScriptExtensions::GetCurrentCsScriptInstance()
 {
 	return m_pfnGetCurrentCSScript();
 }
 
-v8::Local<v8::Object> CSScriptExtensionsSystem::CreateEntityObjectAuto(CEntityInstance* ent)
+v8::Local<v8::Object> ScriptExtensions::CreateEntityObjectAuto(CEntityInstance* ent)
 {
 	return m_pfnAssignEntityToObject(ent);
 }
 
-v8::Local<v8::Object> CSScriptExtensionsSystem::CreateEntityObjectFromTemplate(const CGlobalSymbol& templateName, CEntityInstance* entity)
+v8::Local<v8::Object> ScriptExtensions::CreateEntityObjectFromTemplate(const CGlobalSymbol& templateName, CEntityInstance* entity)
 {
 	return m_pfnCreateEntintyObjectFromTemplate(templateName, entity);
 }
 
-void CSScriptExtensionsSystem::InvokeCallbacks(const char* callbackName, int argc, v8::Local<v8::Value> argv[])
+void ScriptExtensions::InvokeCallbacks(const char* callbackName, int argc, v8::Local<v8::Value> argv[])
 {
 	VPROF("CSScriptExtensionsSystem::InvokeCallbacks");
 
@@ -162,19 +162,19 @@ void CSScriptExtensionsSystem::InvokeCallbacks(const char* callbackName, int arg
 	}
 }
 
-void CSScriptExtensionsSystem::ScriptRegisterFunctionTemplate(CCSBaseScript* script, const char* name, const v8::Local<v8::FunctionTemplate>& functionTemplate)
+void ScriptExtensions::ScriptRegisterFunctionTemplate(CCSBaseScript* script, const char* name, const v8::Local<v8::FunctionTemplate>& functionTemplate)
 {
 	m_pfnRegisterInstanceTemplate(script, name, functionTemplate);
 }
 
-void CSScriptExtensionsSystem::RunScriptString(CCSBaseScript* script, const char* path, const char* scriptData)
+void ScriptExtensions::RunScriptString(CCSBaseScript* script, const char* path, const char* scriptData)
 {
 	m_pfnRunScript(script, path, scriptData);
 }
 
 // Would be cool to have in SDK, but I'll just put it there
 #define Log_Debug( Channel, /* [Color], Message, */ ... ) InternalMsg( Channel, LS_DETAILED, /* [Color], Message, */ ##__VA_ARGS__ )
-void CSScriptExtensionsSystem::OnScriptInstanceRegisterTemplates()
+void ScriptExtensions::OnScriptInstanceRegisterTemplates()
 {
 	CCSScript_EntityScript* script = META_IFACEPTR(CCSScript_EntityScript);
 	auto isolate = v8::Isolate::GetCurrent();
@@ -231,7 +231,7 @@ void CSScriptExtensionsSystem::OnScriptInstanceRegisterTemplates()
 	RETURN_META(MRES_IGNORED);
 }
 
-void CSScriptExtensionsSystem::RegisterNewFunction(v8::Local<v8::ObjectTemplate> prototypeTemplate, const ScriptFunctionInfo& funcInfo)
+void ScriptExtensions::RegisterNewFunction(v8::Local<v8::ObjectTemplate> prototypeTemplate, const ScriptFunctionInfo& funcInfo)
 {
 	auto isolate = v8::Isolate::GetCurrent();
 	auto name = v8::String::NewFromUtf8(isolate, funcInfo.name.c_str()).ToLocalChecked();
@@ -239,12 +239,12 @@ void CSScriptExtensionsSystem::RegisterNewFunction(v8::Local<v8::ObjectTemplate>
 	prototypeTemplate->Set(name, funcTemplate);
 }
 
-void CSScriptExtensionsSystem::SwitchScriptContext(CCSBaseScript* script)
+void ScriptExtensions::SwitchScriptContext(CCSBaseScript* script)
 {
 	m_pfnSwitchScriptContext(script);
 }
 
-std::vector<CEntityInstance*> CSScriptExtensionsSystem::GetScripts() {
+std::vector<CEntityInstance*> ScriptExtensions::GetScripts() {
 	std::vector<CEntityInstance*> vecInstances;
 	vecInstances.reserve(1);
 	EntityInstanceByClassIter_t iter(nullptr, "point_script");
@@ -268,7 +268,7 @@ namespace {
 	}
 }
 class CCSPointScriptEntity {};
-CCSScript_EntityScript* CSScriptExtensionsSystem::GetScriptFromEntity(CEntityInstance* ent)
+CCSScript_EntityScript* ScriptExtensions::GetScriptFromEntity(CEntityInstance* ent)
 {
 	if (!ent)
 		return nullptr;
@@ -327,7 +327,7 @@ CCSScript_EntityScript* CSScriptExtensionsSystem::GetScriptFromEntity(CEntityIns
 	return reinterpret_cast<CCSScript_EntityScript*>((unsigned char*)ent + _csScriptOffset);
 }
 
-CSScriptHeader* CSScriptExtensionsSystem::GetScriptHeaderFromEntity(CEntityInstance* ent)
+CSScriptHeader* ScriptExtensions::GetScriptHeaderFromEntity(CEntityInstance* ent)
 {
 	if (!ent)
 		return nullptr;

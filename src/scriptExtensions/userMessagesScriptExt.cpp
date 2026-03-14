@@ -86,7 +86,7 @@ ScriptUserMessageInfo* ScriptUserMessage::GetUserMessageInfoObject(const v8::Fun
 void ScriptUserMessage::OnUserMessage(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	const auto isolate = v8::Isolate::GetCurrent();
-	const auto baseScript = CSScriptExtensionsSystem::GetCurrentCsScriptInstance();
+	const auto baseScript = ScriptExtensions::GetCurrentCsScriptInstance();
 	const auto script = static_cast<CCSScript_EntityScript*>(baseScript);
 
 	v8::HandleScope handleScope(isolate);
