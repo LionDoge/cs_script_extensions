@@ -23,7 +23,7 @@
 #ifndef _WIN32
 #include <dlfcn.h>
 #endif // !_WIN32
-
+#include <filesystem>
 #include "plugin.h"
 #include <fstream>
 #include <sstream>
@@ -126,6 +126,9 @@ bool Hook_V8_TryCatch_HasCaught(v8::TryCatch* tryCatch)
 		Msg("[cs_script_extensions] V8 exception thrown but no message available! Stack trace unavailable.\n");
 		return res;
 	}
+	CBufferStringN<256> gamedirpath;
+	g_pEngineServer2->GetGameDir(gamedirpath);
+
 	auto stackTrace = message->GetStackTrace();
 	if (!stackTrace.IsEmpty()) {
 		int frameCount = stackTrace->GetFrameCount();
@@ -136,12 +139,18 @@ bool Hook_V8_TryCatch_HasCaught(v8::TryCatch* tryCatch)
 
 			v8::String::Utf8Value funcName(isolate, frame->GetFunctionName());
 			v8::String::Utf8Value scriptName(isolate, frame->GetScriptName());
+
+			std::string scriptRelativePath;
+			std::filesystem::path scriptPath(*scriptName);
+			std::filesystem::path gameDir(gamedirpath.Get());
+			scriptRelativePath = std::filesystem::relative(scriptPath, gameDir).string();
+
 			int line = frame->GetLineNumber();
 			int col = frame->GetColumn();
 
 			Log_Warning(g_logChanScript, "  at %s (%s:%d:%d)\n",
 				*funcName ? *funcName : "<anonymous>",
-				*scriptName ? *scriptName : "<unknown>",
+				!scriptRelativePath.empty() ? scriptRelativePath.c_str() : "<unknown>",
 				line, col
 			);
 		}
