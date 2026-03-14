@@ -198,8 +198,7 @@ public:
 	}
 	void PostSend()
 	{
-		// the game takes ownership and deallocates the resources if we're sending them
-		// this is not the case when we receive the data, this function should only be invoked after a PostEventAbstratct.
+		delete m_pMessage;
 		m_pMessage = nullptr;
 		m_pNetMessageInternal = nullptr;
 	}
