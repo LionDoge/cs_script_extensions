@@ -142,21 +142,19 @@ void ScriptDomainCallbacks::V8GetSchemaField(const v8::FunctionCallbackInfo<v8::
 		return;
 	}
 
-	auto ent = CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(args.This().As<v8::Object>());
-	if (!ent)
+	CEntityHandle entHandle = CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(args.This().As<v8::Object>());
+	if (!entHandle.IsValid())
 	{
 		// not in-built type, maybe our SchemaObject?
 		V8ThrowException(isolate, "Method point_script.GetSchemaField failed to get entity from 'this' object.");
 		return;
 	}
-	else 
+
+	auto ent = dynamic_cast<CBaseEntity*>(entHandle.Get());
+	if (!ent)
 	{
-		ent = dynamic_cast<CBaseEntity*>(ent);
-		if (!ent)
-		{
-			V8ThrowException(isolate, "Method point_script.GetSchemaField called on invalid entity instance.");
-			return;
-		}
+		V8ThrowException(isolate, "Method point_script.GetSchemaField called on invalid entity instance.");
+		return;
 	}
 
 	v8::Local<v8::String> v8StrClassname = args[0].As<v8::String>();
@@ -240,12 +238,13 @@ void ScriptDomainCallbacks::V8ShowHTMLMessage(const v8::FunctionCallbackInfo<v8:
 		V8ThrowException(args.GetIsolate(), "Method Entity.ShowHudMessageHTML requires 1 string argument.");
 		return;
 	}
-	auto controller = dynamic_cast<CCSPlayerController*>(CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(args.This().As<v8::Object>()));
-	if (!controller)
+	auto controllerHandle = CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(args.This().As<v8::Object>());
+	if (!controllerHandle.IsValid())
 	{
 		V8ThrowException(args.GetIsolate(), "Method Entity.ShowHudMessageHTML failed to get entity from 'this' object.");
 		return;
 	}
+	auto controller = dynamic_cast<CCSPlayerController*>(controllerHandle.Get());
 	double duration = 1.0;
 	if (args.Length() >= 2 && args[1]->IsNumber())
 	{
@@ -306,13 +305,13 @@ void ScriptDomainCallbacks::V8ShowHudHint(const v8::FunctionCallbackInfo<v8::Val
 	}
 	isAlert = args[1].As<v8::Boolean>()->Value();
 
-	CEntityInstance* ent = CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(args.This().As<v8::Object>());
-	if (!ent)
+	CEntityHandle entHandle = CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(args.This().As<v8::Object>());
+	if (!entHandle.IsValid())
 	{
 		V8ThrowException(args.GetIsolate(), "Method Entity.ShowHudHint failed to get entity from 'this' object.");
 		return;
 	}
-	CCSPlayerController* controller = dynamic_cast<CCSPlayerController*>(ent);
+	auto controller = dynamic_cast<CCSPlayerController*>(entHandle.Get());
 	if (!controller)
 	{
 		V8ThrowException(args.GetIsolate(), "Method point_script.ShowHudHint can only be called on player controller instances.");
@@ -353,13 +352,13 @@ void ScriptDomainCallbacks::SetEntityMoveType(const v8::FunctionCallbackInfo<v8:
 		return;
 	}
 
-	CEntityInstance* ent = CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(args.This().As<v8::Object>());
-	if (!ent)
+	CEntityHandle entHandle = CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(args.This().As<v8::Object>());
+	if (!entHandle.IsValid())
 	{
 		V8ThrowException(args.GetIsolate(), "Method Entity.SetMoveType failed to get entity from 'this' object.");
 		return;
 	}
-	CBaseEntity* baseEnt = dynamic_cast<CBaseEntity*>(ent);
+	auto baseEnt = dynamic_cast<CBaseEntity*>(entHandle.Get());
 	if (!baseEnt)
 	{
 		V8ThrowException(args.GetIsolate(), "Method Entity.SetMoveType called on invalid entity instance.");
@@ -415,13 +414,13 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 				return;
 			}
 			auto sourceEntityObj = sourceEntityVal.As<v8::Object>();
-			auto entity = CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(sourceEntityObj);
-			if (!entity)
+			CEntityHandle entHandle = CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(sourceEntityObj);
+			if (!entHandle.IsValid())
 			{
 				V8ThrowException(isolate, "EmitSound argument 0.source is not a valid Entity");
 				return;
 			}
-			entIndex = entity->GetEntityIndex();
+			entIndex = entHandle.GetEntryIndex();
 		}
 	}
 
@@ -480,13 +479,13 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 					return;
 				}
 				auto recipientObj = recipientVal.As<v8::Object>();
-				auto recipientEnt = CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(recipientObj);
-				if (!recipientEnt || recipientEnt->GetEntityIndex().Get() > (MAXPLAYERS + 1))
+				auto recipientEntHandle = CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(recipientObj);
+				if (!recipientEntHandle.IsValid() || recipientEntHandle.GetEntryIndex() > (MAXPLAYERS + 1))
 				{
 					V8ThrowException(isolate, "EmitSound argument 0.recipients must be an array of CSPlayerController objects");
 					return;
 				}
-				auto recipientController = (CCSPlayerController*)recipientEnt;
+				auto recipientController = (CCSPlayerController*)recipientEntHandle.Get();
 				filter.AddRecipient(recipientController->GetPlayerSlot());
 			}
 		}
@@ -527,28 +526,28 @@ void ScriptDomainCallbacks::SetTransmitState(const v8::FunctionCallbackInfo<v8::
 	}
 
 	auto targetObj = args.This()->ToObject(context).ToLocalChecked();
-	auto targetEnt = CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(targetObj);
-	if (!targetEnt)
+	auto targetEnt = CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(targetObj);
+	if (!targetEnt.IsValid())
 	{
 		V8ThrowException(isolate, "Method Entity.SetTransmitState failed to get entity from 'this' object.");
 		return;
 	}
-	auto entIndex = targetEnt->GetEntityIndex();
-	if (entIndex.Get() >= 0 && entIndex.Get() < MAXPLAYERS + 1)
+	auto entIndex = targetEnt.GetEntryIndex();
+	if (entIndex >= 0 && entIndex < MAXPLAYERS + 1)
 	{
 		V8ThrowException(isolate, "Can not set transmit state on player controllers");
 		return;
 	}
 
 	auto plrObject = args[0]->ToObject(context).ToLocalChecked();
-	auto targetPlr = (CCSPlayerController*)CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(plrObject);
-	auto plrEntIndex = targetPlr->GetEntityIndex();
-	if (!targetPlr || plrEntIndex.Get() <= 0 || plrEntIndex.Get() > MAXPLAYERS + 1)
+	CEntityHandle targetPlrHandle = CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(plrObject);
+	if (!targetPlrHandle.IsValid() || targetPlrHandle.GetEntryIndex() <= 0 || targetPlrHandle.GetEntryIndex() > MAXPLAYERS + 1)
 	{
 		V8ThrowException(isolate, "Method Entity.SetTransmitState first argument must be a CSPlayerController instance");
 		return;
 	}
 
+	auto targetPlr = (CCSPlayerController*)targetPlrHandle.Get();
 	bool state = args[1].As<v8::Boolean>()->Value();
 	g_playerManager.SetEntityTransmitBlocked(targetPlr->GetPlayerSlot(), entIndex, !state);
 }
@@ -569,14 +568,14 @@ void ScriptDomainCallbacks::SetTransmitStateAll(const v8::FunctionCallbackInfo<v
 	}
 
 	auto targetObj = args.This()->ToObject(context).ToLocalChecked();
-	auto targetEnt = CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(targetObj);
-	if (!targetEnt)
+	auto targetEntHandle = CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(targetObj);
+	if (!targetEntHandle.IsValid())
 	{
 		V8ThrowException(isolate, "Method Entity.SetTransmitStateAll failed to get entity from 'this' object.");
 		return;
 	}
-	auto entIndex = targetEnt->GetEntityIndex();
-	if (entIndex.Get() >= 0 && entIndex.Get() < MAXPLAYERS + 1)
+	auto entIndex = targetEntHandle.GetEntryIndex();
+	if (entIndex >= 0 && entIndex < MAXPLAYERS + 1)
 	{
 		V8ThrowException(isolate, "Can not set transmit state on player controllers");
 		return;

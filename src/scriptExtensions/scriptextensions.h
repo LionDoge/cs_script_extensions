@@ -23,6 +23,7 @@
 #include "v8-template.h"
 #include "module.h"
 #include "csscript.h"
+#include "ehandle.h"
 
 struct ScriptFunctionInfo {
 	std::string name; // Name of the function as seen from script.
@@ -67,7 +68,7 @@ public:
 	// More advanced API where the custom template registration can be fully controlled by the user.
 	void RegisterCustomFunctionTemplate(void (*callback)(CCSBaseScript*));
 
-	static CEntityInstance* GetEntityInstanceFromScriptObject(v8::Local<v8::Object> obj);
+	static CEntityHandle GetEntityHandleFromScriptObject(v8::Local<v8::Object> obj);
 	// This is safe to call inside script callback functions, should always return the current running script.
 	static CCSBaseScript* GetCurrentCsScriptInstance();
 	// Native functions check for this! V8 context is not enough! Use when invoking callbacks from your own code.

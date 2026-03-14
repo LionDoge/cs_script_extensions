@@ -16,20 +16,13 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-#include <typeinfo>
-#ifndef _WIN32
-#include <cxxabi.h>
-#endif // !_WIN32
 #include "scriptextensions.h"
 #include <vprof.h>
-#include "ehandle.h"
 #include "entity/cpointscript.h"
 #include "sigutils.h"
 #include "gameconfig.h"
 #include "scriptcommon.h"
 #include "plugin.h"
-#include "ehandle.h"
 
 extern LoggingChannelID_t g_logChanScript;
 
@@ -123,10 +116,10 @@ void CSScriptExtensionsSystem::RegisterCustomFunctionTemplate(void (*callback)(C
 	m_functionTemplateInitializers.push_back(callback);
 }
 
-CEntityInstance* CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(v8::Local<v8::Object> obj)
+CEntityHandle CSScriptExtensionsSystem::GetEntityHandleFromScriptObject(v8::Local<v8::Object> obj)
 {
 	if (obj->InternalFieldCount() != 3) {
-		return nullptr;
+		return {}; // default, invalid handle
 	}
 
 	// TODO: we don't know the Entity marker to check for, this will probably explode if we pass something else.
@@ -136,9 +129,9 @@ CEntityInstance* CSScriptExtensionsSystem::GetEntityInstanceFromScriptObject(v8:
 	if (!entPointer)
 	{
 		Msg("[cs_script_extensions] Failed to get entity pointer from object! (Field 1 of object doesn't exist)");
-		return nullptr;
+		return {};
 	}
-	return entPointer->handle.Get();
+	return entPointer->handle;
 }
 
 CCSBaseScript* CSScriptExtensionsSystem::GetCurrentCsScriptInstance()
@@ -179,6 +172,8 @@ void CSScriptExtensionsSystem::RunScriptString(CCSBaseScript* script, const char
 	m_pfnRunScript(script, path, scriptData);
 }
 
+// Would be cool to have in SDK, but I'll just put it there
+#define Log_Debug( Channel, /* [Color], Message, */ ... ) InternalMsg( Channel, LS_DETAILED, /* [Color], Message, */ ##__VA_ARGS__ )
 void CSScriptExtensionsSystem::OnScriptInstanceRegisterTemplates()
 {
 	CCSScript_EntityScript* script = META_IFACEPTR(CCSScript_EntityScript);
@@ -194,7 +189,7 @@ void CSScriptExtensionsSystem::OnScriptInstanceRegisterTemplates()
 			for (const auto& funcInfo : funcInfos)
 			{
 				RegisterNewFunction(prototypeTemplate, funcInfo);
-				Log_Msg(g_logChanScript, "Registered script extension function %s.%s\n", name.c_str(), funcInfo.name.c_str());
+				Log_Debug(g_logChanScript, "Registered script extension function %s.%s\n", name.c_str(), funcInfo.name.c_str());
 			}
 		}
 	}
@@ -219,7 +214,7 @@ void CSScriptExtensionsSystem::OnScriptInstanceRegisterTemplates()
 		for (const auto& funcInfo : templateInfo.functions)
 		{
 			RegisterNewFunction(tpl->PrototypeTemplate(), funcInfo);
-			Log_Msg(g_logChanScript, "Registered script custom template function %s.%s\n", templateName.c_str(), funcInfo.name.c_str());
+			Log_Debug(g_logChanScript, "Registered script custom template function %s.%s\n", templateName.c_str(), funcInfo.name.c_str());
 		}
 
 		if (templateInfo.inheritObject.has_value())
