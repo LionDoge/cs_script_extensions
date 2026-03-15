@@ -154,10 +154,10 @@ void ScriptExtensions::InvokeCallbacks(const char* callbackName, int argc, v8::L
 	VPROF("CSScriptExtensionsSystem::InvokeCallbacks");
 
 	auto isolate = v8::Isolate::GetCurrent();
-	for (CEntityInstance* scriptEnt : GetScripts())
+	for (CPointScript* scriptEnt : GetScripts())
 	{
 		v8::HandleScope handleScope(isolate);
-		if (const auto script = GetScriptFromEntity(scriptEnt))
+		if (const auto script = scriptEnt->GetScript())
 			script->InvokeCallback(callbackName, argc, argv);
 	}
 }
@@ -244,8 +244,8 @@ void ScriptExtensions::SwitchScriptContext(CCSBaseScript* script)
 	m_pfnSwitchScriptContext(script);
 }
 
-std::vector<CEntityInstance*> ScriptExtensions::GetScripts() {
-	std::vector<CEntityInstance*> vecInstances;
+std::vector<CPointScript*> ScriptExtensions::GetScripts() {
+	std::vector<CPointScript*> vecInstances;
 	vecInstances.reserve(1);
 	EntityInstanceByClassIter_t iter(nullptr, "point_script");
 

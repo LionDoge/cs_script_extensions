@@ -577,10 +577,10 @@ void MMSPlugin::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nCli
 		ScriptUserMessageInfo* userMessageInfo = nullptr;
 
 		bool scriptCallbackInitialized = false;
-		for (CEntityInstance* scriptEnt : scripts)
+		for (CPointScript* scriptEnt : scripts)
 		{
 			v8::HandleScope handleScope(v8::Isolate::GetCurrent());
-			auto script = ScriptExtensions::GetScriptFromEntity(scriptEnt);
+			auto script = scriptEnt->GetScript();
 			if (!script || !script->IsCallbackRegistered(callbackSymbol))
 				continue;
 
@@ -806,11 +806,11 @@ CON_COMMAND_F(script_run_code, "Run code inside an existing script", FCVAR_NONE)
 CON_COMMAND_F(script_summary, "List registered function templates on scripts", FCVAR_NONE)
 {
 	auto isolate = v8::Isolate::GetCurrent();
-	for (CEntityInstance* scriptEnt : ScriptExtensions::GetScripts())
+	for (CPointScript* scriptEnt : ScriptExtensions::GetScripts())
 	{
 		v8::HandleScope handleScope(isolate);
-		auto script = ScriptExtensions::GetScriptFromEntity(scriptEnt);
-		script->PrintSummary();
+		if (const auto script = scriptEnt->GetScript())
+			script->PrintSummary();
 	}
 }
 

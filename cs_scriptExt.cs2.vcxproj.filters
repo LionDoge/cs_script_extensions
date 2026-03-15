@@ -76,6 +76,9 @@
     <ClCompile Include="src\entitylistener.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cpointscript.cpp">
+      <Filter>Source Files\cs2_sdk\entity</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cpointscript.h">
@@ -259,6 +262,9 @@
     </Filter>
     <Filter Include="Source Files\utils">
       <UniqueIdentifier>{916995ab-a5b7-4214-b2a7-1537eeb5365a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\cs2_sdk\entity">
+      <UniqueIdentifier>{92a5af5b-81b1-4728-b030-d8420921cef9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

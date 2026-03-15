@@ -24,6 +24,7 @@
 #include "module.h"
 #include "csscript.h"
 #include "ehandle.h"
+#include "entity/cpointscript.h"
 
 struct ScriptFunctionInfo {
 	std::string name; // Name of the function as seen from script.
@@ -84,7 +85,7 @@ public:
 	static v8::Local<v8::Object> CreateEntityObjectAuto(CEntityInstance* ent);
 
 	// Get all script entities in the map
-	static std::vector<CEntityInstance*> GetScripts();
+	static std::vector<CPointScript*> GetScripts();
 
 	// Gets the script component from a point_script entity.
 	static CCSScript_EntityScript* GetScriptFromEntity(CEntityInstance* ent);

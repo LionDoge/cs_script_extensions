@@ -82,6 +82,7 @@ sdks\hl2sdk-cs2\devtools\bin\protoc.exe --proto_path="sdks\hl2sdk-cs2\networksys
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="cpointscript.cpp" />
     <ClCompile Include="src\addresses.cpp" />
     <ClCompile Include="src\entitylistener.cpp" />
     <ClCompile Include="src\playermanager.cpp" />

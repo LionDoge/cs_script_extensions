@@ -4,7 +4,5 @@
 
 class CPointScript : public CBaseEntity {
 public:
-	CCSScript_EntityScript* GetScript() {
-		return ScriptExtensions::GetScriptFromEntity(this);
-	}
+	CCSScript_EntityScript* GetScript();
 };
