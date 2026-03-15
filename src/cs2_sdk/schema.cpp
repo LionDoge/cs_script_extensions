@@ -43,17 +43,17 @@ static bool IsFieldNetworked(SchemaClassFieldData_t& field)
 	return false;
 }
 
-static SchemaKeyType GetNumericKeyTypeBySize(uint8_t size)
+static SchemaKeyType GetIntegerKeyTypeBySize(uint8_t size)
 {
 	switch (size) {
 		case 1:
-			return SchemaKeyType::Int8;
+			return SchemaKeyType::Uint8;
 		case 2:
-			return SchemaKeyType::Int16;
+			return SchemaKeyType::Uint16;
 		case 4:
-			return SchemaKeyType::Int32;
+			return SchemaKeyType::Uint32;
 		case 8:
-			return SchemaKeyType::Int64;
+			return SchemaKeyType::Uint64;
 		default:
 			return SchemaKeyType::Void; // Invalid/unsupported type
 	}
@@ -64,7 +64,7 @@ static SchemaKeyType GetKeyType(CSchemaType* type)
 	switch (type->m_eTypeCategory)
 	{
 	case SCHEMA_TYPE_DECLARED_ENUM:
-		return GetNumericKeyTypeBySize(type->ReinterpretAs<CSchemaType_DeclaredEnum>()->m_pEnumInfo->m_nSize);
+		return GetIntegerKeyTypeBySize(type->ReinterpretAs<CSchemaType_DeclaredEnum>()->m_pEnumInfo->m_nSize);
 	case SCHEMA_TYPE_BUILTIN:
 	{
 		switch (type->ReinterpretAs<CSchemaType_Builtin>()->m_eBuiltinType)
@@ -94,10 +94,11 @@ static SchemaKeyType GetKeyType(CSchemaType* type)
 
 		if (!V_strcmp(className, "GameTime_t"))
 		{
-			return SchemaKeyType::UtlString;
+			return SchemaKeyType::GameTime;
 		}
 	}
 	}
+	return SchemaKeyType::Void; // Invalid/unsupported type
 }
 
 // Try to recursively find __m_pChainEntity in base classes

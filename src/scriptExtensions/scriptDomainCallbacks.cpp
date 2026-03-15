@@ -132,16 +132,14 @@ void ScriptDomainCallbacks::V8GetSchemaField(const v8::FunctionCallbackInfo<v8::
 
 	v8::Local<v8::String> v8StrClassname = args[0].As<v8::String>();
 	v8::String::Utf8Value v8StrClassnameUtf8(isolate, v8StrClassname);
-	std::string strClassname(*v8StrClassnameUtf8);
 
 	v8::Local<v8::String> v8StrFieldname = args[1].As<v8::String>();
 	v8::String::Utf8Value v8StrFieldnameUtf8(isolate, v8StrFieldname);
-	std::string strFieldname(*v8StrFieldnameUtf8);
 
-	uint32_t classNameHash = hash_32_fnv1a_const(strClassname.c_str());
-	uint32_t fieldNameHash = hash_32_fnv1a_const(strFieldname.c_str());
+	uint32_t classNameHash = hash_32_fnv1a_const(*v8StrClassnameUtf8);
+	uint32_t fieldNameHash = hash_32_fnv1a_const(*v8StrFieldnameUtf8);
 
-	SchemaKey schemaFieldInfo = schema::GetOffset(strClassname.c_str(), classNameHash, strFieldname.c_str(), fieldNameHash);
+	SchemaKey schemaFieldInfo = schema::GetOffset(*v8StrClassnameUtf8, classNameHash, *v8StrFieldnameUtf8, fieldNameHash);
 
 	auto offset = schemaFieldInfo.offset;
 	switch (schemaFieldInfo.keyType) {
