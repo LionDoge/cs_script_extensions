@@ -16,7 +16,7 @@ for sdk_target in MMSPlugin.sdk_targets:
     os.path.join(builder.sourcePath, 'vendor', 'funchook', 'include'),
     os.path.join(builder.sourcePath, 'vendor', 'v8', 'include'),
     os.path.join(builder.sourcePath, 'src', 'protobuf', 'generated'),
-    os.path.join(builder.sourcePath, 'src', 'vendor', 'safetyhook'),
+    os.path.join(builder.sourcePath, 'vendor', 'safetyhook'),
     
   ]
 
@@ -47,9 +47,12 @@ for sdk_target in MMSPlugin.sdk_targets:
     'src/gameconfig.cpp',
     'src/hudhintmanager.cpp',
     'src/plugin.cpp',
+    'src/entitylistener.cpp',
+    'src/playermanager.cpp',
 
     'src/cs2_sdk/globalsymbol.cpp',
     'src/cs2_sdk/schema.cpp',
+    'src/cs2_sdk/entity/cpointscript.cpp',
 
     'src/scriptExtensions/csscript.cpp',
     'src/scriptExtensions/scriptDomainCallbacks.cpp',
