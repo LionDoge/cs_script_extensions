@@ -96,28 +96,20 @@ static SchemaKeyType GetKeyType(CSchemaType* type)
 		{
 			return SchemaKeyType::GameTime;
 		}
-
-		// Maybe it's an entity handle class?
-		if (!V_strcmp(className, "CHandle"))
+	}
+	// CHandles are defined as atomic types with a template
+	case SCHEMA_TYPE_ATOMIC:
+	{
+		switch (type->m_eAtomicCategory)
 		{
-			auto inner = classType->GetInnerType().Get();
-			if (inner && inner->m_eTypeCategory == SCHEMA_TYPE_DECLARED_CLASS)
-			{
-				auto innerClassType = type->ReinterpretAs<CSchemaType_DeclaredClass>();
-				auto classInfo = innerClassType->m_pClassInfo;
-				if (!V_stricmp(classInfo->m_pszName, "CBaseEntity"))
-					return SchemaKeyType::EntityHandle;
-
-				// scan base classes, in case it's a derivative of CBaseEntity
-				while (classInfo->m_nBaseClassCount)
-				{
-					auto baseClassInfo = classInfo->m_pBaseClasses[0].m_pClass;
-					if (!V_stricmp(baseClassInfo->m_pszName, "CBaseEntity"))
-						return SchemaKeyType::EntityHandle;
-
-					classInfo = baseClassInfo;
-				}
-			}
+		case SCHEMA_ATOMIC_T:
+		{
+			auto classType = type->ReinterpretAs<CSchemaType_Atomic_T>();
+			auto className = classType->m_pAtomicInfo->m_pszName;
+			if (hash_32_fnv1a_const("CHandle") == hash_32_fnv1a_const(className))
+				return SchemaKeyType::EntityHandle;
+			break;
+		}
 		}
 	}
 	}
