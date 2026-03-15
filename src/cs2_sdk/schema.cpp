@@ -96,6 +96,29 @@ static SchemaKeyType GetKeyType(CSchemaType* type)
 		{
 			return SchemaKeyType::GameTime;
 		}
+
+		// Maybe it's an entity handle class?
+		if (!V_strcmp(className, "CHandle"))
+		{
+			auto inner = classType->GetInnerType().Get();
+			if (inner && inner->m_eTypeCategory == SCHEMA_TYPE_DECLARED_CLASS)
+			{
+				auto innerClassType = type->ReinterpretAs<CSchemaType_DeclaredClass>();
+				auto classInfo = innerClassType->m_pClassInfo;
+				if (!V_stricmp(classInfo->m_pszName, "CBaseEntity"))
+					return SchemaKeyType::EntityHandle;
+
+				// scan base classes, in case it's a derivative of CBaseEntity
+				while (classInfo->m_nBaseClassCount)
+				{
+					auto baseClassInfo = classInfo->m_pBaseClasses[0].m_pClass;
+					if (!V_stricmp(baseClassInfo->m_pszName, "CBaseEntity"))
+						return SchemaKeyType::EntityHandle;
+
+					classInfo = baseClassInfo;
+				}
+			}
+		}
 	}
 	}
 	return SchemaKeyType::Void; // Invalid/unsupported type

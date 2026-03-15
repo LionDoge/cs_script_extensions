@@ -154,6 +154,7 @@ void ScriptDomainCallbacks::V8GetSchemaField(const v8::FunctionCallbackInfo<v8::
 	case SchemaKeyType::Bool: SetSchemaReturnValue<bool>(args, ent, offset); break;
 	case SchemaKeyType::UtlString: SetSchemaReturnValue<CUtlString>(args, ent, offset); break;
 	case SchemaKeyType::GameTime: SetSchemaReturnValue<GameTime_t>(args, ent, offset); break;
+	case SchemaKeyType::EntityHandle: SetSchemaReturnValue<CEntityHandle>(args, ent, offset); break;
 	default:
 		V8ThrowException(isolate, "This schema field's type is not supported in script");
 	}
@@ -547,6 +548,14 @@ constexpr void ScriptDomainCallbacks::SetSchemaReturnValue(const v8::FunctionCal
 	else if constexpr (std::is_same_v<T, GameTime_t>)
 	{
 		args.GetReturnValue().Set(v8::Number::New(args.GetIsolate(), val.GetTime()));
+	}
+	else if constexpr (std::is_same_v<T, CEntityHandle>)
+	{
+		if (val.IsValid())
+		{
+			auto obj = ScriptExtensions::CreateEntityObjectAuto(val.Get());
+			args.GetReturnValue().Set(obj);
+		}
 	}
 	else 
 	{

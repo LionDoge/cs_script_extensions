@@ -57,7 +57,8 @@ enum SchemaKeyType : uint8_t
 	Bool,
 	// Declared classes
 	UtlString,
-	GameTime
+	GameTime,
+	EntityHandle,
 };
 
 struct SchemaKey
