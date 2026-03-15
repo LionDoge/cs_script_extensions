@@ -153,8 +153,11 @@ void ScriptDomainCallbacks::V8GetSchemaField(const v8::FunctionCallbackInfo<v8::
 	case SchemaKeyType::Uint64: SetSchemaReturnValue<uint64_t>(args, ent, offset); break;
 	case SchemaKeyType::Bool: SetSchemaReturnValue<bool>(args, ent, offset); break;
 	case SchemaKeyType::UtlString: SetSchemaReturnValue<CUtlString>(args, ent, offset); break;
+	case SchemaKeyType::UtlSymbolLarge: SetSchemaReturnValue<CUtlSymbolLarge>(args, ent, offset); break;
 	case SchemaKeyType::GameTime: SetSchemaReturnValue<GameTime_t>(args, ent, offset); break;
 	case SchemaKeyType::EntityHandle: SetSchemaReturnValue<CEntityHandle>(args, ent, offset); break;
+	case SchemaKeyType::Vector: SetSchemaReturnValue<Vector>(args, ent, offset); break;
+	case SchemaKeyType::QAngle: SetSchemaReturnValue<QAngle>(args, ent, offset); break;
 	default:
 		V8ThrowException(isolate, "This schema field's type is not supported in script");
 	}
@@ -545,6 +548,10 @@ constexpr void ScriptDomainCallbacks::SetSchemaReturnValue(const v8::FunctionCal
 	{
 		args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), val.Get()).ToLocalChecked());
 	}
+	else if constexpr (std::is_same_v<T, CUtlSymbolLarge>)
+	{
+		args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), val.String()).ToLocalChecked());
+	}
 	else if constexpr (std::is_same_v<T, GameTime_t>)
 	{
 		args.GetReturnValue().Set(v8::Number::New(args.GetIsolate(), val.GetTime()));
@@ -556,6 +563,26 @@ constexpr void ScriptDomainCallbacks::SetSchemaReturnValue(const v8::FunctionCal
 			auto obj = ScriptExtensions::CreateEntityObjectAuto(val.Get());
 			args.GetReturnValue().Set(obj);
 		}
+	}
+	else if constexpr (std::is_same_v<T, Vector>)
+	{
+		auto isolate = args.GetIsolate();
+		auto context = isolate->GetCurrentContext();
+		auto obj = v8::Object::New(isolate);
+		obj->Set(context, v8::String::NewFromUtf8(isolate, "x").ToLocalChecked(), v8::Number::New(isolate, val.x));
+		obj->Set(context, v8::String::NewFromUtf8(isolate, "y").ToLocalChecked(), v8::Number::New(isolate, val.y));
+		obj->Set(context, v8::String::NewFromUtf8(isolate, "z").ToLocalChecked(), v8::Number::New(isolate, val.z));
+		args.GetReturnValue().Set(obj);
+	}
+	else if constexpr (std::is_same_v<T, QAngle>)
+	{
+		auto isolate = args.GetIsolate();
+		auto context = isolate->GetCurrentContext();
+		auto obj = v8::Object::New(isolate);
+		obj->Set(context, v8::String::NewFromUtf8(isolate, "pitch").ToLocalChecked(), v8::Number::New(isolate, val.x));
+		obj->Set(context, v8::String::NewFromUtf8(isolate, "yaw").ToLocalChecked(), v8::Number::New(isolate, val.y));
+		obj->Set(context, v8::String::NewFromUtf8(isolate, "roll").ToLocalChecked(), v8::Number::New(isolate, val.z));
+		args.GetReturnValue().Set(obj);
 	}
 	else 
 	{

@@ -39,7 +39,7 @@
 #undef schema
 
 // Relevant for cs_script, since we don't have static typing there
-enum SchemaKeyType : uint8_t
+enum class SchemaKeyType : uint8_t
 {
 	// These are basically copied from builtin types
 	Void,
@@ -57,8 +57,11 @@ enum SchemaKeyType : uint8_t
 	Bool,
 	// Declared classes
 	UtlString,
+	UtlSymbolLarge,
 	GameTime,
 	EntityHandle,
+	Vector,
+	QAngle
 };
 
 struct SchemaKey

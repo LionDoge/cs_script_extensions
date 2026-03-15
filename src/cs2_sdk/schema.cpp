@@ -87,26 +87,36 @@ static SchemaKeyType GetKeyType(CSchemaType* type)
 	{
 		auto classType = type->ReinterpretAs<CSchemaType_DeclaredClass>();
 		const char* className = classType->m_pClassInfo->m_pszName;
-		if (!V_strcmp(className, "CUtlString"))
-		{
-			return SchemaKeyType::UtlString;
-		}
+		auto classNameHash = hash_32_fnv1a_const(className);
 
-		if (!V_strcmp(className, "GameTime_t"))
-		{
+		if (classNameHash == hash_32_fnv1a_const("CUtlString"))
+			return SchemaKeyType::UtlString;
+		if (classNameHash == hash_32_fnv1a_const("CUtlSymbolLarge"))
+			return SchemaKeyType::UtlSymbolLarge;
+		if (classNameHash == hash_32_fnv1a_const("GameTime_t"))
 			return SchemaKeyType::GameTime;
-		}
 	}
 	// CHandles are defined as atomic types with a template
 	case SCHEMA_TYPE_ATOMIC:
 	{
 		switch (type->m_eAtomicCategory)
 		{
+		case SCHEMA_ATOMIC_PLAIN:
+		{
+			auto classType = type->ReinterpretAs<CSchemaType_Atomic>();
+			auto className = classType->m_pAtomicInfo->m_pszName;
+			auto classNameHash = hash_32_fnv1a_const(className);
+
+			if (classNameHash == hash_32_fnv1a_const("Vector"))
+				return SchemaKeyType::Vector;
+			if (classNameHash == hash_32_fnv1a_const("QAngle"))
+				return SchemaKeyType::QAngle;
+		}
 		case SCHEMA_ATOMIC_T:
 		{
 			auto classType = type->ReinterpretAs<CSchemaType_Atomic_T>();
 			auto className = classType->m_pAtomicInfo->m_pszName;
-			if (hash_32_fnv1a_const("CHandle") == hash_32_fnv1a_const(className))
+			if (hash_32_fnv1a_const(className) == hash_32_fnv1a_const("CHandle"))
 				return SchemaKeyType::EntityHandle;
 			break;
 		}
