@@ -41,7 +41,6 @@
 #include "usermessages.pb.h"
 #include "module.h"
 #include "ctimer.h"
-#include "funchook.h"
 #include "gameconfig.h"
 #include "hudhintmanager.h"
 #include <vprof.h>
@@ -92,11 +91,6 @@ HudHintManager g_hudHintManager;
 PlayerManager g_playerManager;
 CEntityListener g_entityListener;
 LoggingChannelID_t g_logChanScript;
-
-#define CREATE_FUNCHOOK_BASIC(funchookHandle, originalFunction, hookedFunction) \
-	funchookHandle = funchook_create(); \
-	funchook_prepare(funchookHandle, (void**)(&originalFunction), reinterpret_cast<void*>(hookedFunction)); \
-	funchook_install(funchookHandle, 0);
 
 ScriptExtensions* g_scriptExtensions;
 SafetyHookInline g_v8ExceptionHook{};
