@@ -87,13 +87,26 @@ class Domain {
     * callback can return false to block the message or true to let it through */
   OnUserMessage(config: { messageName: string, callback: (info: UserMessageInfo) => boolean }): void;
   CreateUserMessage(messageName: string): UserMessageInfo;
+  /** Emits a specified soundevent by name. If source entity is not provided, it will be played globally. if recipients are not specified, it will be played for all players */
+  EmitSound(config: { soundName: string, source?: Entity, volume?: number, pitch?: number, recipients?: CSPlayerController[] }): void;
+  /** Retrieves value of a convar */
+  GetConVarValue(cvar: string): CvarValue
+  /** Prints a message to the chat, supports special characters for color codes */
+  PrintToChatAll(message: string): void;
 }
+
+type CvarValue = string | number | boolean | Vector | QAngle | Color | undefined;
 
 export class Entity {
   SetMoveType(moveType: number): void;
-  /** @experimental Access a schema field for this entity
-   * This is currently limited to only atomic fields, implementation is also not very efficient */
+  /** @experimental Access value of a schema field for this entity
+   * This is currently limited to only atomic fields, meaning that it does not support nested components */
   GetSchemaField(className: string, fieldName: string): Entity | number | string | boolean | undefined;
+  /** Override the transmission of this entity to the target player 
+   * @note Use responsibly, do not deny transmission of player pawn to it's owner, or weird things might happen, including players crashing. */
+  SetTransmitState(controller: CSPlayerController, state: boolean): void;
+  /** Set whether the entity will be transmitted to all players, will apply to newly connected clients too */
+  SetTransmitStateAll(state: boolean): void;
 }
 
 export class CSPlayerController {
