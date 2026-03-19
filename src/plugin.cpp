@@ -333,7 +333,8 @@ static void RegisterScriptFunctions()
 			{ "AddSampleCallback", ScriptDomainCallbacks::AddSampleCallback },
 			{ "OnUserMessage", ScriptUserMessage::OnUserMessage },
 			{ "CreateUserMessage", ScriptDomainCallbacks::CreateUserMessage },
-			{ "EmitSound", ScriptDomainCallbacks::EmitSound }
+			{ "EmitSound", ScriptDomainCallbacks::EmitSound },
+			{ "GetConVarValue", ScriptDomainCallbacks::GetConVarValue }
 		});
 
 	g_scriptExtensions->IncludeFunctions(

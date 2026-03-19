@@ -35,3 +35,45 @@ inline void V8FakeObjectConstructorCallback(const v8::FunctionCallbackInfo<v8::V
 	v8::HandleScope handleScope(isolate);
 	V8ThrowException(isolate, "Cannot be constructed from script\n");
 }
+
+// These functions create common JS object from C++ structs, they adhere to the default definitions.
+
+inline v8::Local<v8::Object> CreateVectorObject(v8::Local<v8::Context> context, const Vector& vec)
+{
+	auto isolate = v8::Isolate::GetCurrent();
+	v8::EscapableHandleScope handleScope(isolate);
+
+	auto obj = v8::Object::New(isolate);
+	obj->Set(context, v8::String::NewFromUtf8(isolate, "x").ToLocalChecked(), v8::Number::New(isolate, vec.x));
+	obj->Set(context, v8::String::NewFromUtf8(isolate, "y").ToLocalChecked(), v8::Number::New(isolate, vec.y));
+	obj->Set(context, v8::String::NewFromUtf8(isolate, "z").ToLocalChecked(), v8::Number::New(isolate, vec.z));
+
+	return handleScope.Escape(obj);
+}
+
+inline v8::Local<v8::Object> CreateQAngleObject(v8::Local<v8::Context> context, const QAngle& ang)
+{
+	auto isolate = v8::Isolate::GetCurrent();
+	v8::EscapableHandleScope handleScope(isolate);
+
+	auto obj = v8::Object::New(isolate);
+	obj->Set(context, v8::String::NewFromUtf8(isolate, "pitch").ToLocalChecked(), v8::Number::New(isolate, ang.x));
+	obj->Set(context, v8::String::NewFromUtf8(isolate, "yaw").ToLocalChecked(), v8::Number::New(isolate, ang.y));
+	obj->Set(context, v8::String::NewFromUtf8(isolate, "roll").ToLocalChecked(), v8::Number::New(isolate, ang.z));
+
+	return handleScope.Escape(obj);
+}
+
+inline v8::Local<v8::Object> CreateColorObject(v8::Local<v8::Context> context, const Color& clr)
+{
+	auto isolate = v8::Isolate::GetCurrent();
+	v8::EscapableHandleScope handleScope(isolate);
+
+	auto obj = v8::Object::New(isolate);
+	obj->Set(context, v8::String::NewFromUtf8(isolate, "r").ToLocalChecked(), v8::Number::New(isolate, clr.r()));
+	obj->Set(context, v8::String::NewFromUtf8(isolate, "g").ToLocalChecked(), v8::Number::New(isolate, clr.g()));
+	obj->Set(context, v8::String::NewFromUtf8(isolate, "b").ToLocalChecked(), v8::Number::New(isolate, clr.b()));
+	obj->Set(context, v8::String::NewFromUtf8(isolate, "b").ToLocalChecked(), v8::Number::New(isolate, clr.a()));
+
+	return handleScope.Escape(obj);
+}

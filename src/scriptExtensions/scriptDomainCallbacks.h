@@ -31,6 +31,7 @@ namespace ScriptDomainCallbacks {
 	void EmitSound(const v8::FunctionCallbackInfo<v8::Value>& args);
 	void SetTransmitState(const v8::FunctionCallbackInfo<v8::Value>& args);
 	void SetTransmitStateAll(const v8::FunctionCallbackInfo<v8::Value>& args);
+	void GetConVarValue(const v8::FunctionCallbackInfo<v8::Value>& args);
 
 	void CreateUserMessage(const v8::FunctionCallbackInfo<v8::Value>& args);
 

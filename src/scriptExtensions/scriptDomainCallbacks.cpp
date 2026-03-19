@@ -34,6 +34,8 @@
 #include "scriptExtensions/userMessagesScriptExt.h"
 #include "playermanager.h"
 #include "schema.h"
+#include "convar.h"
+#include "scriptcommon.h"
 
 extern LoggingChannelID_t g_logChanScript;
 
@@ -44,12 +46,6 @@ extern IGameEventManager2* g_gameEventManager;
 extern HudHintManager g_hudHintManager;
 extern ScriptExtensions g_scriptExtensions;
 extern PlayerManager g_playerManager;
-
-static void V8ThrowException(v8::Isolate* isolate, const std::string_view& message)
-{
-	auto v8ExceptionText = v8::String::NewFromUtf8(isolate, message.data()).ToLocalChecked();
-	isolate->ThrowException(v8ExceptionText);
-}
 
 bool VerifyScriptScope(const std::string_view& instName, const std::string_view& methodName)
 {
@@ -528,6 +524,79 @@ void ScriptDomainCallbacks::SetTransmitStateAll(const v8::FunctionCallbackInfo<v
 	g_playerManager.SetEntityTransmitBlockedForAll(entIndex, !state);
 }
 
+void ScriptDomainCallbacks::GetConVarValue(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	auto isolate = v8::Isolate::GetCurrent();
+	auto context = isolate->GetCurrentContext();
+	v8::HandleScope handleScope(isolate);
+
+	if (!VerifyScriptScope("Domain", "GetConVarValue"))
+		return;
+
+	if (args.Length() < 1 || !args[0]->IsString())
+	{
+		V8ThrowException(args.GetIsolate(), "Method point_script.GetConVarValue requires 1 argument (cvar: string)");
+		return;
+	}
+
+	v8::String::Utf8Value v8StrCvarUtf8(isolate, args[0].As<v8::String>());
+	std::string cvarName(*v8StrCvarUtf8);
+	ConVarRefAbstract cvar(cvarName.c_str());
+	if (!cvar.IsValidRef())
+	{
+		V8ThrowException(args.GetIsolate(), std::format("GetConVarValue: ConVar {} does not exist", cvarName));
+		return;
+	}
+
+	if (!cvar.IsConVarDataAvailable())
+	{
+		V8ThrowException(args.GetIsolate(), std::format("GetConVarValue: ConVar {} was registered partially, and it's not possible to retrieve it's data", cvarName));
+		return;
+	}
+
+	auto cvarType = cvar.GetType();
+	switch (cvarType)
+	{
+	case EConVarType_Bool:
+		args.GetReturnValue().Set(v8::Boolean::New(isolate, cvar.GetBool())); break;
+	case EConVarType_Int16:
+	case EConVarType_UInt16:
+	case EConVarType_Int32:
+	case EConVarType_UInt32:
+	case EConVarType_Int64:
+	case EConVarType_UInt64:
+		args.GetReturnValue().Set(v8::Number::New(isolate, cvar.GetInt())); break;
+	case EConVarType_Float32:
+	case EConVarType_Float64:
+		args.GetReturnValue().Set(v8::Number::New(isolate, cvar.GetFloat())); break;
+	
+	case EConVarType_Vector3:
+	{
+		auto vec = cvar.GetAs<Vector>();
+		auto vecObj = CreateVectorObject(context, vec);
+		args.GetReturnValue().Set(vecObj);
+		break;
+	}
+	case EConVarType_Qangle:
+	{
+		auto ang = cvar.GetAs<QAngle>();
+		auto angObj = CreateQAngleObject(context, ang);
+		args.GetReturnValue().Set(angObj);
+		break;
+	}
+	case EConVarType_Color:
+	{
+		auto clr = cvar.GetAs<Color>();
+		auto clrObj = CreateColorObject(context, clr);
+		args.GetReturnValue().Set(clrObj);
+		break;
+	}
+	case EConVarType_String:
+	default: // some types aren't handled here, just return as string.
+		args.GetReturnValue().Set(v8::String::NewFromUtf8(isolate, cvar.GetString()).ToLocalChecked());
+	}
+}
+
 template<typename T>
 inline constexpr bool always_false_v = false;
 
@@ -568,20 +637,14 @@ constexpr void ScriptDomainCallbacks::SetSchemaReturnValue(const v8::FunctionCal
 	{
 		auto isolate = args.GetIsolate();
 		auto context = isolate->GetCurrentContext();
-		auto obj = v8::Object::New(isolate);
-		obj->Set(context, v8::String::NewFromUtf8(isolate, "x").ToLocalChecked(), v8::Number::New(isolate, val.x));
-		obj->Set(context, v8::String::NewFromUtf8(isolate, "y").ToLocalChecked(), v8::Number::New(isolate, val.y));
-		obj->Set(context, v8::String::NewFromUtf8(isolate, "z").ToLocalChecked(), v8::Number::New(isolate, val.z));
+		auto obj = CreateVectorObject(context, val);
 		args.GetReturnValue().Set(obj);
 	}
 	else if constexpr (std::is_same_v<T, QAngle>)
 	{
 		auto isolate = args.GetIsolate();
 		auto context = isolate->GetCurrentContext();
-		auto obj = v8::Object::New(isolate);
-		obj->Set(context, v8::String::NewFromUtf8(isolate, "pitch").ToLocalChecked(), v8::Number::New(isolate, val.x));
-		obj->Set(context, v8::String::NewFromUtf8(isolate, "yaw").ToLocalChecked(), v8::Number::New(isolate, val.y));
-		obj->Set(context, v8::String::NewFromUtf8(isolate, "roll").ToLocalChecked(), v8::Number::New(isolate, val.z));
+		auto obj = CreateQAngleObject(context, val);
 		args.GetReturnValue().Set(obj);
 	}
 	else 
