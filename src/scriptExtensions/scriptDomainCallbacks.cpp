@@ -323,7 +323,7 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 
 	if (args.Length() != 1)
 	{
-		V8ThrowException(args.GetIsolate(), "Method Domain.EmitSound requires 2 arguments (moveType: number)");
+		V8ThrowException(args.GetIsolate(), "Method Domain.EmitSound requires an object with EmitSound info");
 		return;
 	}
 	if (!args[0]->IsObject())
