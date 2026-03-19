@@ -3,6 +3,8 @@
 void PlayerManager::OnPlayerConnect(CPlayerSlot slot)
 {
 	m_connectedPlayers[slot.Get()] = new CustomPlayer(slot);
+	for (const auto& blockedEntTransmit : m_blockedEntityTransmitsForAllClients)
+		SetEntityTransmitBlocked(slot, blockedEntTransmit, true);
 }
 
 void PlayerManager::OnPlayerDisconnect(CPlayerSlot slot)
@@ -34,6 +36,16 @@ void PlayerManager::SetEntityTransmitBlockedForAll(CEntityIndex entindex, bool s
 			continue;
 		 player->SetEntityTransmitBlocked(entindex, state);
 	}
+
+	if (!state)
+		m_blockedEntityTransmitsForAllClients.erase(entindex);
+	else
+		m_blockedEntityTransmitsForAllClients.insert(entindex);
+}
+
+void PlayerManager::ClearEntityTransmitBlocksForAll(CEntityIndex entindex)
+{
+	m_blockedEntityTransmitsForAllClients.erase(entindex);
 }
 
 CustomPlayer* PlayerManager::GetPlayer(CPlayerSlot slot)

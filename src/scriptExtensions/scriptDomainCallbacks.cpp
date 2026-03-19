@@ -123,7 +123,7 @@ void ScriptDomainCallbacks::V8GetSchemaField(const v8::FunctionCallbackInfo<v8::
 		return;
 	}
 
-	auto ent = dynamic_cast<CBaseEntity*>(entHandle.Get());
+	auto ent = static_cast<CBaseEntity*>(entHandle.Get());
 	if (!ent)
 	{
 		V8ThrowException(isolate, "Method Entity.GetSchemaField called on invalid entity instance.");

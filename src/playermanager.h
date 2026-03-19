@@ -35,9 +35,14 @@ public:
 	void SetEntityTransmitBlocked(CPlayerSlot slot, CEntityIndex entindex, bool state);
 	void ClearEntityTransmitBlocks(CPlayerSlot slot);
 	void SetEntityTransmitBlockedForAll(CEntityIndex entindex, bool state);
+	void ClearEntityTransmitBlocksForAll(CEntityIndex entindex);
 
 	CustomPlayer* GetPlayer(CPlayerSlot slot);
 
 private:
 	std::array<CustomPlayer*, MAXPLAYERS> m_connectedPlayers;
+	// Remember which ones we block for newly connected clients
+	// We will apply this to new players
+	// We don't do a full on override in CheckTransmit, cause there's possibility of setting transmit to chosen players after blocking for all others.
+	std::unordered_set<CEntityIndex, CEntityIndexHashFunctor> m_blockedEntityTransmitsForAllClients;
 };
