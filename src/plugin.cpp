@@ -134,17 +134,27 @@ bool Hook_V8_TryCatch_HasCaught(v8::TryCatch* tryCatch)
 			v8::String::Utf8Value funcName(isolate, frame->GetFunctionName());
 			v8::String::Utf8Value scriptName(isolate, frame->GetScriptName());
 
-			std::string scriptRelativePath;
-			std::filesystem::path scriptPath(*scriptName);
-			std::filesystem::path gameDir(gamedirpath.Get());
-			scriptRelativePath = std::filesystem::relative(scriptPath, gameDir).string();
+			std::string scriptFinalPath;
+			std::string scriptPathStr(*scriptName);
+			if (!scriptPathStr.empty())
+			{
+				std::string scriptPathStripped = scriptPathStr.substr(scriptPathStr.find(":///") + strlen(":///"));
+
+				std::filesystem::path scriptPath(scriptPathStripped);
+				std::filesystem::path gameDir(gamedirpath.Get());
+				scriptFinalPath = std::filesystem::relative(scriptPath, gameDir).string();
+				if (scriptFinalPath.empty()) // failed to get relative? just return full.
+				{
+					scriptFinalPath = scriptPathStr;
+				}
+			}
 
 			int line = frame->GetLineNumber();
 			int col = frame->GetColumn();
 
 			Log_Warning(g_logChanScript, "  at %s (%s:%d:%d)\n",
 				*funcName ? *funcName : "<anonymous>",
-				!scriptRelativePath.empty() ? scriptRelativePath.c_str() : "<unknown>",
+				!scriptFinalPath.empty() ? scriptFinalPath.c_str() : "<unknown>",
 				line, col
 			);
 		}
