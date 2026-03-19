@@ -104,20 +104,27 @@ static SchemaKeyType GetKeyType(CSchemaType* type)
 		case SCHEMA_ATOMIC_PLAIN:
 		{
 			auto classType = type->ReinterpretAs<CSchemaType_Atomic>();
-			auto className = classType->m_pAtomicInfo->m_pszName;
-			auto classNameHash = hash_32_fnv1a_const(className);
+			if (classType->m_pAtomicInfo)
+			{
+				auto className = classType->m_pAtomicInfo->m_pszName;
+				auto classNameHash = hash_32_fnv1a_const(className);
 
-			if (classNameHash == hash_32_fnv1a_const("Vector"))
-				return SchemaKeyType::Vector;
-			if (classNameHash == hash_32_fnv1a_const("QAngle"))
-				return SchemaKeyType::QAngle;
+				if (classNameHash == hash_32_fnv1a_const("Vector"))
+					return SchemaKeyType::Vector;
+				if (classNameHash == hash_32_fnv1a_const("QAngle"))
+					return SchemaKeyType::QAngle;
+			}
+			break;
 		}
 		case SCHEMA_ATOMIC_T:
 		{
 			auto classType = type->ReinterpretAs<CSchemaType_Atomic_T>();
-			auto className = classType->m_pAtomicInfo->m_pszName;
-			if (hash_32_fnv1a_const(className) == hash_32_fnv1a_const("CHandle"))
-				return SchemaKeyType::EntityHandle;
+			if (classType->m_pAtomicInfo)
+			{
+				auto className = classType->m_pAtomicInfo->m_pszName;
+				if (hash_32_fnv1a_const(className) == hash_32_fnv1a_const("CHandle"))
+					return SchemaKeyType::EntityHandle;
+			}
 			break;
 		}
 		}
