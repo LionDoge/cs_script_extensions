@@ -334,7 +334,8 @@ static void RegisterScriptFunctions()
 			{ "OnUserMessage", ScriptUserMessage::OnUserMessage },
 			{ "CreateUserMessage", ScriptDomainCallbacks::CreateUserMessage },
 			{ "EmitSound", ScriptDomainCallbacks::EmitSound },
-			{ "GetConVarValue", ScriptDomainCallbacks::GetConVarValue }
+			{ "GetConVarValue", ScriptDomainCallbacks::GetConVarValue },
+			{ "PrintToChatAll", ScriptDomainCallbacks::PrintToChatAll }
 		});
 
 	g_scriptExtensions->IncludeFunctions(

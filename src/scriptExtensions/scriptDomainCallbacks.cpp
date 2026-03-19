@@ -597,6 +597,27 @@ void ScriptDomainCallbacks::GetConVarValue(const v8::FunctionCallbackInfo<v8::Va
 	}
 }
 
+void ScriptDomainCallbacks::PrintToChatAll(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	auto isolate = v8::Isolate::GetCurrent();
+	auto context = isolate->GetCurrentContext();
+	v8::HandleScope handleScope(isolate);
+
+	if (!VerifyScriptScope("Domain", "PrintToChatAll"))
+		return;
+
+	if (args.Length() < 1 || !args[0]->IsString())
+	{
+		V8ThrowException(args.GetIsolate(), "Method point_script.PrintToChatAll requires 1 argument (message: string)");
+		return;
+	}
+
+	v8::String::Utf8Value v8Message(isolate, args[0].As<v8::String>());
+	std::string message(*v8Message);
+
+	ClientPrintAll(HUD_PRINTTALK, message.c_str());
+}
+
 template<typename T>
 inline constexpr bool always_false_v = false;
 
