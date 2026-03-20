@@ -390,7 +390,6 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 	
 	g_SMAPI->AddListener( this, this );
 	
-	META_CONPRINTF( "Starting plugin.\n" );
 	SH_ADD_HOOK(IServerGameDLL, GameFrame, g_pSource2Server, SH_MEMBER(this, &MMSPlugin::Hook_GameFrame), true);
 	SH_ADD_HOOK(IServerGameClients, ClientActive, g_pSource2GameClients, SH_MEMBER(this, &MMSPlugin::Hook_ClientActive), true);
 	SH_ADD_HOOK(IServerGameClients, ClientDisconnect, g_pSource2GameClients, SH_MEMBER(this, &MMSPlugin::Hook_ClientDisconnect), true);
