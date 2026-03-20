@@ -110,10 +110,10 @@ protected:
 private:
 	bool ResolveSigs(CGameConfig* gameConfig);
 
-	std::unordered_map<std::string, std::vector<ScriptFunctionInfo>> m_registeredFunctions;
+	std::unordered_map<CGlobalSymbol, std::vector<ScriptFunctionInfo>, GlobalSymbolHashFunctor> m_registeredFunctions;
 	// Used for manual registration of function templates, useful for advanced users that want full control of the process.
 	std::vector<void (*)(CCSBaseScript*)> m_functionTemplateInitializers;
-	std::unordered_map<std::string, ScriptCustomTemplateInfo> m_customFunctionTemplates;
+	std::unordered_map<CGlobalSymbol, ScriptCustomTemplateInfo, GlobalSymbolHashFunctor> m_customFunctionTemplates;
 	
 
 	// function pointers

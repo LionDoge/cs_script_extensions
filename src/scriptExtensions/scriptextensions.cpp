@@ -88,7 +88,7 @@ void ScriptExtensions::IncludeFunctions(const std::string& templateName,
 	{
 		vec.emplace_back(pair.first, pair.second);
 	}
-	m_registeredFunctions[templateName] = vec;
+	m_registeredFunctions[templateName.c_str()] = vec;
 }
 
 void ScriptExtensions::RegisterCustomFunctionTemplate(const std::string& templateName,
@@ -108,7 +108,7 @@ void ScriptExtensions::RegisterCustomFunctionTemplate(const std::string& templat
 		.constructor = constructor,
 		.inheritObject = inheritFrom
 	};
-	m_customFunctionTemplates[templateName] = std::move(info);
+	m_customFunctionTemplates[templateName.c_str()] = std::move(info);
 }
 
 void ScriptExtensions::RegisterCustomFunctionTemplate(void (*callback)(CCSBaseScript*))
@@ -178,18 +178,26 @@ void ScriptExtensions::OnScriptInstanceRegisterTemplates()
 {
 	CCSScript_EntityScript* script = META_IFACEPTR(CCSScript_EntityScript);
 	auto isolate = v8::Isolate::GetCurrent();
+	auto domainTemplate = script->GetFunctionTemplate("Domain");
+
+	if (domainTemplate && !domainTemplate->IsEmpty())
+	{
+		auto prototypeTemplate = domainTemplate->Get(isolate)->PrototypeTemplate();
+		auto name = v8::String::NewFromUtf8(isolate, "scriptExtensionsVersion").ToLocalChecked();
+		prototypeTemplate->Set(name, v8::String::NewFromUtf8(isolate, g_ThisPlugin.GetVersion()).ToLocalChecked());
+	}
 
 	for (const auto& [name, funcInfos] : m_registeredFunctions)
 	{
 		// get the already registered template
-		auto tem = script->GetFunctionTemplate(name.c_str());
+		auto tem = script->GetFunctionTemplate(name);
 		if (tem && !tem->IsEmpty())
 		{
 			auto prototypeTemplate = tem->Get(isolate)->PrototypeTemplate();
 			for (const auto& funcInfo : funcInfos)
 			{
 				RegisterNewFunction(prototypeTemplate, funcInfo);
-				Log_Debug(g_logChanScript, "Registered script extension function %s.%s\n", name.c_str(), funcInfo.name.c_str());
+				Log_Debug(g_logChanScript, "Registered script extension function %s.%s\n", name.Get(), funcInfo.name.c_str());
 			}
 		}
 	}
@@ -208,13 +216,13 @@ void ScriptExtensions::OnScriptInstanceRegisterTemplates()
 			isolate,
 			templateInfo.constructor.has_value() ? *templateInfo.constructor : V8FakeObjectConstructorCallback
 		);
-		tpl->SetClassName(v8::String::NewFromUtf8(isolate, templateName.c_str()).ToLocalChecked());
+		tpl->SetClassName(v8::String::NewFromUtf8(isolate, templateName.Get()).ToLocalChecked());
 		tpl->InstanceTemplate()->SetInternalFieldCount(static_cast<int>(templateInfo.internalFields));
 
 		for (const auto& funcInfo : templateInfo.functions)
 		{
 			RegisterNewFunction(tpl->PrototypeTemplate(), funcInfo);
-			Log_Debug(g_logChanScript, "Registered script custom template function %s.%s\n", templateName.c_str(), funcInfo.name.c_str());
+			Log_Debug(g_logChanScript, "Registered script custom template function %s.%s\n", templateName.Get(), funcInfo.name.c_str());
 		}
 
 		if (templateInfo.inheritObject.has_value())
@@ -225,7 +233,7 @@ void ScriptExtensions::OnScriptInstanceRegisterTemplates()
 				tpl->Inherit(inheritTpl->Get(isolate));
 			}
 		}
-		script->AddFunctionTemplate(templateName.c_str(), tpl);
+		script->AddFunctionTemplate(templateName.Get(), tpl);
 	}
 
 	RETURN_META(MRES_IGNORED);

@@ -23,11 +23,10 @@
 #include "steam/isteamuser.h"
 #include "iserver.h"
 #include "steam/steam_api_common.h"
+#include "checktransmitinfo.h"
 
 extern double g_flUniversalTime;
 extern INetworkMessages* g_pNetworkMessages;
-class CCheckTransmitInfoCustom;
-
 class MMSPlugin : public ISmmPlugin, public IMetamodListener
 {
 public:

@@ -52,7 +52,6 @@
 #include "scriptExtensions/userMessageInfo.h"
 #include "v8.h"
 #include "playermanager.h"
-#include "checktransmitinfo.h"
 #include "entitylistener.h"
 
 
