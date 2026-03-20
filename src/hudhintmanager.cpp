@@ -27,8 +27,10 @@ HudHintManager::HudHintManager()
 	: hintMessages()
 {}
 
-void HudHintManager::AddHintMessage(CPlayerSlot targetSlot, const std::string msg, double duration)
+void HudHintManager::AddHintMessage(CPlayerSlot targetSlot, const std::string& msg, double duration)
 {
+	// cancel any existing message for this player
+	CancelHintMessage(targetSlot);
 	// if it's a one-off then do it directly to save time.
 	if (duration <= 0.0)
 	{
@@ -41,11 +43,9 @@ void HudHintManager::AddHintMessage(CPlayerSlot targetSlot, const std::string ms
 
 			g_gameEventManager->FireEvent(event);
 		}
-		return;
 	}
 	else
 	{
-		CancelHintMessage(targetSlot); // cancel any existing message for this player
 		HudHintInfo info(targetSlot, msg, g_flUniversalTime + duration);
 		hintMessages[targetSlot.Get()] = info;
 	}

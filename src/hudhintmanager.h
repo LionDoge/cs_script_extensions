@@ -37,7 +37,7 @@ class HudHintManager {
 public:
 
 	HudHintManager();
-	void AddHintMessage(CPlayerSlot targetPlr, const std::string msg, double duration);
+	void AddHintMessage(CPlayerSlot targetPlr, const std::string& msg, double duration);
 	void CancelHintMessage(CPlayerSlot targetPlr);
 	void CancelAllHintMessages();
 	void Update();

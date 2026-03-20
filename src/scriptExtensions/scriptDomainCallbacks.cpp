@@ -184,7 +184,7 @@ void ScriptDomainCallbacks::V8ShowHTMLMessage(const v8::FunctionCallbackInfo<v8:
 		return;
 	}
 	auto controller = dynamic_cast<CCSPlayerController*>(controllerHandle.Get());
-	double duration = 1.0;
+	double duration = 0.0;
 	if (args.Length() >= 2 && args[1]->IsNumber())
 	{
 		duration = args[1].As<v8::Number>()->Value();
