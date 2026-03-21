@@ -328,7 +328,7 @@ static void RegisterScriptFunctions()
 	g_scriptExtensions->IncludeFunctions(
 		"Domain",
 		{
-			{ "MsgNew", ScriptDomainCallbacks::V8NewMsg },
+			{ "MsgNew", ScriptDomainCallbacks::NewMsg },
 			{ "AddSampleCallback", ScriptDomainCallbacks::AddSampleCallback },
 			{ "OnUserMessage", ScriptUserMessage::OnUserMessage },
 			{ "CreateUserMessage", ScriptDomainCallbacks::CreateUserMessage },
@@ -340,7 +340,7 @@ static void RegisterScriptFunctions()
 	g_scriptExtensions->IncludeFunctions(
 		"Entity",
 		{
-			{ "GetSchemaField", ScriptDomainCallbacks::V8GetSchemaField },
+			{ "GetSchemaField", ScriptDomainCallbacks::GetSchemaField },
 			{ "SetMoveType", ScriptDomainCallbacks::SetEntityMoveType },
 			{ "SetTransmitState", ScriptDomainCallbacks::SetTransmitState },
 			{ "SetTransmitStateAll", ScriptDomainCallbacks::SetTransmitStateAll }
@@ -349,8 +349,8 @@ static void RegisterScriptFunctions()
 	g_scriptExtensions->IncludeFunctions(
 		"CSPlayerController",
 		{
-			{ "ShowHudHint", ScriptDomainCallbacks::V8ShowHudHint },
-			{ "ShowHudMessageHTML", ScriptDomainCallbacks::V8ShowHTMLMessage },
+			{ "ShowHudHint", ScriptDomainCallbacks::ShowHudHint },
+			{ "ShowHudMessageHTML", ScriptDomainCallbacks::ShowHTMLMessage },
 		});
 
 	g_scriptExtensions->RegisterCustomFunctionTemplate(

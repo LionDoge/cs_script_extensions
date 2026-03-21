@@ -71,7 +71,7 @@ bool VerifyScriptScope(const std::string_view& instName, const std::string_view&
 	g_scriptExtensions.AddNewFunction(classname, scopename, #name, name##_V8ScriptCallback); \
 	void name##_V8ScriptCallback(const v8::FunctionCallbackInfo<v8::Value>& args)
 
-void ScriptDomainCallbacks::V8NewMsg(const v8::FunctionCallbackInfo<v8::Value>& args)
+void ScriptDomainCallbacks::NewMsg(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	auto isolate = v8::Isolate::GetCurrent();
 	v8::HandleScope handleScope(isolate);
@@ -92,7 +92,7 @@ void ScriptDomainCallbacks::V8NewMsg(const v8::FunctionCallbackInfo<v8::Value>& 
 	Msg("[cs_script] CustomMsg: %s", cppString.c_str());
 }
 
-void ScriptDomainCallbacks::V8GetSchemaField(const v8::FunctionCallbackInfo<v8::Value>& args)
+void ScriptDomainCallbacks::GetSchemaField(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	auto isolate = v8::Isolate::GetCurrent();
 	v8::HandleScope handleScope(isolate);
@@ -159,7 +159,7 @@ void ScriptDomainCallbacks::V8GetSchemaField(const v8::FunctionCallbackInfo<v8::
 	}
 }
 
-void ScriptDomainCallbacks::V8ShowHTMLMessage(const v8::FunctionCallbackInfo<v8::Value>& args)
+void ScriptDomainCallbacks::ShowHTMLMessage(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	auto isolate = v8::Isolate::GetCurrent();
 	v8::HandleScope handleScope(isolate);
@@ -196,7 +196,7 @@ void ScriptDomainCallbacks::V8ShowHTMLMessage(const v8::FunctionCallbackInfo<v8:
 	g_hudHintManager.AddHintMessage(controller->GetPlayerSlot(), text, duration);
 }
 
-void ScriptDomainCallbacks::V8ShowHudHintAll(const v8::FunctionCallbackInfo<v8::Value>& args)
+void ScriptDomainCallbacks::ShowHudHintAll(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	auto isolate = v8::Isolate::GetCurrent();
 	v8::HandleScope handleScope(isolate);
@@ -222,7 +222,7 @@ void ScriptDomainCallbacks::V8ShowHudHintAll(const v8::FunctionCallbackInfo<v8::
 	ClientPrintAll(isAlert ? HUD_PRINTALERT : HUD_PRINTCENTER, *v8StrTextUtf8);
 }
 
-void ScriptDomainCallbacks::V8ShowHudHint(const v8::FunctionCallbackInfo<v8::Value>& args)
+void ScriptDomainCallbacks::ShowHudHint(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	auto isolate = v8::Isolate::GetCurrent();
 	v8::HandleScope handleScope(isolate);

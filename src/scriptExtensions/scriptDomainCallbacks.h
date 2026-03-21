@@ -21,11 +21,11 @@
 #include "v8-function-callback.h"
 
 namespace ScriptDomainCallbacks {
-	void V8NewMsg(const v8::FunctionCallbackInfo<v8::Value>& info);
-	void V8GetSchemaField(const v8::FunctionCallbackInfo<v8::Value>& args);
-	void V8ShowHTMLMessage(const v8::FunctionCallbackInfo<v8::Value>& args);
-	void V8ShowHudHintAll(const v8::FunctionCallbackInfo<v8::Value>& args);
-	void V8ShowHudHint(const v8::FunctionCallbackInfo<v8::Value>& args);
+	void NewMsg(const v8::FunctionCallbackInfo<v8::Value>& info);
+	void GetSchemaField(const v8::FunctionCallbackInfo<v8::Value>& args);
+	void ShowHTMLMessage(const v8::FunctionCallbackInfo<v8::Value>& args);
+	void ShowHudHintAll(const v8::FunctionCallbackInfo<v8::Value>& args);
+	void ShowHudHint(const v8::FunctionCallbackInfo<v8::Value>& args);
 	void AddSampleCallback(const v8::FunctionCallbackInfo<v8::Value>& args);
 	void SetEntityMoveType(const v8::FunctionCallbackInfo<v8::Value>& args);
 	void EmitSound(const v8::FunctionCallbackInfo<v8::Value>& args);
