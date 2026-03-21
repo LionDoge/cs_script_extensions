@@ -102,13 +102,15 @@ void ScriptExtensions::RegisterCustomFunctionTemplate(const std::string& templat
 		vec.emplace_back(pair.first, pair.second);
 	}
 
-	ScriptCustomTemplateInfo info {
-		.functions = std::move(vec),
-		.internalFields = internalFields,
-		.constructor = constructor,
-		.inheritObject = inheritFrom
-	};
-	m_customFunctionTemplates[templateName.c_str()] = std::move(info);
+	m_customFunctionTemplates.insert_or_assign(
+		templateName.c_str(),
+		ScriptCustomTemplateInfo{
+			.functions = std::move(vec),
+			.internalFields = internalFields,
+			.constructor = constructor,
+			.inheritObject = inheritFrom
+		}
+	);
 }
 
 void ScriptExtensions::RegisterCustomFunctionTemplate(void (*callback)(CCSBaseScript*))
