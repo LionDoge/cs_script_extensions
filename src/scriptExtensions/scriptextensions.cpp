@@ -174,8 +174,6 @@ void ScriptExtensions::RunScriptString(CCSBaseScript* script, const char* path, 
 	m_pfnRunScript(script, path, scriptData);
 }
 
-// Would be cool to have in SDK, but I'll just put it there
-#define Log_Debug( Channel, /* [Color], Message, */ ... ) InternalMsg( Channel, LS_DETAILED, /* [Color], Message, */ ##__VA_ARGS__ )
 void ScriptExtensions::OnScriptInstanceRegisterTemplates()
 {
 	CCSScript_EntityScript* script = META_IFACEPTR(CCSScript_EntityScript);
