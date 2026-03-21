@@ -287,9 +287,9 @@ CCSScript_EntityScript* ScriptExtensions::GetScriptFromEntity(CEntityInstance* e
 	// all of this is probably not 100% safe, if for example some garbage data happens to fall within the pointer range.
 	// there are probably more safeguards for this method.
 #ifdef _WIN32
-	auto roDataSection = modules::server->GetSection(".rdata");
 	if (_csScriptOffset == -1)
 	{
+		auto roDataSection = modules::server->GetSection(".rdata");
 		for (int i = 0; i < 0x800; i += sizeof(void*))
 		{
 			if (!IsInSectionRange(roDataSection, *(void**)((unsigned char*)ent + i)))
@@ -324,9 +324,9 @@ CCSScript_EntityScript* ScriptExtensions::GetScriptFromEntity(CEntityInstance* e
 		}
 	}
 #else
-	auto roDataSection = modules::server->GetSection(".data.rel.ro");
 	if (_csScriptOffset == -1)
 	{
+		auto roDataSection = modules::server->GetSection(".data.rel.ro");
 		for (int i = 0; i < 0x800; i += sizeof(void*))
 		{
 			void* ptr = *(void**)((unsigned char*)ent + i);
