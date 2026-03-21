@@ -25,12 +25,7 @@
 #include "utils/module.h"
 
 #include "tier0/memdbgon.h"
-
-#define RESOLVE_SIG(gameConfig, name, variable)                        \
-	variable = (decltype(variable))gameConfig->ResolveSignature(name); \
-	if (!variable)                                                     \
-		return false;                                                  \
-	Msg("Found %s at 0x%p\n", name, variable);
+#include "sigutils.h"
 
 bool addresses::Initialize(CGameConfig* g_GameConfig)
 {
