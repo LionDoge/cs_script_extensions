@@ -295,13 +295,27 @@ CCSScript_EntityScript* ScriptExtensions::GetScriptFromEntity(CEntityInstance* e
 			if (!IsInSectionRange(roDataSection, *(void**)((unsigned char*)ent + i)))
 				continue;
 
-			DummyBase* obj = (DummyBase*)((unsigned char*)ent + i);
-			if (V_stristr(typeid(*obj).name(), "CCSScript") != nullptr)
+			DummyBase* obj = nullptr;
+			const char* typeName = "";
+			__try
+			{
+				obj = (DummyBase*)((unsigned char*)ent + i);
+				typeName = typeid(*obj).name();
+			}
+			__except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
+				EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH)
+			{
+				// just in case, we might read some invalid memory and cause an access violation, we can just ignore it and continue scanning.
+				continue;
+			}
+
+			if (V_stristr(typeName, "CCSScript") != nullptr)
 			{
 				_csScriptOffset = i;
 				Msg("Found CCSScript entity offset at: %x\n", _csScriptOffset);
 				break;
 			}
+			
 		}
 		if (_csScriptOffset == -1)
 		{
