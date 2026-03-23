@@ -1,25 +1,18 @@
 ## Extension system for scripting in CS2
 
 > [!NOTE]
-> This plugin currently serves mostly as reference for extending cs_script's functionality. It is buildable, with a mostly usable API, and a few example scripting extensions. There's currently no public or stable API to interact from other plugins, however it should be possible to add new script functions easily to this plugin directly. There are definitely many things that could be still improved. The plugin has not been yet thoroughly tested in production.
+> This plugin is meant to be a system for extending cs_script's functionality, while also including some new functions by itself if needed. There's currently no public or stable API to interact from other plugins for now, however it should be easily possible to add new script functions to this plugin directly. There are still some features, and implementations that could be improved. The plugin has not been yet thoroughly tested in production.
 
-cs_script uses the V8 JavaScript engine to run, if you want to implement your own functionality, you should ensure that you understand some basic concepts on how to work with it: https://v8.dev/docs/embed. Maybe in the (ambitious) future, there could be a simplified API that can abstract some of this away.
-
-> [!WARNING]
-> Current state: Builds, and works on Windows. Linux builds, but is completely untested for now.
+cs_script uses the V8 JavaScript engine to run, if you want to implement your own functionality, you should ensure that you understand some basic concepts on how to work with it: https://v8.dev/docs/embed. This goes in hand with how JavaScript works with [objects](https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Advanced_JavaScript_objects). Maybe in the (ambitious) future, there could be a simplified API that can abstract some of this away for plugin makers.
 
 ## Usage
 This plugin installs just like any other Metamod plugin.
 
 In a development environment, you will likely want to be able to use this plugin inside tools mode when working with scripts, the classic way of using gameinfo to load Metamod can cause some issues with tools. You can use this custom launcher to avoid issues: https://github.com/Poggicek/metamod-launcher
 
-To run your addon in tools mode, you need to run it from the command line. eg: `metamod-launcher.exe -insecure -tools -addon youraddon`. Of course make sure that this plugin is also installed.
+To run your addon in tools mode, you need to run it from the command line. eg: `metamod-launcher.exe -insecure -tools -addon youraddon -retail -gpuraytracing`. Of course make sure that this plugin is also installed.
 
-If you wish you can also develop outside of tools, by using some of the commands mentionted below:
-
-## Other features
-Some quality of life changes might be added down the line, however they will be kept limited to keep this project in scope.
-One of them currently is printing the stack trace and line numbers during exceptions for easier debugging.
+If you wish you can also develop outside of tools, by using some of the commands mentionted below.
 
 ## Console commands
 This plugin additonally provides some commands to make developing, and testing easier.
@@ -27,6 +20,10 @@ This plugin additonally provides some commands to make developing, and testing e
 - `csscript_load <script_file> [script_entity_name]` - Create a script entity, and execute a raw .js file, skipping the asset system. If a name isn't provided the default name will be 'script'. Path is relative to the game directory.
 - `csscript_reload <script_entity_name>` - Reloads a script loaded with csscript_load.
 - `script_summary` - Lists debug info for all scripts in the map.
+
+## Other features
+Some quality of life changes might be added down the line, however they will be kept limited to keep this project in scope.
+One of them currently is printing the stack trace and line numbers during exceptions for easier debugging.
 
 ## Building
 > [!IMPORTANT]
@@ -63,7 +60,7 @@ Documentation should be updated here over time, for now you can check out these 
 On how to actually register custom functions and templates, check `RegisterScriptFunctions` in `plugin.cpp`.
 
 ### Interactions with entity objects
-- Entities have a control internal field, that's just a pointer to a global value inside the binary, which is checked in every native function. This makes it a bit inconvienient to create entities manually. However the API provides abstractions for sigscanned functions that assign them properly:
+- Entities have a control internal field, that's just a pointer to a global value inside the binary, which is checked in every native function by the pointer value itself. This makes it a bit inconvienient to create entities manually. However the API provides abstractions for sigscanned functions that assign them properly:
   - `CreateEntityObjectAuto(entity)` - will create the best matching JS entity object class to the entity instance that's passed in. Inside the game code it's just a few if checks, this obviously only works for native classes (not our custom ones). For example it will know to assign BaseModelEntity or CSPlayerController, etc. if these are the actual entity types.
   - `CreateEntityObjectFromTemplate(templateName, entity)` - will create a JS object based on the function template name, and will assign the entity data inside the internal fields. `CreateEntityObjectAuto` calls this internally. Useful when you have custom type that inherits from Entity class.
 - Extracting entity handles from the object is a bit simpler, we don't really have to care for the entity marker here, thus a signature is not required, the `GetEntityInstanceFromScriptObject` abstracts it away.
@@ -120,7 +117,9 @@ export class CSPlayerController {
 }
 
 export class UserMessageInfo {
+  /** @note accessing repeated fields is not supported yet */
   GetField<T>(fieldName: string): T;
+  /** @note accessing repeated fields is not supported yet */
   SetField(fieldName: string, value: any): void;
 
   RemoveRecipient(playerSlot: number): void;
