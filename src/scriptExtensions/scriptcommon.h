@@ -89,7 +89,7 @@ inline v8::Local<v8::Object> CreateColorObject(v8::Local<v8::Context> context, c
 	obj->Set(context, v8::String::NewFromUtf8(isolate, "r").ToLocalChecked(), v8::Number::New(isolate, clr.r()));
 	obj->Set(context, v8::String::NewFromUtf8(isolate, "g").ToLocalChecked(), v8::Number::New(isolate, clr.g()));
 	obj->Set(context, v8::String::NewFromUtf8(isolate, "b").ToLocalChecked(), v8::Number::New(isolate, clr.b()));
-	obj->Set(context, v8::String::NewFromUtf8(isolate, "b").ToLocalChecked(), v8::Number::New(isolate, clr.a()));
+	obj->Set(context, v8::String::NewFromUtf8(isolate, "a").ToLocalChecked(), v8::Number::New(isolate, clr.a()));
 
 	return handleScope.Escape(obj);
 }
