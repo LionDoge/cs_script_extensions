@@ -22,4 +22,6 @@
 
 namespace ScriptPlayerControllerCallbacks {
 	void GetSteamID(const v8::FunctionCallbackInfo<v8::Value>& args);
+	void ShowHTMLMessage(const v8::FunctionCallbackInfo<v8::Value>& args);
+	void ShowHudHint(const v8::FunctionCallbackInfo<v8::Value>& args);
 };

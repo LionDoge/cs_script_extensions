@@ -24,6 +24,7 @@
 #include <v8-isolate.h>
 #include "scriptExtensions.h"
 
+extern LoggingChannelID_t g_logChanScript;
 // Common utility functions that can be used in script callbacks
 inline void V8ThrowException(v8::Isolate* isolate, const std::string_view& message)
 {

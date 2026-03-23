@@ -350,8 +350,8 @@ static void RegisterScriptFunctions()
 	g_scriptExtensions->IncludeFunctions(
 		"CSPlayerController",
 		{
-			{ "ShowHudHint", ScriptDomainCallbacks::ShowHudHint },
-			{ "ShowHudMessageHTML", ScriptDomainCallbacks::ShowHTMLMessage },
+			{ "ShowHudHint", ScriptPlayerControllerCallbacks::ShowHudHint },
+			{ "ShowHudMessageHTML", ScriptPlayerControllerCallbacks::ShowHTMLMessage },
 			{ "GetSteamID", ScriptPlayerControllerCallbacks::GetSteamID },
 		});
 
