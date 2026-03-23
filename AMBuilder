@@ -13,11 +13,13 @@ for sdk_target in MMSPlugin.sdk_targets:
     os.path.join(builder.sourcePath, 'src', 'utils'),
     os.path.join(builder.sourcePath, 'public'),
     os.path.join(builder.sourcePath, 'sdk', 'thirdparty', 'protobuf-3.21.8', 'src'),
-    os.path.join(builder.sourcePath, 'vendor', 'funchook', 'include'),
     os.path.join(builder.sourcePath, 'vendor', 'v8', 'include'),
     os.path.join(builder.sourcePath, 'src', 'protobuf', 'generated'),
     os.path.join(builder.sourcePath, 'vendor', 'safetyhook'),
-    
+  ]
+
+  binary.compiler.includes += [
+    os.path.join(builder.sourcePath, 'vendor', 'safetyhook'),
   ]
 
   target_folder = 'Debug' if builder.options.debug else 'Release'
@@ -57,6 +59,9 @@ for sdk_target in MMSPlugin.sdk_targets:
     'src/scriptExtensions/playerControllerCallbacks.cpp',
 
     'src/utils/entity.cpp',
+
+    'vendor/safetyhook/safetyhook.cpp',
+    'vendor/safetyhook/Zydis.c',
 
     os.path.join(sdk['path'], 'entity2', 'entitysystem.cpp'),
     os.path.join(sdk['path'], 'entity2', 'entityidentity.cpp'),
