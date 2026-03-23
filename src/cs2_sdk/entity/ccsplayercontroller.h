@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  * 
- * Modified by liondoge on 06.03.2026
+ * Modified by liondoge on 23.03.2026
  * Changes: Removed definitions and fields that are unnecessary for the project's use case.
  */
 
@@ -24,9 +24,7 @@
 
 #include "cbaseplayercontroller.h"
 #include "entity/ccsplayerpawn.h"
-//#include "services.h"
-//#include "../playermanager.h"
-//#include "../serversideclient.h"
+#include "gameconfig.h"
 
 extern CGameEntitySystem* GameEntitySystem();
 
@@ -109,7 +107,7 @@ public:
 		}
 	}*/
 
-	/*void Respawn()
+	void Respawn()
 	{
 		CCSPlayerPawn *pPawn = GetPlayerPawn();
 		if (!pPawn || pPawn->IsAlive())
@@ -118,7 +116,7 @@ public:
 		SetPawn(pPawn);
 		static int offset = g_GameConfig->GetOffset("CCSPlayerController_Respawn");
 		CALL_VIRTUAL(void, offset, this);
-	}*/
+	}
 
 	CSPlayerState GetPawnState()
 	{

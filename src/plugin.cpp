@@ -353,6 +353,7 @@ static void RegisterScriptFunctions()
 			{ "ShowHudHint", ScriptPlayerControllerCallbacks::ShowHudHint },
 			{ "ShowHudMessageHTML", ScriptPlayerControllerCallbacks::ShowHTMLMessage },
 			{ "GetSteamID", ScriptPlayerControllerCallbacks::GetSteamID },
+			{ "Respawn", ScriptPlayerControllerCallbacks::Respawn },
 		});
 
 	g_scriptExtensions->RegisterCustomFunctionTemplate(

@@ -46,9 +46,10 @@ void ScriptPlayerControllerCallbacks::GetSteamID(const v8::FunctionCallbackInfo<
 	}
 
 	auto ent = entHandle.Get();
-	if (ent->GetEntityIndex().Get() <= 0 || ent->GetEntityIndex().Get() > 65)
+	if (!ent || ent->GetEntityIndex().Get() <= 0 || ent->GetEntityIndex().Get() > 65)
 	{
 		V8ThrowException(isolate, "CSPlayerController.GetSteamID invoked with incorrect 'this' value.");
+		return;
 	}
 
 	auto playerController = reinterpret_cast<CCSPlayerController*>(ent);
@@ -135,4 +136,42 @@ void ScriptPlayerControllerCallbacks::ShowHudHint(const v8::FunctionCallbackInfo
 
 	v8::String::Utf8Value v8StrTextUtf8(isolate, args[0].As<v8::String>());
 	ClientPrint(controller, isAlert ? HUD_PRINTALERT : HUD_PRINTCENTER, *v8StrTextUtf8);
+}
+
+void ScriptPlayerControllerCallbacks::Respawn(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	auto isolate = v8::Isolate::GetCurrent();
+	v8::HandleScope handleScope(isolate);
+
+	if (!VerifyScriptScope("CSPlayerController", "GetSteamID"))
+		return;
+
+	if (!args.This()->IsObject())
+	{
+		V8ThrowException(isolate, "CSPlayerController.GetSteamID invoked with incorrect 'this' value.");
+		return;
+	}
+
+	auto entHandle = ScriptExtensions::GetEntityHandleFromScriptObject(args.This());
+	if (!entHandle.IsValid())
+	{
+		V8ThrowException(isolate, "CSPlayerController.GetSteamID invoked with incorrect 'this' value.");
+		return;
+	}
+
+	auto ent = entHandle.Get();
+	if (!ent || ent->GetEntityIndex().Get() <= 0 || ent->GetEntityIndex().Get() > 65)
+	{
+		V8ThrowException(isolate, "CSPlayerController.GetSteamID invoked with incorrect 'this' value.");
+		return;
+	}
+
+	auto playerController = reinterpret_cast<CCSPlayerController*>(ent);
+	if (!playerController->IsConnected())
+	{
+		V8ThrowException(isolate, "CSPlayerController.GetSteamID: Target player is not connected.");
+		return;
+	}
+
+	playerController->Respawn();
 }
