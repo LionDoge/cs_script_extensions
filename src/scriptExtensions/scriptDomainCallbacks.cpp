@@ -26,8 +26,6 @@
 #include "networksystem/inetworkmessages.h"
 #include "schemasystem/schemasystem.h"
 #include "igameevents.h"
-#include "csscript.h"
-#include "scriptextensions.h"
 #include "hudhintmanager.h"
 #include "recipientfilters.h"
 #include "common.h"
@@ -46,19 +44,6 @@ extern IGameEventManager2* g_gameEventManager;
 extern HudHintManager g_hudHintManager;
 extern ScriptExtensions g_scriptExtensions;
 extern PlayerManager g_playerManager;
-
-bool VerifyScriptScope(const std::string_view& instName, const std::string_view& methodName)
-{
-	if (!ScriptExtensions::GetCurrentCsScriptInstance())
-	{
-		V8ThrowException(
-			v8::Isolate::GetCurrent(),
-			std::format("Method {}.{} invoked in incorrect scope.", instName, methodName)
-		);
-		return false;
-	}
-	return true;
-}
 
 #define V8_SETUP_AND_VERIFY(domain, name) \
 	auto isolate = args.GetIsolate(); \
