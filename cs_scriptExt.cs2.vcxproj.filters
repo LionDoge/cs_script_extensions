@@ -79,6 +79,9 @@
     <ClCompile Include="cpointscript.cpp">
       <Filter>Source Files\cs2_sdk\entity</Filter>
     </ClCompile>
+    <ClCompile Include="src\scriptExtensions\playerControllerCallbacks.cpp">
+      <Filter>Source Files\Script Extensions\CSPlayerController</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cpointscript.h">
@@ -216,6 +219,9 @@
     <ClInclude Include="src\entitylistener.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\scriptExtensions\playerControllerCallbacks.h">
+      <Filter>Header Files\Script Extensions\CSPlayerController</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -265,6 +271,12 @@
     </Filter>
     <Filter Include="Source Files\cs2_sdk\entity">
       <UniqueIdentifier>{92a5af5b-81b1-4728-b030-d8420921cef9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Script Extensions\CSPlayerController">
+      <UniqueIdentifier>{02ca53fe-a925-4800-b2b7-2e23fe48bae2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Script Extensions\CSPlayerController">
+      <UniqueIdentifier>{bad7f8ae-ef1c-4a81-b1b4-adbc1dc24843}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

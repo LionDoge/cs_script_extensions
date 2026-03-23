@@ -50,6 +50,7 @@
 #include "scriptExtensions/scriptextensions.h"
 #include "scriptExtensions/userMessagesScriptExt.h"
 #include "scriptExtensions/userMessageInfo.h"
+#include "scriptExtensions/playerControllerCallbacks.h"
 #include "v8.h"
 #include "playermanager.h"
 #include "entitylistener.h"
@@ -351,6 +352,7 @@ static void RegisterScriptFunctions()
 		{
 			{ "ShowHudHint", ScriptDomainCallbacks::ShowHudHint },
 			{ "ShowHudMessageHTML", ScriptDomainCallbacks::ShowHTMLMessage },
+			{ "GetSteamID", ScriptPlayerControllerCallbacks::GetSteamID },
 		});
 
 	g_scriptExtensions->RegisterCustomFunctionTemplate(
