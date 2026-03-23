@@ -113,6 +113,10 @@ export class CSPlayerController {
   ShowHudHint(text: string, isAlert: boolean): void;
   /** Shows a hud message supporting HTML syntax for text effects */
   ShowHudMessageHTML(htmlText: string, duration: number): void;
+  /** Retrieve SteamID64 of this player */
+  GetSteamID(): number;
+  /** Respawns this player's pawn */
+  Respawn();
 }
 
 export class UserMessageInfo {
