@@ -27,6 +27,7 @@ extern HudHintManager g_hudHintManager;
 void ScriptPlayerControllerCallbacks::GetSteamID(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	auto isolate = v8::Isolate::GetCurrent();
+	v8::HandleScope handleScope(isolate);
 
 	if (!VerifyScriptScope("CSPlayerController", "GetSteamID"))
 		return;
