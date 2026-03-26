@@ -632,8 +632,10 @@ void MMSPlugin::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nCli
 				*const_cast<uint64*>(clients) = 0;
 				break;
 			}
-			userMessageInfo->Invalidate();
 		}
+
+		if(userMessageInfo)
+			userMessageInfo->Invalidate();
 	}
 }
 
