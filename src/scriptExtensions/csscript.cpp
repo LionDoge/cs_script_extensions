@@ -52,7 +52,7 @@ v8::Local<v8::Value> CCSBaseScript::InvokeCallback(CGlobalSymbol callbackName, i
 
 	auto isolate = v8::Isolate::GetCurrent();
 	v8::EscapableHandleScope handleScope(isolate);
-	const auto funcHandle = m_callbackMap.Get(MakeGlobalSymbol(callbackName), nullptr);
+	const auto funcHandle = m_callbackMap.Get(callbackName, nullptr);
 	if (!funcHandle)
 		return {};
 	const auto func = funcHandle->Get(isolate);
