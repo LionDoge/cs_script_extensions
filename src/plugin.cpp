@@ -500,16 +500,6 @@ bool MMSPlugin::Hook_ClientConnect( CPlayerSlot slot, const char *pszName, uint6
 
 void MMSPlugin::Hook_ClientPutInServer( CPlayerSlot slot, char const *pszName, int type, uint64 xuid )
 {
-	if (!g_pSpawnGroupMgr)
-		return;
-
-	CUtlVector<SpawnGroupHandle_t> vecActualSpawnGroups;
-	addresses::GetSpawnGroups(g_pSpawnGroupMgr, &vecActualSpawnGroups);
-
-	CServerSideClient* pClient = GetClientBySlot(slot);
-
-	if (pClient && pClient->m_vecLoadedSpawnGroups.Count() != vecActualSpawnGroups.Count())
-		pClient->m_vecLoadedSpawnGroups = vecActualSpawnGroups;
 }
 
 void MMSPlugin::Hook_ClientDisconnect( CPlayerSlot slot, ENetworkDisconnectionReason reason, const char *pszName, uint64 xuid, const char *pszNetworkID )
