@@ -24,6 +24,7 @@
 #include "iserver.h"
 #include "steam/steam_api_common.h"
 #include "checktransmitinfo.h"
+#include "scriptExtensions/csscript.h"
 
 extern double g_flUniversalTime;
 extern INetworkMessages* g_pNetworkMessages;
@@ -56,6 +57,9 @@ public: //hooks
 	void Hook_SetGameSpawnGroupMgr(IGameSpawnGroupMgr* pSpawnGroupMgr);
 	void Hook_StartupServer(const GameSessionConfiguration_t& config, ISource2WorldSession* pSession, const char* pszMapName);
 	void Hook_GameServerSteamAPIActivated();
+	/* Returns a ifstream of a file relative to the game path (so game/csgo/) */
+	std::ifstream OpenGameRelativeFile(std::string_view relativePath);
+	bool RunScriptFromFile(CCSScript_EntityScript* script, std::string_view relativePath, bool savePath = false);
 public:
 	const char *GetAuthor() { return PLUGIN_AUTHOR; }
 	const char *GetName() { return PLUGIN_DISPLAY_NAME; }

@@ -119,6 +119,7 @@ sdks\hl2sdk-cs2\devtools\bin\protoc.exe --proto_path="sdks\hl2sdk-cs2\networksys
     <ClInclude Include="src\checktransmitinfo.h" />
     <ClInclude Include="src\entitylistener.h" />
     <ClInclude Include="src\playermanager.h" />
+    <ClInclude Include="src\plugin.h" />
     <ClInclude Include="src\scriptExtensions\managedObject.h" />
     <ClInclude Include="src\scriptExtensions\playerControllerCallbacks.h" />
     <ClInclude Include="src\scriptExtensions\scriptcommon.h" />

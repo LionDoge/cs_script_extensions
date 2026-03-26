@@ -44,8 +44,6 @@
 #include "gameconfig.h"
 #include "hudhintmanager.h"
 #include <vprof.h>
-
-#include "scriptExtensions/csscript.h"
 #include "scriptExtensions/scriptDomainCallbacks.h"
 #include "scriptExtensions/scriptextensions.h"
 #include "scriptExtensions/userMessagesScriptExt.h"
@@ -54,6 +52,7 @@
 #include "v8.h"
 #include "playermanager.h"
 #include "entitylistener.h"
+#include "filesystem.h"
 
 
 SH_DECL_HOOK3_void(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, bool, bool, bool);
@@ -324,6 +323,7 @@ int Hook_LoadEventsFromFile(const char* filename, bool bSearchAll)
 	RETURN_META_VALUE(MRES_IGNORED, 0);
 }
 
+CConVar<bool> cvar_enable_mapspawn_script("mm_enable_mapspawn_script", FCVAR_RELEASE | FCVAR_GAMEDLL, "If enabled, will instantiate a point_script entity with scripts/mapspawn on each map load, if available.", true);
 static void RegisterScriptFunctions()
 {
 	g_scriptExtensions->IncludeFunctions(
@@ -536,6 +536,40 @@ void MMSPlugin::OnLevelInit( char const *pMapName,
 									 bool background )
 {
 	GameEntitySystem()->AddListenerEntity(&g_entityListener);
+	if (cvar_enable_mapspawn_script.GetBool())
+	{
+		// Check if there's a raw js mapspawn in the game directory (maybe provided by server admin).
+		// If not, then use the file from the asset system, which could be provided by an addon.
+		const char* rawScriptPath = "scripts/mapspawn.js";
+		auto scriptStream = OpenGameRelativeFile(rawScriptPath);
+		
+		auto point_script = (CPointScript*)addresses::CreateEntityByName("point_script", -1);
+		if (!point_script)
+			return;
+
+		auto kv = new CEntityKeyValues();
+		if (!kv)
+			return;
+
+		kv->SetString("targetname", "script_mapspawn");
+		if (!scriptStream.good())
+			kv->SetString("cs_script", "scripts/mapspawn.vjs");
+		else
+			kv->SetString("cs_script", "");
+
+		addresses::DispatchSpawn(point_script, kv);
+
+		if (scriptStream.good())
+		{
+			Log_Debug(g_logChanScript, "Loading %s script...", rawScriptPath);
+			if (const auto script = point_script->GetScript(); script)
+			{
+				Log_Warning(g_logChanScript, "Failed to find script component on the point_script entity! mapspawn script will not be ran");
+				std::string fileContents{ std::istreambuf_iterator<char>(scriptStream), std::istreambuf_iterator<char>() };
+				g_scriptExtensions->RunScriptString(script, rawScriptPath, fileContents.c_str());
+			}
+		}
+	}
 }
 
 void MMSPlugin::OnLevelShutdown()
@@ -630,11 +664,8 @@ void MMSPlugin::Hook_CheckTransmit(CCheckTransmitInfo** ppInfoList, int infoCoun
 // yes this doesn't get cleaned properly, but I don't care right now.
 static std::unordered_map<uint64_t, std::string> scriptPathMap;
 
-bool RunScriptFromFile(CCSScript_EntityScript* script, std::string_view relativePath, bool savePath = false)
+std::ifstream MMSPlugin::OpenGameRelativeFile(std::string_view relativePath)
 {
-	if (!script)
-		return false;
-
 	CBufferStringGrowable<256> gamedirpath;
 	g_pEngineServer2->GetGameDir(gamedirpath);
 
@@ -642,7 +673,16 @@ bool RunScriptFromFile(CCSScript_EntityScript* script, std::string_view relative
 	pathStream << gamedirpath.Get();
 	pathStream << "/" << relativePath;
 
-	if (std::ifstream inFile(pathStream.str(), std::ios::in); inFile.good())
+	return std::ifstream(pathStream.str(), std::ios::in);
+}
+
+bool MMSPlugin::RunScriptFromFile(CCSScript_EntityScript* script, std::string_view relativePath, bool savePath)
+{
+	if (!script)
+		return false;
+
+	auto inFile = OpenGameRelativeFile(relativePath);
+	if (inFile.good())
 	{
 		std::string fileContents{ std::istreambuf_iterator<char>(inFile), std::istreambuf_iterator<char>() };
 		g_scriptExtensions->RunScriptString(script, relativePath.data(), fileContents.c_str());
@@ -677,7 +717,7 @@ CON_COMMAND_F(csscript_load, "Creates a script entity and loads the provided fil
 	addresses::DispatchSpawn(point_script, kv);
 
 	auto script = ScriptExtensions::GetScriptFromEntity(point_script);
-	if (!RunScriptFromFile(script, args[1], true))
+	if (!g_ThisPlugin.RunScriptFromFile(script, args[1], true))
 	{
 		point_script->Remove();
 	}
@@ -700,7 +740,7 @@ CON_COMMAND_F(csscript_reload, "Reload a script (loaded by script_load only)", F
 		auto index = script->GetScriptIndex();
 		if (scriptPathMap.contains(index))
 		{
-			RunScriptFromFile(script, scriptPathMap[index]);
+			g_ThisPlugin.RunScriptFromFile(script, scriptPathMap[index]);
 		}
 		else
 		{
