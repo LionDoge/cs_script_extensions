@@ -408,7 +408,6 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 	CBufferStringGrowable<256> gamedirpath;
 	g_pEngineServer2->GetGameDir(gamedirpath);
 	std::string gamedir = CGameConfig::GetDirectoryName(gamedirpath.Get());
-	Msg("gamedir path %s", gamedir.c_str());
 	const char* gameDataPath = "addons/cs_scriptExt/gamedata/cs_scriptExt.games.txt";
 
 	g_GameConfig = new CGameConfig(gamedir, gameDataPath);
@@ -416,7 +415,7 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 	if (!g_GameConfig->Init(g_pFullFileSystem, conf_error, sizeof(conf_error)))
 	{
 		snprintf(error, maxlen, "Could not read %s: %s", g_GameConfig->GetPath().c_str(), conf_error);
-		Panic("%s\n", error);
+		Panic("[cs_script_ext] %s\n", error);
 		return false;
 	}
 
@@ -432,10 +431,9 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 
 	if (!bRequiredInitLoaded)
 	{
-		META_CONPRINT("Failed to load required addresses from gamedata, unloading plugin.\n");
+		META_CONPRINT("[cs_script_ext] Failed to load required addresses from gamedata, unloading plugin.\n");
 		return false;
 	}
-
 
 	auto gameEventMgrVtbl = (IGameEventManager2*)modules::server->FindVirtualTable("CGameEventManager");
 	SH_ADD_DVPHOOK(IGameEventManager2, LoadEventsFromFile, gameEventMgrVtbl, Hook_LoadEventsFromFile, false);
