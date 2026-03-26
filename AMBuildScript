@@ -378,8 +378,10 @@ const char *PLUGIN_REVISION_COUNT = \"{revision_count}\";
         '_CRT_SECURE_NO_WARNINGS',
         '_CRT_NONSTDC_NO_DEPRECATE',
       ]
+      # hide some common SDK warnings
       cxx.cflags += [
         '/W3',
+        '/wd4267;4018', # 'var' : conversion from 'size_t' to 'type', possible loss of data, # 'token' : signed/unsigned mismatch
         '/Zi',
         '/std:c++23preview',
       ]

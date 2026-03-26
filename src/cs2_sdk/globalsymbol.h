@@ -86,7 +86,3 @@ inline const char* MakeGlobalSymbol(const char* str)
 	return _makeGlobalSymbolFunc(str);
 #endif
 }
-
-PLATFORM_INTERFACE CGlobalSymbolCaseSensitive MakeGlobalSymbolCaseSensitive(const char* str);
-PLATFORM_INTERFACE CGlobalSymbol FindGlobalSymbol(const char* str);
-PLATFORM_INTERFACE CGlobalSymbol FindGlobalSymbolByHash(uint32 hash);
