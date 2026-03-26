@@ -82,13 +82,10 @@ ScriptExtensions::~ScriptExtensions()
 void ScriptExtensions::IncludeFunctions(const std::string& templateName,
 	std::initializer_list<std::pair<std::string, v8::FunctionCallback>> functions)
 {
-	auto vec = std::vector<ScriptFunctionInfo>();
-	vec.reserve(functions.size());
 	for (const auto& pair : functions)
 	{
-		vec.emplace_back(pair.first, pair.second);
+		m_registeredFunctions[templateName.c_str()].emplace_back(pair.first, pair.second);
 	}
-	m_registeredFunctions[templateName.c_str()] = vec;
 }
 
 void ScriptExtensions::RegisterCustomFunctionTemplate(const std::string& templateName,
