@@ -552,6 +552,7 @@ void MMSPlugin::OnLevelInit( char const *pMapName,
 
 void MMSPlugin::OnLevelShutdown()
 {
+	g_hudHintManager.CancelAllHintMessages();
 	GameEntitySystem()->RemoveListenerEntity(&g_entityListener);
 }
 
