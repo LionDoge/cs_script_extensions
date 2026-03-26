@@ -38,6 +38,8 @@
 #define HUD_PRINTCENTER		4
 #define HUD_PRINTALERT		6
 
+#define VPROF_LEVEL 1
+
 #define MAXPLAYERS 64
 
 #ifdef _WIN32

@@ -608,7 +608,7 @@ void MMSPlugin::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nCli
 void MMSPlugin::Hook_CheckTransmit(CCheckTransmitInfo** ppInfoList, int infoCount, CBitVec<16384>& unionTransmitEdicts,
 	CBitVec<16384>&, const Entity2Networkable_t** pNetworkables, const uint16* pEntityIndicies, int nEntities)
 {
-	VPROF("CCSScriptExtensions::Hook_CheckTransmit");
+	VPROF_BUDGET("CCSScriptExtensions::Hook_CheckTransmit", "CheckTransmit");
 	auto ppInfoListC = (CCheckTransmitInfoCustom**)ppInfoList;
 
 	for (int i = 0; i < infoCount; i++)

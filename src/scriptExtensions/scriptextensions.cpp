@@ -153,7 +153,7 @@ v8::Local<v8::Object> ScriptExtensions::CreateEntityObjectFromTemplate(const CGl
 
 void ScriptExtensions::InvokeCallbacks(const char* callbackName, int argc, v8::Local<v8::Value> argv[])
 {
-	VPROF("CSScriptExtensionsSystem::InvokeCallbacks");
+	VPROF_BUDGET("CSScriptExtensionsSystem::InvokeCallbacks", "cs_script callbacks");
 
 	auto isolate = v8::Isolate::GetCurrent();
 	for (CPointScript* scriptEnt : GetScripts())

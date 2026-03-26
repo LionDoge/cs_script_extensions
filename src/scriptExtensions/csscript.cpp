@@ -48,7 +48,7 @@ void CCSBaseScript::AddCallback(CGlobalSymbol callbackName, v8::Local<v8::Functi
 
 v8::Local<v8::Value> CCSBaseScript::InvokeCallback(CGlobalSymbol callbackName, int argc, v8::Local<v8::Value> argv[])
 {
-	VPROF("CCSBaseScript::InvokeCallback");
+	VPROF_BUDGET("CCSBaseScript::InvokeCallback", "cs_script callbacks");
 
 	auto isolate = v8::Isolate::GetCurrent();
 	v8::EscapableHandleScope handleScope(isolate);
