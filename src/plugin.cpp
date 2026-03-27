@@ -118,8 +118,6 @@ bool Hook_V8_TryCatch_HasCaught(v8::TryCatch* tryCatch)
 		PluginMsg("V8 exception thrown but no message available! Stack trace unavailable.\n");
 		return res;
 	}
-	CBufferStringN<256> gamedirpath;
-	g_pEngineServer2->GetGameDir(gamedirpath);
 
 	auto stackTrace = message->GetStackTrace();
 	if (!stackTrace.IsEmpty()) {
@@ -139,7 +137,7 @@ bool Hook_V8_TryCatch_HasCaught(v8::TryCatch* tryCatch)
 				std::string scriptPathStripped = scriptPathStr.substr(scriptPathStr.find(":///") + strlen(":///"));
 
 				std::filesystem::path scriptPath(scriptPathStripped);
-				std::filesystem::path gameDir(gamedirpath.Get());
+				std::filesystem::path gameDir(Plat_GetGameDirectory());
 				scriptFinalPath = std::filesystem::relative(scriptPath, gameDir).string();
 				if (scriptFinalPath.empty()) // failed to get relative? just return full.
 				{
