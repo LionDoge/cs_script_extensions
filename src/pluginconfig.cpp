@@ -4,7 +4,7 @@
 #include "common.h"
 using json = nlohmann::json;
 
-PluginConfig* g_pluginConfig;
+PluginConfig g_pluginConfig;
 
 bool PluginConfig::Load(std::string_view path)
 {

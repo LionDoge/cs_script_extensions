@@ -334,12 +334,12 @@ static void RegisterScriptFunctions()
 			{ "PrintToChatAll", ScriptDomainCallbacks::PrintToChatAll }
 		});
 
-	if (g_pluginConfig->IsQueryConvarsEnabled())
+	if (g_pluginConfig.IsQueryConvarsEnabled())
 	{
 		g_scriptExtensions->IncludeFunctions("Domain", { { "GetConVarValue", ScriptDomainCallbacks::GetConVarValue } });
 	}
 
-	if (g_pluginConfig->AreUserMessagesEnabled())
+	if (g_pluginConfig.AreUserMessagesEnabled())
 	{
 		g_scriptExtensions->IncludeFunctions(
 			"Domain", 
@@ -355,12 +355,12 @@ static void RegisterScriptFunctions()
 			{ "SetMoveType", ScriptDomainCallbacks::SetEntityMoveType },
 		});
 
-	if (g_pluginConfig->IsSchemaReadEnabled())
+	if (g_pluginConfig.IsSchemaReadEnabled())
 	{
 		g_scriptExtensions->IncludeFunctions("Entity", { { "GetSchemaField", ScriptDomainCallbacks::GetSchemaField } });
 	}
 
-	if (g_pluginConfig->IsTransmitStateChangeEnabled())
+	if (g_pluginConfig.IsTransmitStateChangeEnabled())
 	{
 		g_scriptExtensions->IncludeFunctions(
 			"Entity",
@@ -378,12 +378,12 @@ static void RegisterScriptFunctions()
 			{ "Respawn", ScriptPlayerControllerCallbacks::Respawn }
 		});
 
-	if (g_pluginConfig->IsUserIdentificationEnabled())
+	if (g_pluginConfig.IsUserIdentificationEnabled())
 	{
 		g_scriptExtensions->IncludeFunctions("CSPlayerController", { { "GetSteamID", ScriptPlayerControllerCallbacks::GetSteamID } });
 	}
 
-	if (g_pluginConfig->AreUserMessagesEnabled())
+	if (g_pluginConfig.AreUserMessagesEnabled())
 	{
 		g_scriptExtensions->RegisterCustomFunctionTemplate(
 			"UserMessageInfo",
@@ -449,10 +449,9 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 		return false;
 	}
 
-	std::filesystem::path gamedirPath(gamedir);
-	std::filesystem::path configPath = gamedirPath / "addons/cs_scriptExt/configs/features.jsonc";
-	g_pluginConfig = new PluginConfig();
-	if (!g_pluginConfig->Load(configPath.string()))
+	std::filesystem::path gamedirFsPath(gamedirpath.Get());
+	std::filesystem::path configPath = gamedirFsPath / "addons" / "cs_scriptExt" / "configs" / "features.jsonc";
+	if (!g_pluginConfig.Load(configPath.string()))
 	{
 		Msg("[cs_script_ext] Could not read features.json config, using defaults\n");
 	}
@@ -463,7 +462,7 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 
 
 	g_scriptExtensions = ScriptExtensions::GetInstance();
-	if (g_pluginConfig->AreDefaultFunctionsEnabled())
+	if (g_pluginConfig.AreDefaultFunctionsEnabled())
 		RegisterScriptFunctions();
 
 	if(!g_scriptExtensions->Initialize(g_GameConfig))

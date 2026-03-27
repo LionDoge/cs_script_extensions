@@ -25,4 +25,4 @@ private:
 	bool m_bClientNetworkRequestsEnabled = true;
 };
 
-extern PluginConfig* g_pluginConfig;
+extern PluginConfig g_pluginConfig;
