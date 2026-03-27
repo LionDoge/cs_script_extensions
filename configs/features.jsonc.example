@@ -1,0 +1,9 @@
+{
+    "defaultFunctionsEnabled": true,
+    "userMessagesEnabled": true,
+    "schemaReadEnabled": true, // Allow to query named schema fields, do note that this is very powerful, and might expose a lot of information to scripts - including SteamIDs, even if they're disabled.
+    "userIdentificationEnabled": true, // Allow to query SteamID of a player, or any other information that can uniquely identify them.
+    "transmitStateChangeEnabled": true,
+    "queryConvarsEnabled": true,
+    "clientNetworkRequestsEnabled": true // Enables features that can generate external network requests, such as img tags in HUD messages. This could be potentially undersired.
+}

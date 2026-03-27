@@ -52,8 +52,7 @@
 #include "v8.h"
 #include "playermanager.h"
 #include "entitylistener.h"
-#include "filesystem.h"
-
+#include "pluginconfig.h"
 
 SH_DECL_HOOK3_void(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, bool, bool, bool);
 SH_DECL_HOOK4_void(IServerGameClients, ClientActive, SH_NOATTRIB, 0, CPlayerSlot, bool, const char *, uint64);
@@ -327,49 +326,80 @@ CConVar<bool> cvar_enable_mapspawn_script("mm_enable_mapspawn_script", FCVAR_REL
 static void RegisterScriptFunctions()
 {
 	g_scriptExtensions->IncludeFunctions(
-		"Domain",
+	"Domain",
 		{
 			{ "MsgNew", ScriptDomainCallbacks::NewMsg },
 			{ "AddSampleCallback", ScriptDomainCallbacks::AddSampleCallback },
-			{ "OnUserMessage", ScriptUserMessage::OnUserMessage },
-			{ "CreateUserMessage", ScriptDomainCallbacks::CreateUserMessage },
 			{ "EmitSound", ScriptDomainCallbacks::EmitSound },
-			{ "GetConVarValue", ScriptDomainCallbacks::GetConVarValue },
 			{ "PrintToChatAll", ScriptDomainCallbacks::PrintToChatAll }
 		});
+
+	if (g_pluginConfig->IsQueryConvarsEnabled())
+	{
+		g_scriptExtensions->IncludeFunctions("Domain", { { "GetConVarValue", ScriptDomainCallbacks::GetConVarValue } });
+	}
+
+	if (g_pluginConfig->AreUserMessagesEnabled())
+	{
+		g_scriptExtensions->IncludeFunctions(
+			"Domain", 
+			{ 
+				{ "CreateUserMessage", ScriptDomainCallbacks::CreateUserMessage },
+				{ "OnUserMessage", ScriptUserMessage::OnUserMessage }
+			});
+	}
 
 	g_scriptExtensions->IncludeFunctions(
 		"Entity",
 		{
-			{ "GetSchemaField", ScriptDomainCallbacks::GetSchemaField },
 			{ "SetMoveType", ScriptDomainCallbacks::SetEntityMoveType },
-			{ "SetTransmitState", ScriptDomainCallbacks::SetTransmitState },
-			{ "SetTransmitStateAll", ScriptDomainCallbacks::SetTransmitStateAll }
 		});
+
+	if (g_pluginConfig->IsSchemaReadEnabled())
+	{
+		g_scriptExtensions->IncludeFunctions("Entity", { { "GetSchemaField", ScriptDomainCallbacks::GetSchemaField } });
+	}
+
+	if (g_pluginConfig->IsTransmitStateChangeEnabled())
+	{
+		g_scriptExtensions->IncludeFunctions(
+			"Entity",
+			{
+				{ "SetTransmitState", ScriptDomainCallbacks::SetTransmitState },
+				{ "SetTransmitStateAll", ScriptDomainCallbacks::SetTransmitStateAll }
+			});
+	}
 
 	g_scriptExtensions->IncludeFunctions(
 		"CSPlayerController",
 		{
 			{ "ShowHudHint", ScriptPlayerControllerCallbacks::ShowHudHint },
 			{ "ShowHudMessageHTML", ScriptPlayerControllerCallbacks::ShowHTMLMessage },
-			{ "GetSteamID", ScriptPlayerControllerCallbacks::GetSteamID },
-			{ "Respawn", ScriptPlayerControllerCallbacks::Respawn },
+			{ "Respawn", ScriptPlayerControllerCallbacks::Respawn }
 		});
 
-	g_scriptExtensions->RegisterCustomFunctionTemplate(
-		"UserMessageInfo",
-		{
-			{ "GetField", ScriptUserMessage::UserMessageInfo_GetField },
-			{ "SetField", ScriptUserMessage::UserMessageInfo_SetField },
-			{ "AddAllRecipients", ScriptUserMessage::UserMessageInfo_AddAllRecipients },
-			{ "AddRecipient", ScriptUserMessage::UserMessageInfo_AddRecipient },
-			{ "ClearRecipients", ScriptUserMessage::UserMessageInfo_ClearRecipients },
-			{ "RemoveRecipient", ScriptUserMessage::UserMessageInfo_RemoveRecipient },
-			{ "Send", ScriptUserMessage::UserMessageInfo_Send }
-		},
-		1, // internal fields
-		std::nullopt // Inherits from
-	);
+	if (g_pluginConfig->IsUserIdentificationEnabled())
+	{
+		g_scriptExtensions->IncludeFunctions("CSPlayerController", { { "GetSteamID", ScriptPlayerControllerCallbacks::GetSteamID } });
+	}
+
+	if (g_pluginConfig->AreUserMessagesEnabled())
+	{
+		g_scriptExtensions->RegisterCustomFunctionTemplate(
+			"UserMessageInfo",
+			{
+				{ "GetField", ScriptUserMessage::UserMessageInfo_GetField },
+				{ "SetField", ScriptUserMessage::UserMessageInfo_SetField },
+				{ "AddAllRecipients", ScriptUserMessage::UserMessageInfo_AddAllRecipients },
+				{ "AddRecipient", ScriptUserMessage::UserMessageInfo_AddRecipient },
+				{ "ClearRecipients", ScriptUserMessage::UserMessageInfo_ClearRecipients },
+				{ "RemoveRecipient", ScriptUserMessage::UserMessageInfo_RemoveRecipient },
+				{ "Send", ScriptUserMessage::UserMessageInfo_Send }
+			},
+			1, // internal fields
+			std::nullopt // Inherits from
+		);
+	}
 }
 
 PLUGIN_EXPOSE(MMSPlugin, g_ThisPlugin);
@@ -419,13 +449,23 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 		return false;
 	}
 
+	std::filesystem::path gamedirPath(gamedir);
+	std::filesystem::path configPath = gamedirPath / "addons/cs_scriptExt/configs/features.jsonc";
+	g_pluginConfig = new PluginConfig();
+	if (!g_pluginConfig->Load(configPath.string()))
+	{
+		Msg("[cs_script_ext] Could not read features.json config, using defaults\n");
+	}
+
 	bool bRequiredInitLoaded = true;
 	if (!addresses::Initialize(g_GameConfig))
 		bRequiredInitLoaded = false;
 
 
 	g_scriptExtensions = ScriptExtensions::GetInstance();
-	RegisterScriptFunctions();
+	if (g_pluginConfig->AreDefaultFunctionsEnabled())
+		RegisterScriptFunctions();
+
 	if(!g_scriptExtensions->Initialize(g_GameConfig))
 		bRequiredInitLoaded = false;
 

@@ -106,6 +106,7 @@ for task in MMSPlugin.binaries:
   # packages[sdk_name].addFolder('some_folder_with_files')
   # packages[sdk_name].addFile('configs/config.cfg', 'other/new_name_for_a_config.cfg')
   packages[sdk_name].addFile(f'gamedata/cs_scriptExt.games.txt', 'gamedata/cs_scriptExt.games.txt')
+  packages[sdk_name].addFile(f'configs/features.jsonc.example', 'configs/features.jsonc.example')
 
   if task.debug:
     pdb_list.append(task.debug)

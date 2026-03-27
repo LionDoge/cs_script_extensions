@@ -82,6 +82,9 @@
     <ClCompile Include="src\scriptExtensions\playerControllerCallbacks.cpp">
       <Filter>Source Files\Script Extensions\CSPlayerController</Filter>
     </ClCompile>
+    <ClCompile Include="src\pluginconfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cpointscript.h">
@@ -223,6 +226,9 @@
       <Filter>Header Files\Script Extensions\CSPlayerController</Filter>
     </ClInclude>
     <ClInclude Include="src\plugin.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pluginconfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

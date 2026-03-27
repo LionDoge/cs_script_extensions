@@ -16,6 +16,7 @@ for sdk_target in MMSPlugin.sdk_targets:
     os.path.join(builder.sourcePath, 'vendor', 'v8', 'include'),
     os.path.join(builder.sourcePath, 'src', 'protobuf', 'generated'),
     os.path.join(builder.sourcePath, 'vendor', 'safetyhook'),
+    os.path.join(builder.sourcePath, 'vendor', 'nlohmann'),
   ]
 
   binary.compiler.includes += [
@@ -47,6 +48,7 @@ for sdk_target in MMSPlugin.sdk_targets:
     'src/plugin.cpp',
     'src/entitylistener.cpp',
     'src/playermanager.cpp',
+    'src/pluginconfig.cpp',
 
     'src/cs2_sdk/globalsymbol.cpp',
     'src/cs2_sdk/schema.cpp',
