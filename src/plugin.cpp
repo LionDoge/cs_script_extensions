@@ -53,6 +53,7 @@
 #include "playermanager.h"
 #include "entitylistener.h"
 #include "pluginconfig.h"
+#include "filesystem.h"
 
 SH_DECL_HOOK3_void(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, bool, bool, bool);
 SH_DECL_HOOK4_void(IServerGameClients, ClientActive, SH_NOATTRIB, 0, CPlayerSlot, bool, const char *, uint64);
@@ -599,6 +600,7 @@ void MMSPlugin::OnLevelInit( char const *pMapName,
 		if (!kv)
 			return;
 
+		// TODO: check through IFilesystem if the vjs asset exists
 		kv->SetString("targetname", "script_mapspawn");
 		if (!scriptStream.good())
 			kv->SetString("cs_script", "scripts/mapspawn.vjs");
@@ -615,6 +617,10 @@ void MMSPlugin::OnLevelInit( char const *pMapName,
 				Log_Warning(g_logChanScript, "Failed to find script component on the point_script entity! mapspawn script will not be ran");
 				std::string fileContents{ std::istreambuf_iterator<char>(scriptStream), std::istreambuf_iterator<char>() };
 				g_scriptExtensions->RunScriptString(script, rawScriptPath, fileContents.c_str());
+			}
+			else 
+			{
+				point_script->Remove();
 			}
 		}
 	}
