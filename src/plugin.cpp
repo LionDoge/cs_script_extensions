@@ -626,10 +626,13 @@ void MMSPlugin::OnLevelInit( char const *pMapName,
 	}
 }
 
+// remember the script path by its id for reloading purposes
+static std::unordered_map<uint64_t, std::string> scriptPathMap;
 void MMSPlugin::OnLevelShutdown()
 {
 	g_hudHintManager.CancelAllHintMessages();
 	GameEntitySystem()->RemoveListenerEntity(&g_entityListener);
+	scriptPathMap.clear();
 }
 
 void MMSPlugin::Hook_SetGameSpawnGroupMgr(IGameSpawnGroupMgr* pSpawnGroupMgr)
@@ -716,10 +719,6 @@ void MMSPlugin::Hook_CheckTransmit(CCheckTransmitInfo** ppInfoList, int infoCoun
 	}
 }
 
-// remember the script path by its id for reloading purposes
-// yes this doesn't get cleaned properly, but I don't care right now.
-static std::unordered_map<uint64_t, std::string> scriptPathMap;
-
 std::ifstream MMSPlugin::OpenGameRelativeFile(std::string_view relativePath)
 {
 	CBufferStringGrowable<256> gamedirpath;
@@ -760,11 +759,16 @@ CON_COMMAND_F(csscript_load, "Creates a script entity and loads the provided fil
 	if (args.ArgC() < 2)
 	{
 		META_CONPRINT("Usage: csscript_load <script_file> [script_entity_name]\n");
+		return;
 	}
+
+	if (!GameEntitySystem())
+		return;
 
 	const char* scriptName = "script";
 	if (args.ArgC() > 2)
 		scriptName = args[2];
+
 
 	auto point_script = addresses::CreateEntityByName("point_script", -1);
 	auto kv = new CEntityKeyValues();
@@ -784,7 +788,11 @@ CON_COMMAND_F(csscript_reload, "Reload a script (loaded by script_load only)", F
 	if (args.ArgC() < 2)
 	{
 		META_CONPRINT("Usage: csscript_reload <script_entity_name>\n");
+		return;
 	}
+
+	if (!GameEntitySystem())
+		return;
 
 	CBaseEntity* ent = nullptr;
 	while ((ent = UTIL_FindEntityByName(ent, args[1])))
@@ -807,6 +815,9 @@ CON_COMMAND_F(csscript_reload, "Reload a script (loaded by script_load only)", F
 
 CON_COMMAND_F(remove_scripts, "Remove all point_script entities", FCVAR_NONE)
 {
+	if (!GameEntitySystem())
+		return;
+
 	CBaseEntity* ent = nullptr;
 	while ((ent = UTIL_FindEntityByClassname(ent, "point_script")))
 	{
@@ -821,6 +832,7 @@ CON_COMMAND_F(script_run_code, "Run code inside an existing script", FCVAR_NONE)
 	if (args.ArgC() < 3)
 	{
 		META_CONPRINT("Usage: script_code <script_entity_name> <js code>\n");
+		return;
 	}
 	
 	const auto isolate = v8::Isolate::GetCurrent();
