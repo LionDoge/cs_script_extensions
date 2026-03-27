@@ -127,7 +127,7 @@ CEntityHandle ScriptExtensions::GetEntityHandleFromScriptObject(v8::Local<v8::Ob
 	CSScriptHandle* entPointer = static_cast<CSScriptHandle*>(obj->GetAlignedPointerFromInternalField(1));
 	if (!entPointer)
 	{
-		Msg("[cs_script_extensions] Failed to get entity pointer from object! (Field 1 of object doesn't exist)");
+		PluginMsg("Failed to get entity pointer from object! (Field 1 of object doesn't exist)");
 		return {};
 	}
 	return entPointer->handle;
@@ -307,7 +307,7 @@ CCSScript_EntityScript* ScriptExtensions::GetScriptFromEntity(CEntityInstance* e
 			if (V_stristr(typeName, "CCSScript") != nullptr)
 			{
 				_csScriptOffset = i;
-				Msg("Found CCSScript entity offset at: %x\n", _csScriptOffset);
+				PluginMsg("Found CCSScript entity offset at: %x\n", _csScriptOffset);
 				break;
 			}
 			

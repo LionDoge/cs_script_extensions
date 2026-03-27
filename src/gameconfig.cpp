@@ -1,7 +1,7 @@
 #include "gameconfig.h"
 #include "addresses.h"
+#include "common.h"
 
-void Panic(const char* msg, ...);
 CGameConfig* g_GameConfig = nullptr;
 
 CGameConfig::CGameConfig(const std::string& gameDir, const std::string& path)

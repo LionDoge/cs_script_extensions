@@ -82,5 +82,8 @@ inline void MsgCrit(const tchar* pMsg, ...) {
 	Msg("[cs_script_ext] [CRIT] %s", pMsg);
 }
 
+void PluginMsg(const char* msg, ...);
+void Panic(const char* msg, ...);
+
 // Would be cool to have in SDK, but I'll just put it there
 #define Log_Debug( Channel, /* [Color], Message, */ ... ) InternalMsg( Channel, LS_DETAILED, /* [Color], Message, */ ##__VA_ARGS__ )

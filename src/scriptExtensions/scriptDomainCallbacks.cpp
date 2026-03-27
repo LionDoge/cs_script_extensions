@@ -69,7 +69,7 @@ void ScriptDomainCallbacks::NewMsg(const v8::FunctionCallbackInfo<v8::Value>& ar
 	std::string cppString(length, '\0');
 	v8String->WriteUtf8(isolate, &cppString[0], length);
 
-	Msg("[cs_script] CustomMsg: %s", cppString.c_str());
+	PluginMsg("CustomMsg: %s", cppString.c_str());
 }
 
 void ScriptDomainCallbacks::GetSchemaField(const v8::FunctionCallbackInfo<v8::Value>& args)

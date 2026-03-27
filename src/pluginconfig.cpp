@@ -19,7 +19,7 @@ bool PluginConfig::Load(std::string_view path)
 	}
 	catch (const json::parse_error& e)
 	{
-		Msg("[cs_script_ext] Failed to parse config file: %s\n", e.what());
+		PluginMsg("[Failed to parse config file: %s\n", e.what());
 		return false;
 	}
 

@@ -104,7 +104,7 @@ bool Hook_V8_TryCatch_HasCaught(v8::TryCatch* tryCatch)
 	auto script = ScriptExtensions::GetCurrentCsScriptInstance();
 	if (!script)
 	{
-		Msg("[cs_script_extensions] V8 exception thrown but no current script context found! Stack trace unavailable.\n");
+		PluginMsg("V8 exception thrown but no current script context found! Stack trace unavailable.\n");
 		return res;
 	}
 
@@ -115,7 +115,7 @@ bool Hook_V8_TryCatch_HasCaught(v8::TryCatch* tryCatch)
 	v8::Local<v8::Message> message = tryCatch->Message();
 	if (message.IsEmpty())
 	{
-		Msg("[cs_script_extensions] V8 exception thrown but no message available! Stack trace unavailable.\n");
+		PluginMsg("V8 exception thrown but no message available! Stack trace unavailable.\n");
 		return res;
 	}
 	CBufferStringN<256> gamedirpath;
@@ -166,25 +166,25 @@ void InitScriptExceptionHook()
 #ifdef _WIN32
 	HMODULE hModule = GetModuleHandleA("v8.dll");
 	if (hModule == NULL) {
-		Msg("Failed to get module handle for v8. Error: %s\n", GetLastError());
+		PluginMsg("Failed to get module handle for v8. Error: %s\n", GetLastError());
 		return;
 	}
 	FARPROC funcAddress = GetProcAddress(hModule, "?HasCaught@TryCatch@v8@@QEBA_NXZ");
 	if (!funcAddress)
 	{
-		Msg("Failed to get address for v8::TryCatch::HasCaught. Error: %s\n", GetLastError());
+		PluginMsg("Failed to get address for v8::TryCatch::HasCaught. Error: %s\n", GetLastError());
 		return;
 	}
 #else
 	void* hModule = dlopen("libv8.so", RTLD_LAZY);
 	if (!hModule) {
-		Msg("Failed to get module handle for v8. Error: %s\n", dlerror());
+		PluginMsg("Failed to get module handle for v8. Error: %s\n", dlerror());
 		return;
 	}
 	void* funcAddress = dlsym(hModule, "_ZNK2v88TryCatch9HasCaughtEv");
 	if (!funcAddress)
 	{
-		Msg("Failed to get address for v8::TryCatch::HasCaught. Error: %s\n", dlerror());
+		PluginMsg("Failed to get address for v8::TryCatch::HasCaught. Error: %s\n", dlerror());
 		return;
 	}
 #endif
@@ -271,8 +271,6 @@ CServerSideClient* GetClientBySlot(CPlayerSlot slot)
 	return list->Element(slot.Get());
 }
 
-// Snippet from: CS2Fixes
-// modified by liondoge to change log tag.
 void Panic(const char* msg, ...)
 {
 	va_list args;
@@ -282,6 +280,19 @@ void Panic(const char* msg, ...)
 	V_vsnprintf(buf, sizeof(buf) - 1, msg, args);
 
 	Warning("[cs_script_ext] %s", buf);
+
+	va_end(args);
+}
+
+void PluginMsg(const char* msg, ...)
+{
+	va_list args;
+	va_start(args, msg);
+
+	char buf[1024] = {};
+	V_vsnprintf(buf, sizeof(buf) - 1, msg, args);
+
+	Msg("[cs_script_ext] %s", buf);
 
 	va_end(args);
 }
@@ -445,7 +456,7 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 	if (!g_GameConfig->Init(g_pFullFileSystem, conf_error, sizeof(conf_error)))
 	{
 		snprintf(error, maxlen, "Could not read %s: %s", g_GameConfig->GetPath().c_str(), conf_error);
-		Panic("[cs_script_ext] %s\n", error);
+		Panic("%s\n", error);
 		return false;
 	}
 
@@ -453,7 +464,7 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 	std::filesystem::path configPath = gamedirFsPath / "addons" / "cs_scriptExt" / "configs" / "features.jsonc";
 	if (!g_pluginConfig.Load(configPath.string()))
 	{
-		Msg("[cs_script_ext] Could not read features.json config, using defaults\n");
+		PluginMsg("Could not read features.json config, using defaults\n");
 	}
 
 	bool bRequiredInitLoaded = true;
@@ -844,7 +855,7 @@ CON_COMMAND_F(script_run_code, "Run code inside an existing script", FCVAR_NONE)
 			v8::Local<v8::Value> result;
 			if (!shellEval->Call(scriptContext, v8::Undefined(isolate), 1, argv).ToLocal(&result)) {
 				v8::String::Utf8Value error(isolate, try_catch.Exception());
-				Msg("Error: %s\n", *error);
+				PluginMsg("Error: %s\n", *error);
 			}
 
 			/*v8::TryCatch tryCatch(isolate);
