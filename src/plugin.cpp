@@ -434,7 +434,7 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 	SH_ADD_HOOK(IGameEventSystem, PostEventAbstract, g_gameEventSystem, SH_MEMBER(this, &MMSPlugin::Hook_PostEvent), false);
 	SH_ADD_HOOK(ISource2GameEntities, CheckTransmit, g_pSource2GameEntities, SH_MEMBER(this, &MMSPlugin::Hook_CheckTransmit), true);
 
-	META_CONPRINT("[cs_script_ext] Loading gamedata...");
+	META_CONPRINT("[cs_script_ext] Loading gamedata...\n");
 	CBufferStringGrowable<256> gamedirpath;
 	g_pEngineServer2->GetGameDir(gamedirpath);
 	std::string gamedir = CGameConfig::GetDirectoryName(gamedirpath.Get());
