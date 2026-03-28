@@ -231,6 +231,9 @@
     <ClInclude Include="src\pluginconfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\cs2_sdk\toolsresourcelistener.h">
+      <Filter>Header Files\cs2_sdk</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">

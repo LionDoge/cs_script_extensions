@@ -24,6 +24,8 @@
 #include "utlatuolist.h"
 #include "v8-function.h"
 #include "ehandle.h"
+#include "entity/cbaseentity.h"
+#include "toolsresourcelistener.h"
 
 class CCSBaseScript : public IEntityListener, public CUtlAutoList<CCSBaseScript>
 {
@@ -53,6 +55,8 @@ public:
 	bool operator==(const CCSBaseScript& rhs) const;
 	const v8::Global<v8::Context>& GetContext();
 	uint64_t GetScriptIndex();
+	bool IsActive() const;
+	bool IsTypescript() const;
 	void PrintSummary() const;
 
 	// Registers a callback function for this script.
@@ -111,9 +115,10 @@ struct CSScriptHandle
 };
 
 // above CSScript struct - (3 * 0x8)
-struct CSScriptHeader
+// This is likely just a vtable of IToolsResourceListener which comes up all the way here cause of multiple inheritance.
+// It's a good 'checkpoint' for other relevant data which seems to be included inline in the entity.
+class CCSPointScriptEntity : public IToolsResourceListener
 {
-	void* toolsResourceListener;
-	CUtlString scriptPath;
+	const char* scriptPath;
 	v8::Global<v8::String> scriptTextContents;
 };

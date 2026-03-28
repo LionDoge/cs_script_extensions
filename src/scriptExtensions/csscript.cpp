@@ -35,6 +35,16 @@ uint64_t CCSBaseScript::GetScriptIndex()
 	return m_globalScriptIndex;
 }
 
+bool CCSBaseScript::IsActive() const
+{
+	return m_isActive;
+}
+
+bool CCSBaseScript::IsTypescript() const
+{
+	return m_isUsingLegacyTypescript;
+}
+
 void CCSBaseScript::AddCallback(CGlobalSymbol callbackName, v8::Local<v8::Function> callbackFunction)
 {
 	if (m_callbackMap.HasElement(callbackName))

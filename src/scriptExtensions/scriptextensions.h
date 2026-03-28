@@ -89,7 +89,7 @@ public:
 
 	// Gets the script component from a point_script entity.
 	static CCSScript_EntityScript* GetScriptFromEntity(CEntityInstance* ent);
-	CSScriptHeader* GetScriptHeaderFromEntity(CEntityInstance* ent);
+	CCSPointScriptEntity* GetPointScriptComponent(CEntityInstance* ent);
 
 	// Invoke named callback on all scripts, this doesn't let you retrieve return values yet, maybe later...
 	// Depending on the needs you may want to manually iterate script entities and call InvokeCallback on each of them instead.

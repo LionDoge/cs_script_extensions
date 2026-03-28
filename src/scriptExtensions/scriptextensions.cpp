@@ -272,7 +272,7 @@ namespace {
 		return (addr >= section->m_pBase && addr < (void*)((uintptr_t)section->m_pBase + section->m_iSize));
 	}
 }
-class CCSPointScriptEntity {};
+
 CCSScript_EntityScript* ScriptExtensions::GetScriptFromEntity(CEntityInstance* ent)
 {
 	if (!ent)
@@ -346,12 +346,12 @@ CCSScript_EntityScript* ScriptExtensions::GetScriptFromEntity(CEntityInstance* e
 	return reinterpret_cast<CCSScript_EntityScript*>((unsigned char*)ent + _csScriptOffset);
 }
 
-CSScriptHeader* ScriptExtensions::GetScriptHeaderFromEntity(CEntityInstance* ent)
+CCSPointScriptEntity* ScriptExtensions::GetPointScriptComponent(CEntityInstance* ent)
 {
 	if (!ent)
 		return nullptr;
 	if (dynamic_cast<CCSPointScriptEntity*>(ent) == nullptr)
 		return nullptr;
 
-	return reinterpret_cast<CSScriptHeader*>((unsigned char*)GetScriptFromEntity(ent) - 0x18);
+	return reinterpret_cast<CCSPointScriptEntity*>((unsigned char*)GetScriptFromEntity(ent) - 0x18);
 }
