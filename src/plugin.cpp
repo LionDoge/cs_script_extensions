@@ -608,20 +608,26 @@ void MMSPlugin::OnLevelInit( char const *pMapName,
 			kv->SetString("cs_script", "");
 
 		addresses::DispatchSpawn(point_script, kv);
+		const auto script = point_script->GetScript();
 
-		if (scriptStream.good())
+		if (!scriptStream.good())
 		{
-			Log_Debug(g_logChanScript, "Loading %s script...", rawScriptPath);
-			if (const auto script = point_script->GetScript(); script)
-			{
-				Log_Warning(g_logChanScript, "Failed to find script component on the point_script entity! mapspawn script will not be ran");
-				std::string fileContents{ std::istreambuf_iterator<char>(scriptStream), std::istreambuf_iterator<char>() };
-				g_scriptExtensions->RunScriptString(script, rawScriptPath, fileContents.c_str());
-			}
-			else 
-			{
+			if (script && !script->IsActive())
 				point_script->Remove();
-			}
+			return;
+		}
+
+		Log_Debug(g_logChanScript, "Loading %s script...", rawScriptPath);
+		if (script)
+		{
+			std::string fileContents{ std::istreambuf_iterator<char>(scriptStream), std::istreambuf_iterator<char>() };
+			g_scriptExtensions->RunScriptString(script, rawScriptPath, fileContents.c_str());
+		}
+		else 
+		{
+			Log_Warning(g_logChanScript, "Failed to find script component on the point_script entity! mapspawn script will not be ran");
+			point_script->Remove();
+			return;
 		}
 	}
 }
