@@ -333,7 +333,6 @@ const char *PLUGIN_REVISION_COUNT = \"{revision_count}\";
         cxx.cflags += ['-fvisibility=hidden']
         cxx.cxxflags += ['-fvisibility-inlines-hidden']
       cxx.cxxflags += [
-        '-fno-exceptions',
         '-fno-threadsafe-statics',
         '-Wno-non-virtual-dtor',
         '-Wno-overloaded-virtual',
