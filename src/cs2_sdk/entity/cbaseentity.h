@@ -28,7 +28,7 @@
 #include "ehandle.h"
 #include "entitykeyvalues.h"
 #include "addresses.h"
-
+#include "gameconfig.h"
 
 class CGameUI;
 class CEnvHudHint;
@@ -202,6 +202,12 @@ public:
 	}
 
 	const char* GetName() const { return m_pEntity->m_name.String(); }
+
+	bool IsController()
+	{
+		static int offset = g_GameConfig->GetOffset("IsPlayerController");
+		return CALL_VIRTUAL(bool, offset, this);
+	}
 
 	/* Begin Custom Entities Cast */
 

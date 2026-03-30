@@ -45,8 +45,8 @@ void ScriptPlayerControllerCallbacks::GetSteamID(const v8::FunctionCallbackInfo<
 		return;
 	}
 
-	auto ent = entHandle.Get();
-	if (!ent || ent->GetEntityIndex().Get() <= 0 || ent->GetEntityIndex().Get() > 65)
+	auto ent = static_cast<CBaseEntity*>(entHandle.Get());
+	if (!ent || !ent->IsController())
 	{
 		V8ThrowException(isolate, "CSPlayerController.GetSteamID invoked with incorrect 'this' value.");
 		return;
@@ -159,8 +159,8 @@ void ScriptPlayerControllerCallbacks::Respawn(const v8::FunctionCallbackInfo<v8:
 		return;
 	}
 
-	auto ent = entHandle.Get();
-	if (!ent || ent->GetEntityIndex().Get() <= 0 || ent->GetEntityIndex().Get() > 65)
+	auto ent = static_cast<CBaseEntity*>(entHandle.Get());
+	if (!ent || !ent->IsController())
 	{
 		V8ThrowException(isolate, "CSPlayerController.GetSteamID invoked with incorrect 'this' value.");
 		return;

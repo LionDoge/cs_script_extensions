@@ -323,12 +323,15 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 				}
 				auto recipientObj = recipientVal.As<v8::Object>();
 				auto recipientEntHandle = ScriptExtensions::GetEntityHandleFromScriptObject(recipientObj);
-				if (!recipientEntHandle.IsValid() || recipientEntHandle.GetEntryIndex() > (MAXPLAYERS + 1))
+				if (!recipientEntHandle.IsValid())
+					continue;
+
+				auto recipientController = static_cast<CCSPlayerController*>(recipientEntHandle.Get());
+				if (!recipientController || !recipientController->IsController())
 				{
 					V8ThrowException(isolate, "EmitSound argument 0.recipients must be an array of CSPlayerController objects");
 					return;
 				}
-				auto recipientController = (CCSPlayerController*)recipientEntHandle.Get();
 				filter.AddRecipient(recipientController->GetPlayerSlot());
 			}
 		}
@@ -375,8 +378,9 @@ void ScriptDomainCallbacks::SetTransmitState(const v8::FunctionCallbackInfo<v8::
 		V8ThrowException(isolate, "Method Entity.SetTransmitState failed to get entity from 'this' object.");
 		return;
 	}
-	auto entIndex = targetEnt.GetEntryIndex();
-	if (entIndex >= 0 && entIndex < MAXPLAYERS + 1)
+
+	auto entity = static_cast<CBaseEntity*>(targetEnt.Get());
+	if (!entity || entity->IsController())
 	{
 		V8ThrowException(isolate, "Can not set transmit state on player controllers");
 		return;
@@ -384,13 +388,19 @@ void ScriptDomainCallbacks::SetTransmitState(const v8::FunctionCallbackInfo<v8::
 
 	auto plrObject = args[0]->ToObject(context).ToLocalChecked();
 	CEntityHandle targetPlrHandle = ScriptExtensions::GetEntityHandleFromScriptObject(plrObject);
-	if (!targetPlrHandle.IsValid() || targetPlrHandle.GetEntryIndex() <= 0 || targetPlrHandle.GetEntryIndex() > MAXPLAYERS + 1)
+	if (!targetPlrHandle.IsValid())
 	{
-		V8ThrowException(isolate, "Method Entity.SetTransmitState first argument must be a CSPlayerController instance");
+		V8ThrowException(isolate, "Method Entity.SetTransmitState target player entity is not valid");
+		return;
+	}
+	auto targetPlr = static_cast<CCSPlayerController*>(targetPlrHandle.Get());
+	if (!targetPlr || !targetPlr->IsController())
+	{
+		V8ThrowException(isolate, "Method Entity.SetTransmitState target player entity is not a player controller");
 		return;
 	}
 
-	auto targetPlr = (CCSPlayerController*)targetPlrHandle.Get();
+	auto entIndex = targetEnt.GetEntryIndex();
 	bool state = args[1].As<v8::Boolean>()->Value();
 	g_playerManager.SetEntityTransmitBlocked(targetPlr->GetPlayerSlot(), entIndex, !state);
 }
@@ -417,13 +427,15 @@ void ScriptDomainCallbacks::SetTransmitStateAll(const v8::FunctionCallbackInfo<v
 		V8ThrowException(isolate, "Method Entity.SetTransmitStateAll failed to get entity from 'this' object.");
 		return;
 	}
-	auto entIndex = targetEntHandle.GetEntryIndex();
-	if (entIndex >= 0 && entIndex < MAXPLAYERS + 1)
+	
+	auto entity = static_cast<CBaseEntity*>(targetEntHandle.Get());
+	if (!entity || entity->IsController())
 	{
 		V8ThrowException(isolate, "Can not set transmit state on player controllers");
 		return;
 	}
 
+	auto entIndex = targetEntHandle.GetEntryIndex();
 	bool state = args[1].As<v8::Boolean>()->Value();
 	g_playerManager.SetEntityTransmitBlockedForAll(entIndex, !state);
 }
