@@ -22,7 +22,7 @@
 #include <string_view>
 #include <v8-primitive.h>
 #include <v8-isolate.h>
-#include "scriptExtensions.h"
+#include "scriptextensions.h"
 
 extern LoggingChannelID_t g_logChanScript;
 // Common utility functions that can be used in script callbacks
