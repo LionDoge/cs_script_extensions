@@ -26,7 +26,7 @@ jobs:
     name: Build
     runs-on: ${{ matrix.os }}
     env:
-        HL2SDKCS2: ${{ github.workspace }}/cs_script_extensions/sdk
+        HL2SDKCS2: ${{ github.workspace }}/cs_script_extensions/sdks/hl2sdk-cs2
         MMSOURCE_DEV: ${{ github.workspace }}/mmsource-2.0
     container: ${{ matrix.container }}
     strategy:
