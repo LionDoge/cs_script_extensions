@@ -82,7 +82,7 @@ jobs:
         continue-on-error: true
         run: |
           cd mmsource-2.0
-          (Get-Content .\core\sourcehook\sh_memfuncinfo.h) -replace 'return input', 'return (OutputClass)return input' | Set-Content .\core\sourcehook\sh_memfuncinfo.h
+          (Get-Content .\core\sourcehook\sh_memfuncinfo.h) -replace 'return input', 'return (OutputClass)input' | Set-Content .\core\sourcehook\sh_memfuncinfo.h
           cd ..
 
       - name: Install Clang 21
