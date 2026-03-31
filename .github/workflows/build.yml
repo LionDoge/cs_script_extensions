@@ -1,0 +1,142 @@
+name: CI
+
+on:
+  push:
+    tags:
+      - '*'
+    branches:
+      - '*'
+    paths-ignore:
+    - LICENSE
+    - README.md
+    - 'configs**'
+    - '**.sln'
+    - '**.vcxproj**'
+  pull_request:
+    paths-ignore:
+    - LICENSE
+    - README.md
+    - 'configs**'
+    - '**.sln'
+    - '**.vcxproj**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    env:
+        HL2SDKCS2: ${{ github.workspace }}/cs_script_extensions/sdk
+        MMSOURCE_DEV: ${{ github.workspace }}/mmsource-2.0
+    container: ${{ matrix.container }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: windows-latest
+          - os: ubuntu-latest
+            container: registry.gitlab.steamos.cloud/steamrt/sniper/sdk
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: cs_script_extensions
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Checkout Metamod
+        uses: actions/checkout@v4
+        with:
+          repository: alliedmodders/metamod-source
+          ref: master
+          path: mmsource-2.0
+          submodules: recursive
+
+      - name: Checkout AMBuild
+        uses: actions/checkout@v4
+        with:
+          repository: alliedmodders/ambuild
+          path: ambuild
+
+      - name: Install AMBuild
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            pip install setuptools
+          fi
+          cd ambuild && python setup.py install && cd ..
+
+      - name: Patch Metamod (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        continue-on-error: true
+        run: |
+          cd mmsource-2.0
+          sed -i 's/return input/return (OutputClass)input/' ./core/sourcehook/sh_memfuncinfo.h
+          cd ..
+
+      - name: Patch Metamod (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: powershell
+        continue-on-error: true
+        run: |
+          cd mmsource-2.0
+          (Get-Content .\core\sourcehook\sh_memfuncinfo.h) -replace 'return input', 'return (OutputClass)return input' | Set-Content .\core\sourcehook\sh_memfuncinfo.h
+          cd ..
+
+      - name: Install Clang 21
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          echo "deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-21 main" >> /etc/apt/sources.list.d/llvm.list
+          echo "deb-src http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-21 main" >> /etc/apt/sources.list.d/llvm.list
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          apt update && apt install -y clang-21
+          ln -sf /usr/bin/clang-21 /usr/bin/clang && ln -sf /usr/bin/clang++-21 /usr/bin/clang++
+
+      - name: Build
+        working-directory: cs_script_extensions
+        shell: bash
+        run: |
+          mkdir build && cd build
+          python ../configure.py --enable-optimize --sdks cs2
+          ambuild
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ runner.os }}
+          path: cs_script_extensions/build/package/cs2
+
+  release:
+    name: Release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Package
+        run: |
+          version=`echo $GITHUB_REF | sed "s/refs\/tags\///"`
+          ls -Rall
+          if [ -d "./Linux/" ]; then
+            cd ./Linux/
+            tar -czf ../${{ github.event.repository.name }}-${version}-linux.tar.gz *
+            cd -
+          fi
+          if [ -d "./Windows/" ]; then
+            cd ./Windows/
+            zip -r ../${{ github.event.repository.name }}-${version}-windows.zip *
+            cd -
+          fi
+
+      - name: Release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GHUB_SECRET }}
+          file: ${{ github.event.repository.name }}-*
+          tag: ${{ github.ref }}
+          file_glob: true
