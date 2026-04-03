@@ -54,6 +54,7 @@
 #include "entitylistener.h"
 #include "pluginconfig.h"
 #include "filesystem.h"
+#include "iserver.h"
 
 SH_DECL_HOOK3_void(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, bool, bool, bool);
 SH_DECL_HOOK4_void(IServerGameClients, ClientActive, SH_NOATTRIB, 0, CPlayerSlot, bool, const char *, uint64);
@@ -70,6 +71,8 @@ SH_DECL_HOOK0_void(IServerGameDLL, GameServerSteamAPIActivated, SH_NOATTRIB, 0);
 SH_DECL_HOOK8_void(IGameEventSystem, PostEventAbstract, SH_NOATTRIB, 0, CSplitScreenSlot, bool, int, const uint64*,
 	INetworkMessageInternal*, const CNetMessage*, unsigned long, NetChannelBufType_t);
 SH_DECL_HOOK7_void(ISource2GameEntities, CheckTransmit, SH_NOATTRIB, 0, CCheckTransmitInfo**, int, CBitVec<16384>&, CBitVec<16384>&, const Entity2Networkable_t**, const uint16*, int);
+class GameSessionConfiguration_t {};
+SH_DECL_HOOK3_void(INetworkServerService, StartupServer, SH_NOATTRIB, 0, const GameSessionConfiguration_t&, ISource2WorldSession*, const char*)
 
 MMSPlugin g_ThisPlugin;
 IServerGameDLL *server = NULL;
@@ -443,6 +446,7 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 	SH_ADD_HOOK(IServerGameClients, ClientCommand, g_pSource2GameClients, SH_MEMBER(this, &MMSPlugin::Hook_ClientCommand), false);
 	SH_ADD_HOOK(IGameEventSystem, PostEventAbstract, g_gameEventSystem, SH_MEMBER(this, &MMSPlugin::Hook_PostEvent), false);
 	SH_ADD_HOOK(ISource2GameEntities, CheckTransmit, g_pSource2GameEntities, SH_MEMBER(this, &MMSPlugin::Hook_CheckTransmit), true);
+	SH_ADD_HOOK(INetworkServerService, StartupServer, g_pNetworkServerService, SH_MEMBER(this, &MMSPlugin::Hook_StartupServer), true);
 
 	META_CONPRINT("[cs_script_ext] Loading gamedata...\n");
 	CBufferStringGrowable<256> gamedirpath;
@@ -489,6 +493,13 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 	InitScriptExceptionHook();
 
 	META_CONVAR_REGISTER(FCVAR_RELEASE | FCVAR_GAMEDLL);
+
+	if (late)
+	{
+		const auto entitySystem = GameEntitySystem();
+		if (entitySystem)
+			entitySystem->AddListenerEntity(&g_entityListener);
+	}
 	
 	return true;
 }
@@ -504,8 +515,12 @@ bool MMSPlugin::Unload(char *error, size_t maxlen)
 	SH_REMOVE_HOOK(IServerGameClients, ClientConnect, gameclients, SH_MEMBER(this, &MMSPlugin::Hook_ClientConnect), false);
 	SH_REMOVE_HOOK(IServerGameClients, ClientCommand, gameclients, SH_MEMBER(this, &MMSPlugin::Hook_ClientCommand), false);
 	SH_REMOVE_HOOK(ISource2GameEntities, CheckTransmit, g_pSource2GameEntities, SH_MEMBER(this, &MMSPlugin::Hook_CheckTransmit), true);
+	SH_ADD_HOOK(INetworkServerService, StartupServer, g_pNetworkServerService, SH_MEMBER(this, &MMSPlugin::Hook_StartupServer), true);
 	delete g_scriptExtensions;
 	g_v8ExceptionHook = {};
+	const auto entitySystem = GameEntitySystem();
+	if (entitySystem)
+		entitySystem->RemoveListenerEntity(&g_entityListener);
 
 	return true;
 }
@@ -584,7 +599,6 @@ void MMSPlugin::OnLevelInit( char const *pMapName,
 									 bool loadGame,
 									 bool background )
 {
-	GameEntitySystem()->AddListenerEntity(&g_entityListener);
 	if (cvar_enable_mapspawn_script.GetBool())
 	{
 		// Check if there's a raw js mapspawn in the game directory (maybe provided by server admin).
@@ -623,7 +637,7 @@ void MMSPlugin::OnLevelInit( char const *pMapName,
 			std::string fileContents{ std::istreambuf_iterator<char>(scriptStream), std::istreambuf_iterator<char>() };
 			g_scriptExtensions->RunScriptString(script, rawScriptPath, fileContents.c_str());
 		}
-		else 
+		else
 		{
 			Log_Warning(g_logChanScript, "Failed to find script component on the point_script entity! mapspawn script will not be ran");
 			point_script->Remove();
@@ -637,7 +651,6 @@ static std::unordered_map<uint64_t, std::string> scriptPathMap;
 void MMSPlugin::OnLevelShutdown()
 {
 	g_hudHintManager.CancelAllHintMessages();
-	GameEntitySystem()->RemoveListenerEntity(&g_entityListener);
 	scriptPathMap.clear();
 }
 
@@ -649,6 +662,7 @@ void MMSPlugin::Hook_SetGameSpawnGroupMgr(IGameSpawnGroupMgr* pSpawnGroupMgr)
 
 void MMSPlugin::Hook_StartupServer(const GameSessionConfiguration_t& config, ISource2WorldSession* pSession, const char* pszMapName)
 {
+	GameEntitySystem()->AddListenerEntity(&g_entityListener);
 	if (g_pNetworkServerService->GetIGameServer())
 		g_iSetGameSpawnGroupMgrId = SH_ADD_HOOK(IServer, SetGameSpawnGroupMgr, g_pNetworkServerService->GetIGameServer(), SH_MEMBER(this, &MMSPlugin::Hook_SetGameSpawnGroupMgr), false);
 
