@@ -77,7 +77,7 @@ inline std::optional<CEntityHandle> ExtractEntityHandleFromObject(v8::Isolate* i
 	if (obj->InternalFieldCount() != 3)
 	{
 		V8ThrowException(isolate,
-			std::format("{} invoked with an invalid 'this' value.", contextName)
+			std::format("{} invoked with an invalid 'this' value (mismatched internal field count).", contextName)
 		);
 		return std::nullopt;
 	}
@@ -87,10 +87,10 @@ inline std::optional<CEntityHandle> ExtractEntityHandleFromObject(v8::Isolate* i
 	// But I trust no one...
 	// JS can't manipulate internal fields anyways, but it can bind any object as 'this' to our functions which could cause unfun security issues if unchecked.
 	auto marker = (uint32_t*)obj->GetAlignedPointerFromInternalField(0);
-	if (!modules::server->IsAddressInRange(marker) || *marker != ScriptHandleType::Entity)
+	if (!modules::server->IsAddressInRange(marker) || *marker != 1)
 	{
 		V8ThrowException(isolate,
-			std::format("{} invoked with an invalid 'this' value.", contextName)
+			std::format("{} invoked with an invalid 'this' value (internal field 0 is not valid).", contextName)
 		);
 		return std::nullopt;
 	}
@@ -99,7 +99,7 @@ inline std::optional<CEntityHandle> ExtractEntityHandleFromObject(v8::Isolate* i
 	if (!scriptHandle || scriptHandle->typeIdentifier != ScriptHandleType::Entity)
 	{
 		V8ThrowException(isolate,
-			std::format("{} invoked with an invalid 'this' value.", contextName)
+			std::format("{} invoked with an invalid 'this' value (not an entity type).", contextName)
 		);
 		return std::nullopt;
 	}
