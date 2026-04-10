@@ -116,26 +116,20 @@ void ScriptPlayerControllerCallbacks::Respawn(const v8::FunctionCallbackInfo<v8:
 
 	auto controllerHandle = UnwrapThis<CEntityHandle>(context);
 
-	auto entHandle = ScriptExtensions::GetEntityHandleFromScriptObject(args.This());
-	if (!entHandle.IsValid())
+	if (!controllerHandle)
+		return;
+
+	if (!controllerHandle->IsValid())
 	{
-		V8ThrowException(isolate, "CSPlayerController.Respawn invoked with incorrect 'this' value.");
+		ThrowFunctionException(context, "invoked with an unrecognized 'this' value.");
+		return;
+	}
+	auto controller = static_cast<CCSPlayerController*>(controllerHandle->Get());
+	if (!controller || !controller->IsController())
+	{
+		ThrowFunctionException(context, "invoked with an unrecognized 'this' value.");
 		return;
 	}
 
-	auto ent = static_cast<CBaseEntity*>(entHandle.Get());
-	if (!ent || !ent->IsController())
-	{
-		V8ThrowException(isolate, "CSPlayerController.Respawn invoked with incorrect 'this' value.");
-		return;
-	}
-
-	auto playerController = reinterpret_cast<CCSPlayerController*>(ent);
-	if (!playerController->IsConnected())
-	{
-		V8ThrowException(isolate, "CSPlayerController.Respawn: Target player is not connected.");
-		return;
-	}
-
-	playerController->Respawn();
+	controller->Respawn();
 }
