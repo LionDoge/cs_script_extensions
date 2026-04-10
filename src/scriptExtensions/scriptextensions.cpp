@@ -24,8 +24,6 @@
 #include "scriptcommon.h"
 #include "plugin.h"
 
-extern LoggingChannelID_t g_logChanScript;
-
 SH_DECL_HOOK0_void(CCSScript_EntityScript, InitializeFunctionTemplates, SH_NOATTRIB, false);
 
 bool ScriptExtensions::ResolveSigs(CGameConfig* gameConfig)
@@ -90,8 +88,14 @@ void ScriptExtensions::IncludeFunctions(const std::string& templateName,
 
 void ScriptExtensions::RegisterCustomFunctionTemplate(const std::string& templateName,
 	std::initializer_list<std::pair<std::string, v8::FunctionCallback>> functions, unsigned int internalFields,
-	const std::optional<v8::FunctionCallback>& constructor, const std::optional<std::string_view>& inheritFrom)
-{	
+	ScriptTypeMarker* typeMarker, const std::optional<v8::FunctionCallback>& constructor, 
+	const std::optional<std::string_view>& inheritFrom)
+{
+	if(!typeMarker)
+	{
+		MsgCrit("Failed to register custom function template %s, type marker is null!\n", templateName.c_str());
+		return;
+	}
 	auto vec = std::vector<ScriptFunctionInfo>();
 	vec.reserve(functions.size());
 	for (const auto& pair : functions)
@@ -104,6 +108,7 @@ void ScriptExtensions::RegisterCustomFunctionTemplate(const std::string& templat
 		ScriptCustomTemplateInfo{
 			.functions = std::move(vec),
 			.internalFields = internalFields,
+			.typeMarker = typeMarker,
 			.constructor = constructor,
 			.inheritObject = inheritFrom
 		}
@@ -211,10 +216,11 @@ void ScriptExtensions::OnScriptInstanceRegisterTemplates()
 	{
 		v8::Local<v8::FunctionTemplate> tpl = v8::FunctionTemplate::New(
 			isolate,
-			templateInfo.constructor.has_value() ? *templateInfo.constructor : V8FakeObjectConstructorCallback
+			templateInfo.constructor.value_or(V8FakeObjectConstructorCallback)
 		);
 		tpl->SetClassName(v8::String::NewFromUtf8(isolate, templateName.Get()).ToLocalChecked());
-		tpl->InstanceTemplate()->SetInternalFieldCount(static_cast<int>(templateInfo.internalFields));
+		// +1 internal field for our type marker
+		tpl->InstanceTemplate()->SetInternalFieldCount(static_cast<int>(templateInfo.internalFields) + 1);
 
 		for (const auto& funcInfo : templateInfo.functions)
 		{

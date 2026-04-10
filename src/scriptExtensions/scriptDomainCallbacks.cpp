@@ -40,25 +40,10 @@ extern HudHintManager g_hudHintManager;
 extern ScriptExtensions g_scriptExtensions;
 extern PlayerManager g_playerManager;
 
-#define V8_SETUP_AND_VERIFY(domain, name) \
-	auto isolate = args.GetIsolate(); \
-	v8::HandleScope handleScope(isolate); \
-	if (!VerifyScriptScope(domain, name)) \
-		return;
-
-#define SCRIPT_FUNCTION(name, classname, scopename) \
-	void name##_V8ScriptCallback(const v8::FunctionCallbackInfo<v8::Value>& args); \
-	g_scriptExtensions.AddNewFunction(classname, scopename, #name, name##_V8ScriptCallback); \
-	void name##_V8ScriptCallback(const v8::FunctionCallbackInfo<v8::Value>& args)
-
 void ScriptDomainCallbacks::NewMsg(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	auto isolate = v8::Isolate::GetCurrent();
-	v8::HandleScope handleScope(isolate);
+	SCRIPT_SETUP(args);
 
-	VerifyScriptScope("point_script", "NewMsg");
-	//auto handle = v8::HandleScope::CreateHandleForCurrentIsolate(script->handleScopeAddr);
-	//v8::Local<v8::Object> thisVal = info.This();
 	if (args.Length() < 1 || !args[0]->IsString())
 	{
 		V8ThrowException(args.GetIsolate(), "Method point_script.MsgCustom requires a string argument.");
@@ -74,48 +59,32 @@ void ScriptDomainCallbacks::NewMsg(const v8::FunctionCallbackInfo<v8::Value>& ar
 
 void ScriptDomainCallbacks::GetSchemaField(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	auto isolate = v8::Isolate::GetCurrent();
-	v8::HandleScope handleScope(isolate);
+	SCRIPT_SETUP(args);
 
-	if (!VerifyScriptScope("Entity", "GetSchemaField"))
+	auto targetEntHandle = UnwrapThis<CEntityHandle>(context);
+	auto className = UnwrapArg<std::string>(context, 0);
+	auto fieldName = UnwrapArg<std::string>(context, 1);
+	
+	if(!targetEntHandle || !className || !fieldName)
 		return;
 
-	if (!args.This()->IsObject())
+	if (!targetEntHandle->IsValid())
 	{
-		V8ThrowException(isolate, "Method Entity.GetSchemaField invoked with incorrect 'this' value.");
+		ThrowFunctionException(context, "failed to get entity from 'this' object.");
 		return;
 	}
 
-	if (args.Length() < 2 || !args[0]->IsString() || !args[1]->IsString())
-	{
-		V8ThrowException(isolate, "Method Entity.GetSchemaField requires 2 arguments (className: string, fieldName: string)");
-		return;
-	}
-
-	CEntityHandle entHandle = ScriptExtensions::GetEntityHandleFromScriptObject(args.This().As<v8::Object>());
-	if (!entHandle.IsValid())
-	{
-		V8ThrowException(isolate, "Method Entity.GetSchemaField failed to get entity from 'this' object.");
-		return;
-	}
-
-	auto ent = static_cast<CBaseEntity*>(entHandle.Get());
+	auto ent = static_cast<CBaseEntity*>(targetEntHandle->Get());
 	if (!ent)
 	{
-		V8ThrowException(isolate, "Method Entity.GetSchemaField called on invalid entity instance.");
+		ThrowFunctionException(context, "called on invalid entity instance.");
 		return;
 	}
 
-	v8::Local<v8::String> v8StrClassname = args[0].As<v8::String>();
-	v8::String::Utf8Value v8StrClassnameUtf8(isolate, v8StrClassname);
+	uint32_t classNameHash = hash_32_fnv1a_const(className->c_str());
+	uint32_t fieldNameHash = hash_32_fnv1a_const(fieldName->c_str());
 
-	v8::Local<v8::String> v8StrFieldname = args[1].As<v8::String>();
-	v8::String::Utf8Value v8StrFieldnameUtf8(isolate, v8StrFieldname);
-
-	uint32_t classNameHash = hash_32_fnv1a_const(*v8StrClassnameUtf8);
-	uint32_t fieldNameHash = hash_32_fnv1a_const(*v8StrFieldnameUtf8);
-
-	SchemaKey schemaFieldInfo = schema::GetOffset(*v8StrClassnameUtf8, classNameHash, *v8StrFieldnameUtf8, fieldNameHash);
+	SchemaKey schemaFieldInfo = schema::GetOffset(className->c_str(), classNameHash, fieldName->c_str(), fieldNameHash);
 
 	auto offset = schemaFieldInfo.offset;
 	switch (schemaFieldInfo.keyType) {
@@ -135,50 +104,31 @@ void ScriptDomainCallbacks::GetSchemaField(const v8::FunctionCallbackInfo<v8::Va
 	case SchemaKeyType::Vector: SetSchemaReturnValue<Vector>(args, ent, offset); break;
 	case SchemaKeyType::QAngle: SetSchemaReturnValue<QAngle>(args, ent, offset); break;
 	default:
-		V8ThrowException(isolate, "This schema field's type is not supported in script");
+		ThrowFunctionException(context, "This schema field's type is not supported in script");
 	}
 }
 
 void ScriptDomainCallbacks::ShowHudHintAll(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	auto isolate = v8::Isolate::GetCurrent();
-	v8::HandleScope handleScope(isolate);
+	SCRIPT_SETUP(args);
 
-	if (!VerifyScriptScope("point_script", "ShowHudHintAll"))
+	auto message = UnwrapArg<std::string>(context, 0);
+	auto isAlert = UnwrapArg<bool>(context, 1, true).value_or(false);
+
+	if (!message)
 		return;
 
-	if (args.Length() < 1 || !args[0]->IsString())
-	{
-		V8ThrowException(args.GetIsolate(), "Method point_script.ShowHudHintAll requires 1 argument (text: string)");
-		return;
-	}
-
-	bool isAlert = false;
-	if (args.Length() >= 2 && !args[1]->IsBoolean())
-	{
-		V8ThrowException(args.GetIsolate(), "Method point_script.ShowHudHintAll second argument must be a boolean");
-		return;
-	}
-	isAlert = args[1].As<v8::Boolean>()->Value();
-
-	v8::String::Utf8Value v8StrTextUtf8(isolate, args[0].As<v8::String>());
-	ClientPrintAll(isAlert ? HUD_PRINTALERT : HUD_PRINTCENTER, *v8StrTextUtf8);
+	ClientPrintAll(isAlert ? HUD_PRINTALERT : HUD_PRINTCENTER, message->c_str());
 }
 
 void ScriptDomainCallbacks::AddSampleCallback(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	auto isolate = args.GetIsolate();
+	SCRIPT_SETUP(args);
 	auto script = (CCSScript_EntityScript*)ScriptExtensions::GetCurrentCsScriptInstance();
-	v8::HandleScope handleScope(isolate);
-	
-	if (args.Length() < 1)
+
+	if(args.Length() < 1 || !args[0]->IsFunction())
 	{
-		V8ThrowException(args.GetIsolate(), "AddSampleCallback requires at least 1 argument.");
-		return;
-	}
-	if(!args[0]->IsFunction())
-	{
-		V8ThrowException(args.GetIsolate(), "First argument to AddSampleCallback must be a function.");
+		ThrowFunctionException(context, "First argument must be a function.");
 		return;
 	}
 	auto callback = args[0].As<v8::Function>();
@@ -187,63 +137,45 @@ void ScriptDomainCallbacks::AddSampleCallback(const v8::FunctionCallbackInfo<v8:
 
 void ScriptDomainCallbacks::SetEntityMoveType(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	V8_SETUP_AND_VERIFY("Entity", "SetMoveType");
+	SCRIPT_SETUP(args);
 
-	if (args.Length() < 1 || !args.This()->IsObject() || !args[0]->IsNumber())
-	{
-		V8ThrowException(args.GetIsolate(), "Method Entity.SetMoveType requires 1 argument (moveType: number)"); \
+	auto entHandle = UnwrapThis<CEntityHandle>(context);
+	auto moveType = UnwrapArg<uint8>(context, 0, false);
+	if (!entHandle || !moveType)
 		return;
-	}
 
-	CEntityHandle entHandle = ScriptExtensions::GetEntityHandleFromScriptObject(args.This().As<v8::Object>());
-	if (!entHandle.IsValid())
-	{
-		V8ThrowException(args.GetIsolate(), "Method Entity.SetMoveType failed to get entity from 'this' object.");
-		return;
-	}
-	auto baseEnt = dynamic_cast<CBaseEntity*>(entHandle.Get());
-	if (!baseEnt)
-	{
-		V8ThrowException(args.GetIsolate(), "Method Entity.SetMoveType called on invalid entity instance.");
-		return;
-	}
-
-	int moveType = static_cast<int>(args[0].As<v8::Number>()->Value());
-	baseEnt->SetMoveType(static_cast<MoveType_t>(moveType));
+	if (entHandle->IsValid())
+		static_cast<CBaseEntity*>(entHandle->Get())->SetMoveType(static_cast<MoveType_t>(*moveType));
 }
 
 void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	auto isolate = v8::Isolate::GetCurrent();
-	v8::HandleScope handleScope(isolate);
-
-	if (!VerifyScriptScope("Domain", "EmitSound"))
-		return;
-	auto context = isolate->GetCurrentContext();
+	SCRIPT_SETUP(args)
+	auto v8Context = isolate->GetCurrentContext();
 
 	if (args.Length() != 1)
 	{
-		V8ThrowException(args.GetIsolate(), "Method Domain.EmitSound requires an object with EmitSound info");
+		ThrowFunctionException(context, "requires an object with EmitSound info");
 		return;
 	}
 	if (!args[0]->IsObject())
 	{
-		V8ThrowException(isolate, "EmitSound argument 0 must be an object {soundName: string, source?: Entity, volume?: number, pitch?: number, recipients?: CSPlayerController[]}\n");
+		ThrowFunctionException(context, "argument 0 must be an object {soundName: string, source?: Entity, volume?: number, pitch?: number, recipients?: CSPlayerController[]}\n");
 		return;
 	}
 
-	auto obj = args[0]->ToObject(context).ToLocalChecked();
-	auto maybeSoundName = obj->Get(context, v8::String::NewFromUtf8(isolate, "soundName").ToLocalChecked());
+	auto obj = args[0]->ToObject(v8Context).ToLocalChecked();
+	auto maybeSoundName = obj->Get(v8Context, v8::String::NewFromUtf8(isolate, "soundName").ToLocalChecked());
 	if (maybeSoundName.IsEmpty())
 		return;
 	auto soundName = maybeSoundName.ToLocalChecked();
 	if (!soundName->IsString())
 	{
-		V8ThrowException(isolate, "EmitSound argument 0.msgName must be a string\n");
+		ThrowFunctionException(context, "argument 0.msgName must be a string\n");
 		return;
 	}
 	v8::String::Utf8Value soundNameUtf8(isolate, soundName);
-	auto maybeSourceEntity = obj->Get(context, v8::String::NewFromUtf8(isolate, "source").ToLocalChecked());
+	auto maybeSourceEntity = obj->Get(v8Context, v8::String::NewFromUtf8(isolate, "source").ToLocalChecked());
 	// entIndex -1 should be fine, it will just play globally.
 	CEntityIndex entIndex = -1;
 	if (!maybeSourceEntity.IsEmpty())
@@ -260,7 +192,7 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 			CEntityHandle entHandle = ScriptExtensions::GetEntityHandleFromScriptObject(sourceEntityObj);
 			if (!entHandle.IsValid())
 			{
-				V8ThrowException(isolate, "EmitSound argument 0.source is not a valid Entity");
+				ThrowFunctionException(context, "argument 0.source is not a valid Entity");
 				return;
 			}
 			entIndex = entHandle.GetEntryIndex();
@@ -268,7 +200,7 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 	}
 
 	float volume = 1.0f;
-	auto maybeVolume = obj->Get(context, v8::String::NewFromUtf8(isolate, "volume").ToLocalChecked());
+	auto maybeVolume = obj->Get(v8Context, v8::String::NewFromUtf8(isolate, "volume").ToLocalChecked());
 	if (!maybeVolume.IsEmpty())
 	{
 		auto volumeVal = maybeVolume.ToLocalChecked();
@@ -276,7 +208,7 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 		{
 			if (!volumeVal->IsNumber())
 			{
-				V8ThrowException(isolate, "EmitSound argument 0.volume must be a number");
+				ThrowFunctionException(context, "argument 0.volume must be a number");
 				return;
 			}
 			volume = static_cast<float>(volumeVal.As<v8::Number>()->Value());
@@ -287,7 +219,7 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 	}
 
 	int pitch = 1;
-	auto maybePitch = obj->Get(context, v8::String::NewFromUtf8(isolate, "pitch").ToLocalChecked());
+	auto maybePitch = obj->Get(v8Context, v8::String::NewFromUtf8(isolate, "pitch").ToLocalChecked());
 	if (!maybePitch.IsEmpty())
 	{
 		auto pitchVal = maybePitch.ToLocalChecked();
@@ -295,7 +227,7 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 		{
 			if (!pitchVal->IsNumber())
 			{
-				V8ThrowException(isolate, "EmitSound argument 0.pitch must be a number");
+				ThrowFunctionException(context, "argument 0.pitch must be a number");
 				return;
 			}
 			pitch = static_cast<int>(pitchVal.As<v8::Number>()->Value());
@@ -306,7 +238,7 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 	}
 
 	CRecipientFilter filter;
-	auto maybeRecipientsArr = obj->Get(context, v8::String::NewFromUtf8(isolate, "recipients").ToLocalChecked());
+	auto maybeRecipientsArr = obj->Get(v8Context, v8::String::NewFromUtf8(isolate, "recipients").ToLocalChecked());
 	if (!maybeRecipientsArr.IsEmpty())
 	{
 		if (const auto recipientsVal = maybeRecipientsArr.ToLocalChecked(); recipientsVal->IsArray())
@@ -315,10 +247,10 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 			uint32_t length = recipientsArr->Length();
 			for (uint32_t i = 0; i < length; ++i)
 			{
-				auto recipientVal = recipientsArr->Get(context, i).ToLocalChecked();
+				auto recipientVal = recipientsArr->Get(v8Context, i).ToLocalChecked();
 				if (!recipientsVal->IsUndefined() && !recipientVal->IsObject())
 				{
-					V8ThrowException(isolate, "EmitSound argument 0.recipients must be an array of CSPlayerController objects");
+					ThrowFunctionException(context, "argument 0.recipients must be an array of CSPlayerController objects");
 					return;
 				}
 				auto recipientObj = recipientVal.As<v8::Object>();
@@ -329,7 +261,7 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 				auto recipientController = static_cast<CCSPlayerController*>(recipientEntHandle.Get());
 				if (!recipientController || !recipientController->IsController())
 				{
-					V8ThrowException(isolate, "EmitSound argument 0.recipients must be an array of CSPlayerController objects");
+					ThrowFunctionException(context, "argument 0.recipients must be an array of CSPlayerController objects");
 					return;
 				}
 				filter.AddRecipient(recipientController->GetPlayerSlot());
@@ -343,7 +275,7 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 			}
 			else
 			{
-				V8ThrowException(isolate, "EmitSound argument 0.recipients must be an array of CSPlayerController objects");
+				ThrowFunctionException(context, "argument 0.recipients must be an array of CSPlayerController objects");
 				return;
 			}
 		}
@@ -358,115 +290,92 @@ void ScriptDomainCallbacks::EmitSound(const v8::FunctionCallbackInfo<v8::Value>&
 
 void ScriptDomainCallbacks::SetTransmitState(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	auto isolate = v8::Isolate::GetCurrent();
-	auto context = isolate->GetCurrentContext();
-	v8::HandleScope handleScope(isolate);
+	SCRIPT_SETUP(args);
+	auto v8Context = isolate->GetCurrentContext();
 
-	if (!VerifyScriptScope("Entity", "SetTransmitState"))
+	auto targetEnt = UnwrapThis<CEntityHandle>(context);
+	auto plrEnt = UnwrapArg<CEntityHandle>(context, 0, false);
+	auto state = UnwrapArg<bool>(context, 1, false);
+
+	if (!targetEnt || !plrEnt || !state)
 		return;
 
-	if (args.Length() < 2 || !args.This()->IsObject() || !args[0]->IsObject() || !args[1]->IsBoolean())
+	if (!targetEnt->IsValid())
 	{
-		V8ThrowException(args.GetIsolate(), "Method Entity.SetTransmitState requires 2 arguments (player: CSPlayerController, state: boolean)");
+		ThrowFunctionException(context, "failed to get entity from 'this' object.");
 		return;
 	}
 
-	auto targetObj = args.This()->ToObject(context).ToLocalChecked();
-	auto targetEnt = ScriptExtensions::GetEntityHandleFromScriptObject(targetObj);
-	if (!targetEnt.IsValid())
+	auto targetEntValue = static_cast<CBaseEntity*>(targetEnt->Get());
+	if (!targetEntValue || targetEntValue->IsController())
 	{
-		V8ThrowException(isolate, "Method Entity.SetTransmitState failed to get entity from 'this' object.");
+		ThrowFunctionException(context, "can not change transmit state on a player controller");
 		return;
 	}
 
-	auto entity = static_cast<CBaseEntity*>(targetEnt.Get());
-	if (!entity || entity->IsController())
+	if (!plrEnt->IsValid())
 	{
-		V8ThrowException(isolate, "Can not set transmit state on player controllers");
+		ThrowFunctionException(context, "target player entity is not valid");
 		return;
 	}
 
-	auto plrObject = args[0]->ToObject(context).ToLocalChecked();
-	CEntityHandle targetPlrHandle = ScriptExtensions::GetEntityHandleFromScriptObject(plrObject);
-	if (!targetPlrHandle.IsValid())
-	{
-		V8ThrowException(isolate, "Method Entity.SetTransmitState target player entity is not valid");
-		return;
-	}
-	auto targetPlr = static_cast<CCSPlayerController*>(targetPlrHandle.Get());
+	auto targetPlr = static_cast<CCSPlayerController*>(plrEnt->Get());
 	if (!targetPlr || !targetPlr->IsController())
 	{
-		V8ThrowException(isolate, "Method Entity.SetTransmitState target player entity is not a player controller");
+		ThrowFunctionException(context, "target player entity is not a player controller");
 		return;
 	}
 
-	auto entIndex = targetEnt.GetEntryIndex();
-	bool state = args[1].As<v8::Boolean>()->Value();
-	g_playerManager.SetEntityTransmitBlocked(targetPlr->GetPlayerSlot(), entIndex, !state);
+	auto entIndex = targetEnt->GetEntryIndex();
+	g_playerManager.SetEntityTransmitBlocked(targetPlr->GetPlayerSlot(), entIndex, !*state);
 }
 
 void ScriptDomainCallbacks::SetTransmitStateAll(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	auto isolate = v8::Isolate::GetCurrent();
-	auto context = isolate->GetCurrentContext();
-	v8::HandleScope handleScope(isolate);
+	SCRIPT_SETUP(args);
 
-	if (!VerifyScriptScope("Entity", "SetTransmitStateAll"))
+	auto targetEntHandle = UnwrapThis<CEntityHandle>(context);
+	auto state = UnwrapArg<bool>(context, 0, false);
+
+	if(!targetEntHandle || !state)
 		return;
 
-	if (args.Length() < 1 || !args.This()->IsObject() || !args[0]->IsBoolean())
+	if (!targetEntHandle->IsValid())
 	{
-		V8ThrowException(args.GetIsolate(), "Method Entity.SetTransmitStateAll requires 1 argument (state: boolean)");
-		return;
-	}
-
-	auto targetObj = args.This()->ToObject(context).ToLocalChecked();
-	auto targetEntHandle = ScriptExtensions::GetEntityHandleFromScriptObject(targetObj);
-	if (!targetEntHandle.IsValid())
-	{
-		V8ThrowException(isolate, "Method Entity.SetTransmitStateAll failed to get entity from 'this' object.");
+		ThrowFunctionException(context, "failed to get entity from 'this' object.");
 		return;
 	}
 	
-	auto entity = static_cast<CBaseEntity*>(targetEntHandle.Get());
+	auto entity = static_cast<CBaseEntity*>(targetEntHandle->Get());
 	if (!entity || entity->IsController())
 	{
-		V8ThrowException(isolate, "Can not set transmit state on player controllers");
+		ThrowFunctionException(context, "can not set transmit state on player controllers");
 		return;
 	}
 
-	auto entIndex = targetEntHandle.GetEntryIndex();
-	bool state = args[1].As<v8::Boolean>()->Value();
-	g_playerManager.SetEntityTransmitBlockedForAll(entIndex, !state);
+	auto entIndex = targetEntHandle->GetEntryIndex();
+	g_playerManager.SetEntityTransmitBlockedForAll(entIndex, !*state);
 }
 
 void ScriptDomainCallbacks::GetConVarValue(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	auto isolate = v8::Isolate::GetCurrent();
-	auto context = isolate->GetCurrentContext();
-	v8::HandleScope handleScope(isolate);
+	SCRIPT_SETUP(args);
+	auto v8Context = isolate->GetCurrentContext();
 
-	if (!VerifyScriptScope("Domain", "GetConVarValue"))
+	auto cvarName = UnwrapArg<std::string>(context, 0);
+	if (!cvarName)
 		return;
 
-	if (args.Length() < 1 || !args[0]->IsString())
-	{
-		V8ThrowException(args.GetIsolate(), "Method point_script.GetConVarValue requires 1 argument (cvar: string)");
-		return;
-	}
-
-	v8::String::Utf8Value v8StrCvarUtf8(isolate, args[0].As<v8::String>());
-	std::string cvarName(*v8StrCvarUtf8);
-	ConVarRefAbstract cvar(cvarName.c_str());
+	ConVarRefAbstract cvar(cvarName->c_str());
 	if (!cvar.IsValidRef())
 	{
-		V8ThrowException(args.GetIsolate(), std::format("GetConVarValue: ConVar {} does not exist", cvarName));
+		ThrowFunctionException(context, std::format("ConVar {} does not exist", *cvarName));
 		return;
 	}
 
 	if (!cvar.IsConVarDataAvailable())
 	{
-		V8ThrowException(args.GetIsolate(), std::format("GetConVarValue: ConVar {} was registered partially, and it's not possible to retrieve it's data", cvarName));
+		ThrowFunctionException(context, std::format("ConVar {} was registered partially, it's not possible to retrieve it's data", *cvarName));
 		return;
 	}
 
@@ -489,21 +398,21 @@ void ScriptDomainCallbacks::GetConVarValue(const v8::FunctionCallbackInfo<v8::Va
 	case EConVarType_Vector3:
 	{
 		auto vec = cvar.GetAs<Vector>();
-		auto vecObj = CreateVectorObject(context, vec);
+		auto vecObj = CreateVectorObject(v8Context, vec);
 		args.GetReturnValue().Set(vecObj);
 		break;
 	}
 	case EConVarType_Qangle:
 	{
 		auto ang = cvar.GetAs<QAngle>();
-		auto angObj = CreateQAngleObject(context, ang);
+		auto angObj = CreateQAngleObject(v8Context, ang);
 		args.GetReturnValue().Set(angObj);
 		break;
 	}
 	case EConVarType_Color:
 	{
 		auto clr = cvar.GetAs<Color>();
-		auto clrObj = CreateColorObject(context, clr);
+		auto clrObj = CreateColorObject(v8Context, clr);
 		args.GetReturnValue().Set(clrObj);
 		break;
 	}
@@ -515,23 +424,14 @@ void ScriptDomainCallbacks::GetConVarValue(const v8::FunctionCallbackInfo<v8::Va
 
 void ScriptDomainCallbacks::PrintToChatAll(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	auto isolate = v8::Isolate::GetCurrent();
-	auto context = isolate->GetCurrentContext();
-	v8::HandleScope handleScope(isolate);
+	SCRIPT_SETUP(args);
 
-	if (!VerifyScriptScope("Domain", "PrintToChatAll"))
+	auto message = UnwrapArg<std::string>(context, 0);
+
+	if (!message)
 		return;
 
-	if (args.Length() < 1 || !args[0]->IsString())
-	{
-		V8ThrowException(args.GetIsolate(), "Method point_script.PrintToChatAll requires 1 argument (message: string)");
-		return;
-	}
-
-	v8::String::Utf8Value v8Message(isolate, args[0].As<v8::String>());
-	std::string message(*v8Message);
-
-	ClientPrintAll(HUD_PRINTTALK, message.c_str());
+	ClientPrintAll(HUD_PRINTTALK, message->c_str());
 }
 
 template<typename T>
@@ -592,30 +492,29 @@ constexpr void ScriptDomainCallbacks::SetSchemaReturnValue(const v8::FunctionCal
 
 void ScriptDomainCallbacks::CreateUserMessage(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	V8_SETUP_AND_VERIFY("Domain", "CreateUserMessage");
-	if(args.Length() < 1 || !args[0]->IsString())
-	{
-		V8ThrowException(isolate, "Method Domain.CreateUserMessage requires 1 argument (messageName: string)");
+	SCRIPT_SETUP(args);
+
+	auto messageName = UnwrapArg<std::string>(context, 0);
+
+	if (!messageName)
 		return;
-	}
-	v8::String::Utf8Value v8StrMessageNameUtf8(isolate, args[0].As<v8::String>());
-	std::string messageName(*v8StrMessageNameUtf8);
-	INetworkMessageInternal* pNetMsg = g_pNetworkMessages->FindNetworkMessagePartial(messageName.c_str());
+
+	INetworkMessageInternal* pNetMsg = g_pNetworkMessages->FindNetworkMessagePartial(messageName->c_str());
 	if(!pNetMsg)
 	{
-		V8ThrowException(isolate, std::format("Method Domain.CreateUserMessage failed to find message with name '{}'", messageName));
-		return;
-	}
-	auto data = pNetMsg->AllocateMessage()->ToPB<google::protobuf::Message>();
-	ScriptUserMessageInfo* msgInfo = new ScriptUserMessageInfo(data, 0, pNetMsg);
-	auto script = (CCSScript_EntityScript*)ScriptExtensions::GetCurrentCsScriptInstance();
-	if (!script)
-	{
-		V8ThrowException(isolate, "Method Domain.CreateUserMessage invoked in incorrect scope.");
-		delete msgInfo;
+		ThrowFunctionException(context, std::format("failed to find message with name '{}'", *messageName));
 		return;
 	}
 
+	auto data = pNetMsg->AllocateMessage()->ToPB<google::protobuf::Message>();
+	if(!data)
+	{
+		ThrowFunctionException(context, std::format("failed to allocate message for '{}'", *messageName));
+		return;
+	}
+
+	ScriptUserMessageInfo* msgInfo = new ScriptUserMessageInfo(data, 0, pNetMsg);
+	auto script = (CCSScript_EntityScript*)ScriptExtensions::GetCurrentCsScriptInstance();
 	auto msg = ScriptUserMessage::CreateUserMessageInfoInstance(script, msgInfo);
 	args.GetReturnValue().Set(msg);
 }

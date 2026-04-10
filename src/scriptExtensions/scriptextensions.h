@@ -31,9 +31,15 @@ struct ScriptFunctionInfo {
 	v8::FunctionCallback callback;
 };
 
+// Used to verify user defined object types
+struct ScriptTypeMarker {
+	const char* name; // mostly for debugging
+};
+
 struct ScriptCustomTemplateInfo {
 	std::vector<ScriptFunctionInfo> functions;
 	unsigned int internalFields;
+	ScriptTypeMarker* typeMarker;
 	std::optional<v8::FunctionCallback> constructor;
 	std::optional<std::string_view> inheritObject;
 };
@@ -61,7 +67,9 @@ public:
 	// For adding more functions to an existing template, check IncludeFunctions instead.
 	void RegisterCustomFunctionTemplate(
 		const std::string& templateName,
-		std::initializer_list<std::pair<std::string, v8::FunctionCallback>> functions, unsigned int internalFields,
+		std::initializer_list<std::pair<std::string, v8::FunctionCallback>> functions, 
+		unsigned int internalFields,
+		ScriptTypeMarker* typeMarker,
 		const std::optional<v8::FunctionCallback>& constructor = std::nullopt,
 		const std::optional<std::string_view>& inheritFrom = std::nullopt
 	);

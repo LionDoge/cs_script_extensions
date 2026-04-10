@@ -55,6 +55,7 @@
 #include "pluginconfig.h"
 #include "filesystem.h"
 #include "iserver.h"
+#include "scripttypes.h"
 
 SH_DECL_HOOK3_void(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, bool, bool, bool);
 SH_DECL_HOOK4_void(IServerGameClients, ClientActive, SH_NOATTRIB, 0, CPlayerSlot, bool, const char *, uint64);
@@ -410,6 +411,7 @@ static void RegisterScriptFunctions()
 				{ "Send", ScriptUserMessage::UserMessageInfo_Send }
 			},
 			1, // internal fields
+			&ScriptTypeMarkers::userMessageInfo,
 			std::nullopt // Inherits from
 		);
 	}

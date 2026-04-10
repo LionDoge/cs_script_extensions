@@ -26,36 +26,29 @@ extern HudHintManager g_hudHintManager;
 
 void ScriptPlayerControllerCallbacks::GetSteamID(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	auto isolate = v8::Isolate::GetCurrent();
-	v8::HandleScope handleScope(isolate);
+	SCRIPT_SETUP(args);
 
-	if (!VerifyScriptScope("CSPlayerController", "GetSteamID"))
+	auto targetEntHandle = UnwrapThis<CEntityHandle>(context);
+	if (!targetEntHandle)
 		return;
 
-	if (!args.This()->IsObject())
+	if (!targetEntHandle->IsValid())
 	{
-		V8ThrowException(isolate, "CSPlayerController.GetSteamID invoked with incorrect 'this' value.");
+		ThrowFunctionException(context, "invoked with an unrecognized 'this' value.");
 		return;
 	}
 
-	auto entHandle = ScriptExtensions::GetEntityHandleFromScriptObject(args.This());
-	if (!entHandle.IsValid())
-	{
-		V8ThrowException(isolate, "CSPlayerController.GetSteamID invoked with incorrect 'this' value.");
-		return;
-	}
-
-	auto ent = static_cast<CBaseEntity*>(entHandle.Get());
+	auto ent = static_cast<CBaseEntity*>(targetEntHandle->Get());
 	if (!ent || !ent->IsController())
 	{
-		V8ThrowException(isolate, "CSPlayerController.GetSteamID invoked with incorrect 'this' value.");
+		ThrowFunctionException(context, "invoked with an unrecognized 'this' value.");
 		return;
 	}
 
 	auto playerController = static_cast<CCSPlayerController*>(ent);
 	if (!playerController->IsConnected())
 	{
-		V8ThrowException(isolate, "CSPlayerController.GetSteamID: Target player is not connected.");
+		ThrowFunctionException(context, "target player is not connected.");
 		return;
 	}
 
@@ -64,98 +57,64 @@ void ScriptPlayerControllerCallbacks::GetSteamID(const v8::FunctionCallbackInfo<
 
 void ScriptPlayerControllerCallbacks::ShowHTMLMessage(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	auto isolate = v8::Isolate::GetCurrent();
-	v8::HandleScope handleScope(isolate);
+	SCRIPT_SETUP(args);
 
-	if (!VerifyScriptScope("CSPlayerController", "ShowHudMessageHTML"))
+	auto controllerHandle = UnwrapThis<CEntityHandle>(context);
+	auto message = UnwrapArg<std::string>(context, 0);
+	auto duration = UnwrapArg<double>(context, 1, true).value_or(0);
+
+	if (!controllerHandle || !message)
 		return;
 
-	if (!args.This()->IsObject())
+	if (!controllerHandle->IsValid())
 	{
-		V8ThrowException(args.GetIsolate(), "Method CSPlayerController.ShowHudMessageHTML invoked with incorrect 'this' argument.");
+		ThrowFunctionException(context, "invoked with an unrecognized 'this' value.");
 		return;
 	}
-	if (args.Length() < 1 || !args[0]->IsString())
-	{
-		V8ThrowException(args.GetIsolate(), "Method CSPlayerController.ShowHudMessageHTML requires 1 string argument.");
-		return;
-	}
-	auto controllerHandle = ScriptExtensions::GetEntityHandleFromScriptObject(args.This().As<v8::Object>());
-	if (!controllerHandle.IsValid())
-	{
-		V8ThrowException(args.GetIsolate(), "Method CSPlayerController.ShowHudMessageHTML failed to get entity from 'this' object.");
-		return;
-	}
-	auto controller = static_cast<CCSPlayerController*>(controllerHandle.Get());
+	auto controller = static_cast<CCSPlayerController*>(controllerHandle->Get());
 	if(!controller || !controller->IsController())
 	{
-		V8ThrowException(args.GetIsolate(), "Method CSPlayerController.ShowHudMessageHTML can only be called on player controller instances.");
+		ThrowFunctionException(context, "invoked with an unrecognized 'this' value.");
 		return;
 	}
-	double duration = 0.0;
-	if (args.Length() >= 2 && args[1]->IsNumber())
-	{
-		duration = args[1].As<v8::Number>()->Value();
-		if (duration < 0.0)
-			duration = 0.0;
-	}
-	v8::String::Utf8Value v8StrTextUtf8(isolate, args[0].As<v8::String>());
-	std::string text(*v8StrTextUtf8);
-	g_hudHintManager.AddHintMessage(controller->GetPlayerSlot(), text, duration);
+
+	if (duration < 0.0)
+		duration = 0.0;
+
+	g_hudHintManager.AddHintMessage(controller->GetPlayerSlot(), *message, duration);
 }
 
 void ScriptPlayerControllerCallbacks::ShowHudHint(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	auto isolate = v8::Isolate::GetCurrent();
-	v8::HandleScope handleScope(isolate);
+	SCRIPT_SETUP(args);
 
-	if (!VerifyScriptScope("CSPlayerController", "ShowHudHint"))
+	auto controllerHandle = UnwrapThis<CEntityHandle>(context);
+	auto message = UnwrapArg<std::string>(context, 0);
+	auto isAlert = UnwrapArg<bool>(context, 1, true).value_or(false);
+
+	if(!controllerHandle || !message)
 		return;
 
-	if (args.Length() < 1 || !args.This()->IsObject())
+	if (!controllerHandle->IsValid())
 	{
-		V8ThrowException(args.GetIsolate(), "Method CSPlayerController.ShowHudHint requires 1 argument (text: string)");
+		ThrowFunctionException(context, "invoked with an unrecognized 'this' value.");
 		return;
 	}
-
-	bool isAlert = false;
-	if (args.Length() >= 2 && !args[1]->IsBoolean())
-	{
-		V8ThrowException(args.GetIsolate(), "Method CSPlayerController.ShowHudHint second argument must be a boolean");
-		return;
-	}
-	isAlert = args[1].As<v8::Boolean>()->Value();
-
-	CEntityHandle entHandle = ScriptExtensions::GetEntityHandleFromScriptObject(args.This().As<v8::Object>());
-	if (!entHandle.IsValid())
-	{
-		V8ThrowException(args.GetIsolate(), "Method CSPlayerController.ShowHudHint failed to get entity from 'this' object.");
-		return;
-	}
-	auto controller = static_cast<CCSPlayerController*>(entHandle.Get());
+	auto controller = static_cast<CCSPlayerController*>(controllerHandle->Get());
 	if (!controller || !controller->IsController())
 	{
-		V8ThrowException(args.GetIsolate(), "Method CSPlayerController.ShowHudHint can only be called on player controller instances.");
+		ThrowFunctionException(context, "invoked with an unrecognized 'this' value.");
 		return;
 	}
 
-	v8::String::Utf8Value v8StrTextUtf8(isolate, args[0].As<v8::String>());
-	ClientPrint(controller, isAlert ? HUD_PRINTALERT : HUD_PRINTCENTER, *v8StrTextUtf8);
+	ClientPrint(controller, isAlert ? HUD_PRINTALERT : HUD_PRINTCENTER, message->c_str());
 }
 
 void ScriptPlayerControllerCallbacks::Respawn(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	auto isolate = v8::Isolate::GetCurrent();
-	v8::HandleScope handleScope(isolate);
+	SCRIPT_SETUP(args);
 
-	if (!VerifyScriptScope("CSPlayerController", "Respawn"))
-		return;
-
-	if (!args.This()->IsObject())
-	{
-		V8ThrowException(isolate, "CSPlayerController.Respawn invoked with incorrect 'this' value.");
-		return;
-	}
+	auto controllerHandle = UnwrapThis<CEntityHandle>(context);
 
 	auto entHandle = ScriptExtensions::GetEntityHandleFromScriptObject(args.This());
 	if (!entHandle.IsValid())
