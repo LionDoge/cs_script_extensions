@@ -28,7 +28,7 @@ SH_DECL_HOOK0_void(CCSScript_EntityScript, InitializeFunctionTemplates, SH_NOATT
 
 bool ScriptExtensions::ResolveSigs(CGameConfig* gameConfig)
 {
-	//RESOLVE_SIG(gameConfig, "CSScript_RegisterFunctionTemplate", m_pfnRegisterInstanceTemplate)
+	RESOLVE_SIG(gameConfig, "CSScript_RegisterFunctionTemplate", m_pfnRegisterInstanceTemplate)
 	RESOLVE_SIG(gameConfig, "CSScript_SwitchContext", m_pfnSwitchScriptContext)
 	RESOLVE_SIG(gameConfig, "CSScript_GetCurrentScriptContext", m_pfnGetCurrentCSScript)
 	RESOLVE_SIG(gameConfig, "CSScript_AssignEntityToObject", m_pfnAssignEntityToObject)
