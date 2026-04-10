@@ -158,7 +158,11 @@ void CCSBaseScript::AddFunctionTemplate(const char* name, const v8::Local<v8::Fu
 	// after the script is deallocated.
 	// TODO: figure out why. m_registeredTypes field has to be also populated with the template name apparently
 	// just inserting into the map is not enough
-	g_scriptExtensions->ScriptRegisterFunctionTemplate(this, name, functionTemplate);
+	//g_scriptExtensions->ScriptRegisterFunctionTemplate(this, name, functionTemplate);
+
+	auto globalTem = new v8::Global<v8::FunctionTemplate>(v8::Isolate::GetCurrent(), functionTemplate);
+	m_functionTemplateMap.Insert(name, globalTem);
+	m_registeredTypes.AddToTail(name);
 }
 
 const v8::Global<v8::FunctionTemplate>* CCSBaseScript::GetFunctionTemplate(CGlobalSymbol name) const
