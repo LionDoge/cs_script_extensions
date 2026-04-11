@@ -356,8 +356,6 @@ CCSPointScriptEntity* ScriptExtensions::GetPointScriptComponent(CEntityInstance*
 {
 	if (!ent)
 		return nullptr;
-	if (dynamic_cast<CCSPointScriptEntity*>(ent) == nullptr)
-		return nullptr;
 
 	return reinterpret_cast<CCSPointScriptEntity*>((unsigned char*)GetScriptFromEntity(ent) - 0x18);
 }
