@@ -175,7 +175,7 @@ public:
 	// A double pointer to entity VData is available 4 bytes past m_nSubclassID, if applicable
 	CEntitySubclassVDataBase* GetVData() { return *(CEntitySubclassVDataBase**)((uint8*)(m_nSubclassID()) + 4); }
 
-	SndOpEventGuid_t EmitSoundFilter(IRecipientFilter &filter, const char *pszSound, float flVolume = 1.0, float flPitch = 1.0)
+	StartSoundEventInfo EmitSoundFilter(IRecipientFilter &filter, const char *pszSound, float flVolume = 1.0, float flPitch = 1.0)
 	{
 		EmitSound_t params;
 		params.m_pSoundName = pszSound;

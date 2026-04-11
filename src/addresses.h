@@ -50,7 +50,7 @@ class CCSPlayer_WeaponServices;
 class CBasePlayerWeapon;
 class CSpawnGroupMgrGameSystem;
 struct EmitSound_t;
-struct SndOpEventGuid_t;
+struct StartSoundEventInfo;
 
 namespace addresses
 {
@@ -81,7 +81,7 @@ namespace addresses
 	inline void(FASTCALL* CBaseEntity_SetParent)(CBaseEntity* pEntity, CBaseEntity* pNewParent, CUtlStringToken nBoneOrAttachName, matrix3x4a_t* pOffsetTransform);
 	inline int(FASTCALL* DispatchParticleEffect)(const char* pszParticleName, int iAttachType, CBaseEntity* pEntity,
 		char iAttachmentPoint, CUtlSymbolLarge iAttachmentName, bool bResetAllParticlesOnEntity, int nSplitScreenPlayerSlot, IRecipientFilter* a7, byte* a8);
-	inline SndOpEventGuid_t(FASTCALL* CBaseEntity_EmitSoundFilter)(IRecipientFilter& filter, CEntityIndex ent, const EmitSound_t& params);
+	inline StartSoundEventInfo(FASTCALL* CBaseEntity_EmitSoundFilter)(IRecipientFilter& filter, CEntityIndex ent, const EmitSound_t& params);
 	inline void(FASTCALL* CBaseEntity_SetMoveType)(CBaseEntity* pThis, MoveType_t nMoveType, MoveCollide_t nMoveCollide);
 	inline void(FASTCALL* CTakeDamageInfo_Constructor)(CTakeDamageInfo* pThis, CBaseEntity* pInflictor, CBaseEntity* pAttacker, CBaseEntity* pAbility,
 		const Vector* vecDamageForce, const Vector* vecDamagePosition, float flDamage, int bitsDamageType, int iCustomDamage, void* a10);
