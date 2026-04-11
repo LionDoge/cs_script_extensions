@@ -79,7 +79,6 @@ MMSPlugin g_ThisPlugin;
 IServerGameDLL *server = NULL;
 IServerGameClients *gameclients = NULL;
 IVEngineServer *engine = NULL;
-IGameEventManager2 *gameevents = NULL;
 ICvar *icvar = NULL;
 IGameEventSystem* g_gameEventSystem = NULL;
 IGameEventManager2* g_gameEventManager = nullptr;
