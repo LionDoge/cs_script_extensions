@@ -20,6 +20,7 @@
 #include "scriptExtensions/scriptcommon.h"
 #include "entity/ccsplayercontroller.h"
 #include "hudhintmanager.h"
+#include "pluginconfig.h"
 
 void ClientPrint(CCSPlayerController* player, int hud_dest, const char* msg, ...);
 extern HudHintManager g_hudHintManager;
@@ -65,6 +66,12 @@ void ScriptPlayerControllerCallbacks::ShowHTMLMessage(const v8::FunctionCallback
 
 	if (!controllerHandle || !message)
 		return;
+
+	if (!g_pluginConfig.AreClientNetworkRequestsEnabled() && V_stristr(message->c_str(), "<img") != nullptr)
+	{
+		ThrowFunctionException(context, "'img' tag is not allowed in HTML message per server's configuration.");
+		return;
+	}
 
 	if (!controllerHandle->IsValid())
 	{
