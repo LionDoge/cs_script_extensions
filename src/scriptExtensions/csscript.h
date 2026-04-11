@@ -91,7 +91,8 @@ private:
 
 // Entity script has potentially more fields that have not been reversed yet...
 class CCSScript_EntityScript : public CCSBaseScript {
-	//virtual ~CCSScript_EntityScript() = default;
+	IGameEventListener2* m_eventListener; // 0xf0 (240)
+	// There seem to be more hashtables defined, but in practice I never saw them filled.
 };
 
 enum ScriptHandleType
