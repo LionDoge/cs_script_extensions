@@ -44,12 +44,13 @@ public:
 	NetChannelBufType_t GetNetworkBufType(void) const override { return m_nBufType; }
 	bool IsInitMessage(void) const override { return m_bInitMessage; }
 	const CPlayerBitVec& GetRecipients(void) const override { return m_Recipients; }
+	CPlayerSlot GetPredictedPlayerSlot(void) const override { return -1; }
 
 	void AddAllPlayers(void)
 	{
 		m_Recipients.ClearAll();
 
-		for (int i = 0; i < ABSOLUTE_PLAYER_LIMIT; i++)
+		for (int i = 0; i < MAXPLAYERS; i++)
 		{
 			auto ent = CCSPlayerController::FromSlot(i);
 			if (!ent || !ent->IsConnected())
@@ -70,11 +71,6 @@ public:
 		const uint64 bits = *reinterpret_cast<const uint64*>(&GetRecipients());
 
 		return std::popcount(bits);
-	}
-
-	CPlayerSlot GetPredictedPlayerSlot() const
-	{
-		return CPlayerSlot(m_Recipients.FindNextSetBit(0));
 	}
 
 protected:
