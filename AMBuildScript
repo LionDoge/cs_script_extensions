@@ -229,11 +229,16 @@ extern const char* PLUGIN_REVISION_COUNT;
 
       tag = runAndReturn(['git', 'describe', '--tags']) or 'MISSING_TAG'
       commits_after_tag = '0'
+      version_num = 'unknown'
 
       tag_match = re.match(r'(.+?)\-(\d+)\-g[a-f\d]+$', tag, re.MULTILINE)
       if tag_match is not None:
         tag = tag_match.group(1)
         commits_after_tag = tag_match.group(2)
+        # remove the initial 'v' from tag, not foolproof, but good enough
+        version_num = tag
+        if tag.startswith('v'):
+          version_num = tag[1:]
 
       revision_count = runAndReturn(['git', 'rev-list', '--count', 'HEAD']) or 'MISSING_COUNT'
       revision_hash = runAndReturn(['git', 'log', '--pretty=format:%h:%H', '-n', '1']) or 'MISSING_SHORTHASH:MISSING_LONGHASH'
@@ -250,6 +255,9 @@ extern const char* PLUGIN_REVISION_COUNT;
 
     if '{{git-tag}}' in version:
       version = version.replace('{{git-tag}}', tag)
+
+    if '{{git-tag-version-num}}' in version:
+      version = version.replace('{{git-tag-version-num}}', version_num)
 
     if '{{git-commits-after-tag}}' in version:
       version = version.replace('{{git-commits-after-tag}}', commits_after_tag)

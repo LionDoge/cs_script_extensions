@@ -319,15 +319,6 @@ CGameEntitySystem* GameEntitySystem()
 	return *reinterpret_cast<CGameEntitySystem**>((uintptr_t)(g_pGameResourceServiceServer)+offset);
 }
 
-uint64_t DecodeAddrRipRelativeMov(uint64_t code_addr) {
-	// 3 bytes for Long mode MOV and first operand.
-	// next 4 are rip relative offset
-	uint8_t instruction_length = 7;
-	int32_t offset = *reinterpret_cast<const int32_t*>((uint8_t*)code_addr + 3);
-
-	return code_addr + instruction_length + offset;
-}
-
 int Hook_LoadEventsFromFile(const char* filename, bool bSearchAll)
 {
 	ExecuteOnce(g_gameEventManager = META_IFACEPTR(IGameEventManager2));
@@ -526,6 +517,8 @@ bool MMSPlugin::Unload(char *error, size_t maxlen)
 	return true;
 }
 
+// Empty implementations left for convenience
+
 void MMSPlugin::Hook_GameServerSteamAPIActivated()
 {
 }
@@ -536,27 +529,22 @@ void MMSPlugin::AllPluginsLoaded()
 
 void MMSPlugin::Hook_ClientActive( CPlayerSlot slot, bool bLoadGame, const char *pszName, uint64 xuid )
 {
-	//META_CONPRINTF( "Hook_ClientActive(%d, %d, \"%s\", %d)\n", slot, bLoadGame, pszName, xuid );
 }
 
 void MMSPlugin::Hook_ClientCommand( CPlayerSlot slot, const CCommand &args )
 {
-	//META_CONPRINTF( "Hook_ClientCommand(%d, \"%s\")\n", slot, args.GetCommandString() );
 }
 
 void MMSPlugin::Hook_ClientSettingsChanged( CPlayerSlot slot )
 {
-	//META_CONPRINTF( "Hook_ClientSettingsChanged(%d)\n", slot );
 }
 
 void MMSPlugin::Hook_OnClientConnected( CPlayerSlot slot, const char *pszName, uint64 xuid, const char *pszNetworkID, const char *pszAddress, bool bFakePlayer )
 {
-	//META_CONPRINTF( "Hook_OnClientConnected(%d, \"%s\", %d, \"%s\", \"%s\", %d)\n", slot, pszName, xuid, pszNetworkID, pszAddress, bFakePlayer );
 }
 
 bool MMSPlugin::Hook_ClientConnect( CPlayerSlot slot, const char *pszName, uint64 xuid, const char *pszNetworkID, bool unk1, CBufferString *pRejectReason )
 {
-	//META_CONPRINTF( "Hook_ClientConnect(%d, \"%s\", %d, \"%s\", %d, \"%s\")\n", slot, pszName, xuid, pszNetworkID, unk1, pRejectReason->Get() );
 	g_playerManager.OnPlayerConnect(slot);
 	RETURN_META_VALUE(MRES_IGNORED, true);
 }
