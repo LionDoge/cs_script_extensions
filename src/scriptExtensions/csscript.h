@@ -26,6 +26,7 @@
 #include "ehandle.h"
 #include "entity/cbaseentity.h"
 #include "toolsresourcelistener.h"
+#include "igameevents.h"
 
 class CCSBaseScript : public IEntityListener, public CUtlAutoList<CCSBaseScript>
 {
@@ -100,7 +101,7 @@ enum ScriptHandleType
 	Invalid = 0,
 	Module = 1, // Only seen used when initializing 'Domain' module. 
 	Entity = 2,
-	GenericObject = 3, // only seen used for CSWeaponData
+	CSWeaponData = 3,
 };
 
 struct CSScriptHandle
