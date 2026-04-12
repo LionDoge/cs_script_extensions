@@ -87,7 +87,7 @@ inline std::optional<CEntityHandle> ExtractEntityHandleFromObject(v8::Isolate* i
 	// But I trust no one...
 	// JS can't manipulate internal fields anyways, but it can bind any object as 'this' to our functions which could cause unfun security issues if unchecked.
 	auto marker = (uint32_t*)obj->GetAlignedPointerFromInternalField(0);
-	if (!modules::server->IsAddressInRange(marker) || *marker != 1)
+	if (!modules::server->IsAddressInSectionRange(marker, ".data") || *marker != 1)
 	{
 		V8ThrowException(isolate,
 			std::format("{} invoked with an invalid 'this' value (internal field 0 is not valid).", contextName)

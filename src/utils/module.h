@@ -179,6 +179,18 @@ public:
 	{
 		return address >= m_base && address < (void*)((uintptr_t)m_base + m_size);
 	}
+
+	bool IsAddressInSectionRange(void* address, const char* sectionName)
+	{
+		auto section = GetSection(sectionName);
+		if(!section)
+		{
+			Msg("Section %s not found in module %s\n", sectionName, m_pszModule);
+			return false;
+		}
+		return address >= section->m_pBase && address < (void*)((uintptr_t)section->m_pBase + section->m_iSize);
+	}
+
 #ifdef _WIN32
 	void InitializeSections();
 #endif

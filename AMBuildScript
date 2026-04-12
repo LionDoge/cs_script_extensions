@@ -227,7 +227,7 @@ extern const char* PLUGIN_REVISION_COUNT;
       builder.AddConfigureFile(git_head_path)
       builder.AddConfigureFile(direct_head)
 
-      tag = runAndReturn(['git', 'describe', '--tags']) or 'MISSING_TAG'
+      tag = runAndReturn(['git', 'describe', '--tags', '--long']) or 'MISSING_TAG'
       commits_after_tag = '0'
       version_num = 'unknown'
 

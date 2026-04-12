@@ -506,6 +506,7 @@ bool MMSPlugin::Unload(char *error, size_t maxlen)
 	SH_REMOVE_HOOK(IServerGameClients, OnClientConnected, gameclients, SH_MEMBER(this, &MMSPlugin::Hook_OnClientConnected), false);
 	SH_REMOVE_HOOK(IServerGameClients, ClientConnect, gameclients, SH_MEMBER(this, &MMSPlugin::Hook_ClientConnect), false);
 	SH_REMOVE_HOOK(IServerGameClients, ClientCommand, gameclients, SH_MEMBER(this, &MMSPlugin::Hook_ClientCommand), false);
+	SH_REMOVE_HOOK(IGameEventSystem, PostEventAbstract, g_gameEventSystem, SH_MEMBER(this, &MMSPlugin::Hook_PostEvent), false);
 	SH_REMOVE_HOOK(ISource2GameEntities, CheckTransmit, g_pSource2GameEntities, SH_MEMBER(this, &MMSPlugin::Hook_CheckTransmit), true);
 	SH_ADD_HOOK(INetworkServerService, StartupServer, g_pNetworkServerService, SH_MEMBER(this, &MMSPlugin::Hook_StartupServer), true);
 	delete g_scriptExtensions;

@@ -337,7 +337,7 @@ CCSScript_EntityScript* ScriptExtensions::GetScriptFromEntity(CEntityInstance* e
 			DummyBase* obj = (DummyBase*)((unsigned char*)ent + i);
 			if (V_stristr(typeid(*obj).name(), "CCSScript") != nullptr)
 			{
-				_csScriptOffset = static_cast<size_t>(i) - 8;
+				_csScriptOffset = static_cast<size_t>(i);
 				Msg("Found CCSScript entity offset at: %x\n", _csScriptOffset);
 				break;
 			}
