@@ -6,6 +6,13 @@
 cs_script uses the V8 JavaScript engine to run, if you want to implement your own functionality then you can read the following guide: https://v8.dev/docs/embed. This goes in hand with how JavaScript works with [objects](https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Advanced_JavaScript_objects). Maybe in the (ambitious) future, there could be a simplified API that can abstract some of this away for plugin makers.
 
 ## Usage
+
+- [Releases page](https://github.com/LionDoge/cs_script_extensions/releases)
+
+Latest development builds:
+- [Linux](https://nightly.link/LionDoge/cs_script_extensions/workflows/build/master/Linux.zip)
+- [Windows](https://nightly.link/LionDoge/cs_script_extensions/workflows/build/master/Windows.zip)
+
 This plugin installs just like any other Metamod plugin. Extract the latest release to `game/csgo/addons/`
 
 In a development environment, you will likely want to be able to use this plugin inside tools mode when working with scripts, the classic way of using gameinfo to load Metamod can cause some issues with tools. You can use this custom launcher to avoid issues: https://github.com/Poggicek/metamod-launcher
