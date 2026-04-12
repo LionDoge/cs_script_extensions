@@ -31,7 +31,7 @@ This plugin additonally provides some commands to make developing and testing ea
 
 ## Other features
 - Print line numbers and call stack during script exceptions
-- Create a global script during loading of any map, that's called `mapspawn.js` in (game/scripts) or `mapspawn.vjs_c` (in game/scripts/ of any addon) - in this priority, if available. Do note, that a script from one addon will take presence over the other ones (this will likely change later to support multiple).
+- Create a global script during loading of any map, that's called `mapspawn.js` in (game/scripts) ~~or `mapspawn.vjs_c` (in game/scripts/ of any addon) - in this priority, if available.~~ <- ((doesn't work now cause the engine is grumpy with loading scripts when it comes to precaching them or whatever.)) Do note, that a script from one addon will take presence over the other ones (this will likely change later to support multiple).
   - This feature can be disabled with `mm_enable_mapspawn_script 0`
 
 ## Included features
