@@ -674,7 +674,6 @@ void MMSPlugin::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nCli
 
 		ScriptUserMessageInfo* userMessageInfo = nullptr;
 
-		bool scriptCallbackInitialized = false;
 		for (CPointScript* scriptEnt : scripts)
 		{
 			v8::HandleScope handleScope(v8::Isolate::GetCurrent());
@@ -682,11 +681,10 @@ void MMSPlugin::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nCli
 			if (!script || !script->IsCallbackRegistered(callbackSymbol))
 				continue;
 
-			if (!scriptCallbackInitialized)
+			if (!userMessageInfo)
 			{
 				auto msg = const_cast<CNetMessage*>(pData)->ToPB<google::protobuf::Message>();
 				userMessageInfo = new ScriptUserMessageInfo(msg, *clients, nullptr);
-				scriptCallbackInitialized = true;
 			}
 			auto obj = ScriptUserMessage::CreateUserMessageInfoInstance(script, userMessageInfo);
 			v8::Local<v8::Value> jsArgs[] = { obj };
