@@ -77,6 +77,7 @@ public:
 	// More advanced API where the custom template registration can be fully controlled by the user.
 	void RegisterCustomFunctionTemplate(void (*callback)(CCSBaseScript*));
 
+	// Prefer utility methods in scriptcommon such as 'UnwrapThis', and 'UnwrapArg' instead of this one.
 	static CEntityHandle GetEntityHandleFromScriptObject(v8::Local<v8::Object> obj);
 	// This is safe to call inside script callback functions, should always return the current running script.
 	static CCSBaseScript* GetCurrentCsScriptInstance();
@@ -99,9 +100,8 @@ public:
 	static CCSScript_EntityScript* GetScriptFromEntity(CEntityInstance* ent);
 	CCSPointScriptEntity* GetPointScriptComponent(CEntityInstance* ent);
 
-	// Invoke named callback on all scripts, this doesn't let you retrieve return values yet, maybe later...
-	// Depending on the needs you may want to manually iterate script entities and call InvokeCallback on each of them instead.
-	void InvokeCallbacks(const char* callbackName, int argc, v8::Local<v8::Value> argv[]);
+	// Invoke named callback on all scripts, returns a vector of results from each script if applicable.
+	std::vector<v8::Local<v8::Value>> InvokeCallbacks(const char* callbackName, int argc, v8::Local<v8::Value> argv[]);
 	
 	// Register a function template with the script, just calls the game function.
 	// This usually is done only during script initialization, but technically can be done at any time.

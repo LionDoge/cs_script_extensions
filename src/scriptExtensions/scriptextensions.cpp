@@ -153,17 +153,22 @@ v8::Local<v8::Object> ScriptExtensions::CreateEntityObjectFromTemplate(const CGl
 	return m_pfnCreateEntintyObjectFromTemplate(templateName, entity);
 }
 
-void ScriptExtensions::InvokeCallbacks(const char* callbackName, int argc, v8::Local<v8::Value> argv[])
+std::vector<v8::Local<v8::Value>> ScriptExtensions::InvokeCallbacks(const char* callbackName, int argc, v8::Local<v8::Value> argv[])
 {
 	VPROF("CSScriptExtensionsSystem::InvokeCallbacks");
 
 	auto isolate = v8::Isolate::GetCurrent();
-	for (CPointScript* scriptEnt : GetScripts())
+	auto scripts = GetScripts();
+
+	std::vector<v8::Local<v8::Value>> results;
+	results.reserve(scripts.size());
+	for (CPointScript* scriptEnt : scripts)
 	{
 		v8::HandleScope handleScope(isolate);
 		if (const auto script = scriptEnt->GetScript())
-			script->InvokeCallback(callbackName, argc, argv);
+			results.push_back(script->InvokeCallback(callbackName, argc, argv));
 	}
+	return results;
 }
 
 void ScriptExtensions::ScriptRegisterFunctionTemplate(CCSBaseScript* script, const char* name, const v8::Local<v8::FunctionTemplate>& functionTemplate)
