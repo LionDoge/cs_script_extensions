@@ -95,7 +95,13 @@ void ScriptUserMessage::OnUserMessage(const v8::FunctionCallbackInfo<v8::Value>&
 	}
 
 	auto v8Obj = args[0]->ToObject(context.isolate->GetCurrentContext()).ToLocalChecked();
-	auto v8MsgName = v8Obj->Get(context.isolate->GetCurrentContext(), v8::String::NewFromUtf8(context.isolate, "messageName").ToLocalChecked()).ToLocalChecked();
+	auto maybeMsgName = v8Obj->Get(context.isolate->GetCurrentContext(), v8::String::NewFromUtf8(context.isolate, "messageName").ToLocalChecked());
+	if (maybeMsgName.IsEmpty())
+	{
+		ThrowFunctionException(context, "argument 0 must have a messageName property");
+		return;
+	}
+	auto v8MsgName = maybeMsgName.ToLocalChecked();
 	if (!v8MsgName->IsString())
 	{
 		ThrowFunctionException(context, "argument 0.messageName must be a string");
@@ -103,7 +109,13 @@ void ScriptUserMessage::OnUserMessage(const v8::FunctionCallbackInfo<v8::Value>&
 	}
 	v8::String::Utf8Value msgNameUtf8(context.isolate, v8MsgName);
 
-	auto v8Callback = v8Obj->Get(context.isolate->GetCurrentContext(), v8::String::NewFromUtf8(context.isolate, "callback").ToLocalChecked()).ToLocalChecked();
+	auto maybeCallback = v8Obj->Get(context.isolate->GetCurrentContext(), v8::String::NewFromUtf8(context.isolate, "callback").ToLocalChecked());
+	if (maybeCallback.IsEmpty())
+	{
+		ThrowFunctionException(context, "argument 0 must have a callback property");
+		return;
+	}
+	auto v8Callback = maybeCallback.ToLocalChecked();
 	if (!v8Callback->IsFunction())
 	{
 		ThrowFunctionException(context, "argument 0.callback must be a function");
