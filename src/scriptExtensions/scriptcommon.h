@@ -133,7 +133,19 @@ inline std::optional<ManagedObject<T>*> UnwrapThisAsManagedObject(const CallCont
 }
 
 template <typename T>
-inline std::optional<T> UnwrapArg(const CallContext& context, int argIndex, bool isOptional = false) = delete;
+inline std::optional<T> UnwrapArg(const CallContext& context, int argIndex, bool isOptional = false)
+{
+	if (isOptional && argIndex >= context.args.Length())
+		return std::nullopt;
+
+	if (argIndex >= context.args.Length())
+	{
+		ThrowFunctionException(context, std::format("Argument number {} is required but was not provided.", argIndex));
+		return std::nullopt;
+	}
+
+	return context.args[argIndex];
+}
 
 template <>
 inline std::optional<std::string> UnwrapArg<std::string>(const CallContext& context, int argIndex, bool isOptional)
