@@ -698,7 +698,6 @@ void MMSPlugin::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nCli
 			if (!result.IsEmpty() && result->IsBoolean() && !result->ToBoolean(v8::Isolate::GetCurrent())->Value())
 			{
 				*const_cast<uint64*>(clients) = 0;
-				break;
 			}
 		}
 
