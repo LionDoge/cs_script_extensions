@@ -90,3 +90,16 @@ void ScriptPlayerControllerCallbacks::Respawn(const v8::FunctionCallbackInfo<v8:
 
 	(*playerController)->Respawn();
 }
+
+void ScriptPlayerControllerCallbacks::PrintToChat(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	SCRIPT_SETUP(args);
+
+	auto playerController = UnwrapThis<CCSPlayerController*>(context);
+	auto message = UnwrapArg<std::string>(context, 0);
+
+	if (!playerController || !message)
+		return;
+
+	ClientPrint(*playerController, HUD_PRINTTALK, message->c_str());
+}

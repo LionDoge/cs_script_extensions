@@ -25,4 +25,5 @@ namespace ScriptPlayerControllerCallbacks {
 	void ShowHTMLMessage(const v8::FunctionCallbackInfo<v8::Value>& args);
 	void ShowHudHint(const v8::FunctionCallbackInfo<v8::Value>& args);
 	void Respawn(const v8::FunctionCallbackInfo<v8::Value>& args);
+	void PrintToChat(const v8::FunctionCallbackInfo<v8::Value>& args);
 };

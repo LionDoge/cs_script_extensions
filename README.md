@@ -79,6 +79,8 @@ export class CSPlayerController {
   GetSteamID(): number;
   /** Respawns this player's pawn */
   Respawn();
+  /** Prints a message to this player's chat */
+  PrintToChat(text: string): void;
 }
 
 export class UserMessageInfo {

@@ -1,5 +1,5 @@
---- point_script.d.ts.orig	2026-03-05 01:57:09.604559200 +0100
-+++ point_script.d.ts.orig	2026-03-31 09:12:48.466888100 +0200
+--- point_script.d.ts.orig	2026-04-19 23:00:34.988991100 +0200
++++ point_script.d.ts	2026-04-19 22:59:04.211323100 +0200
 @@ -214,8 +214,24 @@
          EntFireAtName(name: string, input: string, inputData?: InputValue | { value?: InputValue, caller?: Entity, activator?: Entity }, delay?: number): void;
          /** @deprecated This overload will be removed in a future update */
@@ -44,7 +44,7 @@
      }
  
      interface EntityDamage {
-@@ -574,6 +602,16 @@
+@@ -574,6 +602,18 @@
          IsBot(): boolean;
          IsConnected(): boolean;
          JoinTeam(team: number): void;
@@ -58,10 +58,12 @@
 +        GetSteamID(): number;
 +        /** Respawns this player's pawn */
 +        Respawn(): void;
++        /** Prints a message to this player's chat */
++        PrintToChat(text: string): void;
      }
  
      export class CSObserverPawn extends BaseModelEntity {
-@@ -634,6 +672,22 @@
+@@ -634,6 +674,22 @@
  
      /** @deprecated This enum will be removed in a future update */
      export enum CSDamageType { }

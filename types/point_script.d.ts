@@ -612,6 +612,8 @@ declare module "cs_script/point_script"
         GetSteamID(): number;
         /** Respawns this player's pawn */
         Respawn(): void;
+        /** Prints a message to this player's chat */
+        PrintToChat(text: string): void;
     }
 
     export class CSObserverPawn extends BaseModelEntity {
