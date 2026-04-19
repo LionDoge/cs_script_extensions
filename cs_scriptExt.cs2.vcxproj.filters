@@ -235,6 +235,9 @@
     <ClInclude Include="src\cs2_sdk\entity\globaltypes.h">
       <Filter>Header Files\cs2_sdk\entity</Filter>
     </ClInclude>
+    <ClInclude Include="src\scriptExtensions\scriptcommon_entities.h">
+      <Filter>Header Files\Script Extensions</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">

@@ -158,6 +158,7 @@ sdks\hl2sdk-cs2\devtools\bin\protoc.exe --proto_path="sdks\hl2sdk-cs2\networksys
     <ClInclude Include="src\hudhintmanager.h" />
     <ClInclude Include="src\object_wrap.h" />
     <ClInclude Include="src\cs2_sdk\recipientfilters.h" />
+    <ClInclude Include="src\scriptExtensions\scriptcommon_entities.h" />
     <ClInclude Include="src\scriptExtensions\scriptextensions.h" />
     <ClInclude Include="src\scriptExtensions\userMessageInfo.h" />
     <ClInclude Include="src\scripttypes.h" />
