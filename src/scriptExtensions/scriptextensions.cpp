@@ -162,11 +162,12 @@ std::vector<v8::Local<v8::Value>> ScriptExtensions::InvokeCallbacks(const char* 
 
 	std::vector<v8::Local<v8::Value>> results;
 	results.reserve(scripts.size());
+	CGlobalSymbol callbackSymbol(callbackName);
 	for (CPointScript* scriptEnt : scripts)
 	{
 		v8::HandleScope handleScope(isolate);
 		if (const auto script = scriptEnt->GetScript())
-			results.push_back(script->InvokeCallback(callbackName, argc, argv));
+			results.push_back(script->InvokeCallback(callbackSymbol, argc, argv));
 	}
 	return results;
 }
