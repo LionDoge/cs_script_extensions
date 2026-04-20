@@ -246,7 +246,7 @@ void ScriptExtensions::OnScriptInstanceRegisterTemplates()
 
 	RETURN_META(MRES_IGNORED);
 }
-
+	
 void ScriptExtensions::RegisterNewFunction(v8::Local<v8::ObjectTemplate> prototypeTemplate, const ScriptFunctionInfo& funcInfo)
 {
 	auto isolate = v8::Isolate::GetCurrent();

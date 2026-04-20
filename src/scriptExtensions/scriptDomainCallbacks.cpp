@@ -434,6 +434,25 @@ void ScriptDomainCallbacks::PrintToChatAll(const v8::FunctionCallbackInfo<v8::Va
 	ClientPrintAll(HUD_PRINTTALK, message->c_str());
 }
 
+void ScriptDomainCallbacks::OnClientCommand(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	SCRIPT_SETUP(args);
+
+	auto callbackVal = UnwrapArg<v8::Local<v8::Value>>(context, 0);
+	if (!callbackVal)
+		return;
+
+	if (!(*callbackVal)->IsFunction())
+	{
+		ThrowFunctionException(context, "provided argument must be a function");
+		return;
+	}
+
+	auto callback = (*callbackVal).As<v8::Function>();
+	const auto script = ScriptExtensions::GetCurrentCsScriptInstance();
+	script->AddCallback("OnClientCommand", callback);
+}
+
 template<typename T>
 inline constexpr bool always_false_v = false;
 

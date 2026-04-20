@@ -335,7 +335,8 @@ static void RegisterScriptFunctions()
 			{ "MsgNew", ScriptDomainCallbacks::NewMsg },
 			{ "AddSampleCallback", ScriptDomainCallbacks::AddSampleCallback },
 			{ "EmitSound", ScriptDomainCallbacks::EmitSound },
-			{ "PrintToChatAll", ScriptDomainCallbacks::PrintToChatAll }
+			{ "PrintToChatAll", ScriptDomainCallbacks::PrintToChatAll },
+			{ "OnClientCommand", ScriptDomainCallbacks::OnClientCommand }
 		});
 
 	if (g_pluginConfig.IsQueryConvarsEnabled())
@@ -535,6 +536,20 @@ void MMSPlugin::Hook_ClientActive( CPlayerSlot slot, bool bLoadGame, const char 
 
 void MMSPlugin::Hook_ClientCommand( CPlayerSlot slot, const CCommand &args )
 {
+	auto isolate = v8::Isolate::GetCurrent();
+	v8::HandleScope handleScope(isolate);
+
+	auto v8Slot = v8::Number::New(isolate, slot.Get());
+	auto v8Str = v8::String::NewFromUtf8(isolate, args.GetCommandString()).ToLocalChecked();
+	v8::Local<v8::Value> jsArgs[] = { v8Slot, v8Str };
+	for (const auto result : g_scriptExtensions->InvokeCallbacks("OnClientCommand", 2, jsArgs))
+	{
+		if (!result.IsEmpty() && result->IsBoolean() && !result->ToBoolean(isolate)->Value())
+		{
+			// One script returned false, block the command.
+			RETURN_META(MRES_SUPERCEDE);
+		}
+	}
 }
 
 void MMSPlugin::Hook_ClientSettingsChanged( CPlayerSlot slot )
