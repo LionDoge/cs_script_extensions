@@ -672,8 +672,13 @@ void MMSPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext
 
 	auto slot = context.GetPlayerSlot();
 	auto v8Slot = v8::Number::New(isolate, slot.Get());
-	auto v8Str = v8::String::NewFromUtf8(isolate, command.GetCommandString()).ToLocalChecked();
-	v8::Local<v8::Value> jsArgs[] = { v8Slot, v8Str };
+
+	auto v8ArgsArray = v8::Array::New(isolate, command.ArgC());
+	for (int i = 0; i < command.ArgC(); i++)
+	{
+		v8ArgsArray->Set(isolate->GetCurrentContext(), i, v8::String::NewFromUtf8(isolate, command.Arg(i)).ToLocalChecked()).Check();
+	}
+	v8::Local<v8::Value> jsArgs[] = { v8Slot, v8ArgsArray };
 	for (const auto result : g_scriptExtensions->InvokeCallbacks("OnClientCommand", 2, jsArgs))
 	{
 		if (!result.IsEmpty() && result->IsBoolean() && !result->ToBoolean(isolate)->Value())
