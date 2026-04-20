@@ -673,9 +673,13 @@ void MMSPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext
 
 	v8::HandleScope handleScope(isolate);
 	const auto scripts = ScriptExtensions::GetScripts();
+	CGlobalSymbol callbackSymbol("OnClientCommand");
 	for (CPointScript* scriptEnt : scripts)
 	{
 		const auto script = scriptEnt->GetScript();
+		if (!script || !script->IsCallbackRegistered(callbackSymbol))
+			continue;
+
 		const auto v8Context = script->GetContext().Get(isolate);
 		v8Context->Enter();
 
@@ -687,7 +691,7 @@ void MMSPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext
 		}
 		v8::Local<v8::Value> jsArgs[] = { v8Slot, v8ArgsArray };
 
-		const auto result = script->InvokeCallback("OnClientCommand", 2, jsArgs);
+		const auto result = script->InvokeCallback(callbackSymbol, 2, jsArgs);
 		if (!result.IsEmpty() && result->IsBoolean() && !result->ToBoolean(isolate)->Value())
 		{
 			RETURN_META(MRES_SUPERCEDE);
