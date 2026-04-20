@@ -101,6 +101,8 @@ public:
 	CCSPointScriptEntity* GetPointScriptComponent(CEntityInstance* ent);
 
 	// Invoke named callback on all scripts, returns a vector of results from each script if applicable.
+	// Make sure to switch the context to any script when creating JS objects, otherwise you might get random crashes.
+	// TODO: Is it possible to reuse objects across contexts?
 	std::vector<v8::Local<v8::Value>> InvokeCallbacks(const char* callbackName, int argc, v8::Local<v8::Value> argv[]);
 	
 	// Register a function template with the script, just calls the game function.
