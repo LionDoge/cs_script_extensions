@@ -56,6 +56,7 @@ public: //hooks
 	void Hook_ClientCommand( CPlayerSlot nSlot, const CCommand &_cmd );
 	void Hook_SetGameSpawnGroupMgr(IGameSpawnGroupMgr* pSpawnGroupMgr);
 	void Hook_StartupServer(const GameSessionConfiguration_t& config, ISource2WorldSession* pSession, const char* pszMapName);
+	void Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext& context, const CCommand& command);
 	void Hook_GameServerSteamAPIActivated();
 	/* Returns a ifstream of a file relative to the game path (so game/csgo/) */
 	std::ifstream OpenGameRelativeFile(std::string_view relativePath);

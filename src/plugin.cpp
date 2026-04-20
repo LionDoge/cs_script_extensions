@@ -74,6 +74,7 @@ SH_DECL_HOOK8_void(IGameEventSystem, PostEventAbstract, SH_NOATTRIB, 0, CSplitSc
 SH_DECL_HOOK7_void(ISource2GameEntities, CheckTransmit, SH_NOATTRIB, 0, CCheckTransmitInfo**, int, CBitVec<16384>&, CBitVec<16384>&, const Entity2Networkable_t**, const uint16*, int);
 class GameSessionConfiguration_t {};
 SH_DECL_HOOK3_void(INetworkServerService, StartupServer, SH_NOATTRIB, 0, const GameSessionConfiguration_t&, ISource2WorldSession*, const char*)
+SH_DECL_HOOK3_void(ICvar, DispatchConCommand, SH_NOATTRIB, 0, ConCommandRef, const CCommandContext&, const CCommand&);
 
 MMSPlugin g_ThisPlugin;
 IServerGameDLL *server = NULL;
@@ -441,6 +442,7 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 	SH_ADD_HOOK(IGameEventSystem, PostEventAbstract, g_gameEventSystem, SH_MEMBER(this, &MMSPlugin::Hook_PostEvent), false);
 	SH_ADD_HOOK(ISource2GameEntities, CheckTransmit, g_pSource2GameEntities, SH_MEMBER(this, &MMSPlugin::Hook_CheckTransmit), true);
 	SH_ADD_HOOK(INetworkServerService, StartupServer, g_pNetworkServerService, SH_MEMBER(this, &MMSPlugin::Hook_StartupServer), true);
+	SH_ADD_HOOK(ICvar, DispatchConCommand, g_pCVar, SH_MEMBER(this, &MMSPlugin::Hook_DispatchConCommand), false);
 
 	META_CONPRINT("[cs_script_ext] Loading gamedata...\n");
 	CBufferStringGrowable<256> gamedirpath;
@@ -510,7 +512,9 @@ bool MMSPlugin::Unload(char *error, size_t maxlen)
 	SH_REMOVE_HOOK(IServerGameClients, ClientCommand, gameclients, SH_MEMBER(this, &MMSPlugin::Hook_ClientCommand), false);
 	SH_REMOVE_HOOK(IGameEventSystem, PostEventAbstract, g_gameEventSystem, SH_MEMBER(this, &MMSPlugin::Hook_PostEvent), false);
 	SH_REMOVE_HOOK(ISource2GameEntities, CheckTransmit, g_pSource2GameEntities, SH_MEMBER(this, &MMSPlugin::Hook_CheckTransmit), true);
-	SH_ADD_HOOK(INetworkServerService, StartupServer, g_pNetworkServerService, SH_MEMBER(this, &MMSPlugin::Hook_StartupServer), true);
+	SH_REMOVE_HOOK(INetworkServerService, StartupServer, g_pNetworkServerService, SH_MEMBER(this, &MMSPlugin::Hook_StartupServer), true);
+	SH_REMOVE_HOOK(ICvar, DispatchConCommand, g_pCVar, SH_MEMBER(this, &MMSPlugin::Hook_DispatchConCommand), false);
+
 	delete g_scriptExtensions;
 	g_v8ExceptionHook = {};
 	const auto entitySystem = GameEntitySystem();
@@ -536,20 +540,6 @@ void MMSPlugin::Hook_ClientActive( CPlayerSlot slot, bool bLoadGame, const char 
 
 void MMSPlugin::Hook_ClientCommand( CPlayerSlot slot, const CCommand &args )
 {
-	auto isolate = v8::Isolate::GetCurrent();
-	v8::HandleScope handleScope(isolate);
-
-	auto v8Slot = v8::Number::New(isolate, slot.Get());
-	auto v8Str = v8::String::NewFromUtf8(isolate, args.GetCommandString()).ToLocalChecked();
-	v8::Local<v8::Value> jsArgs[] = { v8Slot, v8Str };
-	for (const auto result : g_scriptExtensions->InvokeCallbacks("OnClientCommand", 2, jsArgs))
-	{
-		if (!result.IsEmpty() && result->IsBoolean() && !result->ToBoolean(isolate)->Value())
-		{
-			// One script returned false, block the command.
-			RETURN_META(MRES_SUPERCEDE);
-		}
-	}
 }
 
 void MMSPlugin::Hook_ClientSettingsChanged( CPlayerSlot slot )
@@ -673,6 +663,26 @@ void MMSPlugin::Hook_StartupServer(const GameSessionConfiguration_t& config, ISo
 		g_iSetGameSpawnGroupMgrId = SH_ADD_HOOK(IServer, SetGameSpawnGroupMgr, g_pNetworkServerService->GetIGameServer(), SH_MEMBER(this, &MMSPlugin::Hook_SetGameSpawnGroupMgr), false);
 
 	g_bHasTicked = false;
+}
+
+void MMSPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext& context, const CCommand& command)
+{
+	auto isolate = v8::Isolate::GetCurrent();
+	v8::HandleScope handleScope(isolate);
+
+	auto slot = context.GetPlayerSlot();
+	auto v8Slot = v8::Number::New(isolate, slot.Get());
+	auto v8Str = v8::String::NewFromUtf8(isolate, command.GetCommandString()).ToLocalChecked();
+	v8::Local<v8::Value> jsArgs[] = { v8Slot, v8Str };
+	for (const auto result : g_scriptExtensions->InvokeCallbacks("OnClientCommand", 2, jsArgs))
+	{
+		if (!result.IsEmpty() && result->IsBoolean() && !result->ToBoolean(isolate)->Value())
+		{
+			// One script returned false, block the command.
+			RETURN_META(MRES_SUPERCEDE);
+		}
+	}
+	RETURN_META(MRES_IGNORED);
 }
 
 void MMSPlugin::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nClientCount, const uint64* clients,
