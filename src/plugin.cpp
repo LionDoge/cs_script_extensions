@@ -668,26 +668,31 @@ void MMSPlugin::Hook_StartupServer(const GameSessionConfiguration_t& config, ISo
 void MMSPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext& context, const CCommand& command)
 {
 	auto isolate = v8::Isolate::GetCurrent();
+	if (context.GetPlayerSlot() == -1)
+		RETURN_META(MRES_HANDLED); // only handle client commands, not server console commands
+
 	v8::HandleScope handleScope(isolate);
-
-	auto slot = context.GetPlayerSlot();
-	auto v8Slot = v8::Number::New(isolate, slot.Get());
-
-	auto v8ArgsArray = v8::Array::New(isolate, command.ArgC());
-	for (int i = 0; i < command.ArgC(); i++)
+	const auto scripts = ScriptExtensions::GetScripts();
+	for (CPointScript* scriptEnt : scripts)
 	{
-		v8ArgsArray->Set(isolate->GetCurrentContext(), i, v8::String::NewFromUtf8(isolate, command.Arg(i)).ToLocalChecked()).Check();
-	}
-	v8::Local<v8::Value> jsArgs[] = { v8Slot, v8ArgsArray };
-	for (const auto result : g_scriptExtensions->InvokeCallbacks("OnClientCommand", 2, jsArgs))
-	{
+		const auto script = scriptEnt->GetScript();
+		const auto v8Context = script->GetContext().Get(isolate);
+		v8Context->Enter();
+
+		v8::Local<v8::Number> v8Slot = v8::Number::New(isolate, context.GetPlayerSlot().Get());
+		v8::Local<v8::Array> v8ArgsArray = v8::Array::New(isolate, command.ArgC());
+		for (int i = 0; i < command.ArgC(); i++)
+		{
+			v8ArgsArray->Set(isolate->GetCurrentContext(), i, v8::String::NewFromUtf8(isolate, command.Arg(i)).ToLocalChecked()).Check();
+		}
+		v8::Local<v8::Value> jsArgs[] = { v8Slot, v8ArgsArray };
+
+		const auto result = script->InvokeCallback("OnClientCommand", 2, jsArgs);
 		if (!result.IsEmpty() && result->IsBoolean() && !result->ToBoolean(isolate)->Value())
 		{
-			// One script returned false, block the command.
 			RETURN_META(MRES_SUPERCEDE);
 		}
 	}
-	RETURN_META(MRES_IGNORED);
 }
 
 void MMSPlugin::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nClientCount, const uint64* clients,
