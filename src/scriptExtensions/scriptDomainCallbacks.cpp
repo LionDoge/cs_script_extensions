@@ -379,6 +379,12 @@ void ScriptDomainCallbacks::GetConVarValue(const v8::FunctionCallbackInfo<v8::Va
 		return;
 	}
 
+	if (cvar.IsFlagSet(FCVAR_PROTECTED) || cvar.IsFlagSet(FCVAR_DONTRECORD))
+	{
+		ThrowFunctionException(context, std::format("ConVar {} is protected or marked as 'dontrecord', its value cannot be accessed", *cvarName));
+		return;
+	}
+
 	auto cvarType = cvar.GetType();
 	switch (cvarType)
 	{
