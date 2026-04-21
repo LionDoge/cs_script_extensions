@@ -1,6 +1,6 @@
---- point_script.d.ts.orig	2026-04-19 23:00:34.988991100 +0200
-+++ point_script.d.ts	2026-04-19 22:59:04.211323100 +0200
-@@ -214,8 +214,24 @@
+--- point_script.d.ts.orig	2026-04-21 23:58:05.796352100 +0200
++++ point_script.d.ts	2026-04-21 23:56:03.010284600 +0200
+@@ -216,8 +216,30 @@
          EntFireAtName(name: string, input: string, inputData?: InputValue | { value?: InputValue, caller?: Entity, activator?: Entity }, delay?: number): void;
          /** @deprecated This overload will be removed in a future update */
          EntFireAtTarget(target: Entity, input: string, inputData?: InputValue | { value?: InputValue, caller?: Entity, activator?: Entity }, delay?: number): void;
@@ -19,13 +19,19 @@
 +        GetConVarValue(cvar: string): CvarValue
 +        /** Prints a message to the chat, supports special characters for color codes */
 +        PrintToChatAll(message: string): void;
++        /** Listens for a command from clients, callback can return false to block the command or true to let it through 
++        * Players can invoke commands when not fully connected too, so make sure to check for that if necessary. */
++        OnDispatchClientCommand(callback: (playerSlot: number, arguments: string[]) => boolean): void;
++        /** Listens for a command from clients, unlike OnDispatchClientCommand, it allows to listen for unregistered commands.
++         * However, this callback cannot be used to block any command */
++        OnClientCommand(callback: (playerSlot: number, arguments: string[]) => void): void;
      }
  
 +    type CvarValue = string | number | boolean | Vector | QAngle | Color | undefined;
      type Vector = { x: number, y: number, z: number };
      type RotationVector = { x: number, y: number, z: number };
      type QAngle = { pitch: number, yaw: number, roll: number };
-@@ -506,6 +522,18 @@
+@@ -508,6 +530,18 @@
          Teleport(newPosition: Vector | null, newAngles: QAngle | null, newVelocity: Vector | null): void;
          /** @deprecated This method will be removed in a future update */
          GetLocalVelcoity(): Vector;
@@ -44,7 +50,7 @@
      }
  
      interface EntityDamage {
-@@ -574,6 +602,18 @@
+@@ -576,6 +610,18 @@
          IsBot(): boolean;
          IsConnected(): boolean;
          JoinTeam(team: number): void;
@@ -63,7 +69,7 @@
      }
  
      export class CSObserverPawn extends BaseModelEntity {
-@@ -634,6 +674,22 @@
+@@ -636,6 +682,22 @@
  
      /** @deprecated This enum will be removed in a future update */
      export enum CSDamageType { }

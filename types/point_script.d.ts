@@ -188,6 +188,8 @@ declare module "cs_script/point_script"
         GetMapName(): string;
         /** Get the number of rounds played in the current game. */
         GetRoundsPlayed(): number;
+        /** Get the time remaining in the current round in seconds. */
+        GetRoundRemainingTime(): number;
 
         /** Issue the specified command to the specified client. */
         ClientCommand(playerSlot: number, command: string): void;
@@ -231,7 +233,10 @@ declare module "cs_script/point_script"
         PrintToChatAll(message: string): void;
         /** Listens for a command from clients, callback can return false to block the command or true to let it through 
         * Players can invoke commands when not fully connected too, so make sure to check for that if necessary. */
-        OnClientCommand(callback: (playerSlot: number, arguments: string[]) => boolean): void;
+        OnDispatchClientCommand(callback: (playerSlot: number, arguments: string[]) => boolean): void;
+        /** Listens for a command from clients, unlike OnDispatchClientCommand, it allows to listen for unregistered commands.
+         * However, this callback cannot be used to block any command */
+        OnClientCommand(callback: (playerSlot: number, arguments: string[]) => void): void;
     }
 
     type CvarValue = string | number | boolean | Vector | QAngle | Color | undefined;
