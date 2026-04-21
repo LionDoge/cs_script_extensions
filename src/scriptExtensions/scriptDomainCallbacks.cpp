@@ -450,7 +450,28 @@ void ScriptDomainCallbacks::OnDispatchClientCommand(const v8::FunctionCallbackIn
 
 	auto callback = (*callbackVal).As<v8::Function>();
 	const auto script = ScriptExtensions::GetCurrentCsScriptInstance();
-	script->AddCallback("OnDispatchClientCommand", callback);
+	if(script)
+		script->AddCallback("OnDispatchClientCommand", callback);
+}
+
+void ScriptDomainCallbacks::OnClientCommand(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	SCRIPT_SETUP(args);
+
+	auto callbackVal = UnwrapArg<v8::Local<v8::Value>>(context, 0);
+	if (!callbackVal)
+		return;
+
+	if (!(*callbackVal)->IsFunction())
+	{
+		ThrowFunctionException(context, "provided argument must be a function");
+		return;
+	}
+
+	auto callback = (*callbackVal).As<v8::Function>();
+	const auto script = ScriptExtensions::GetCurrentCsScriptInstance();
+	if(script)
+		script->AddCallback("OnClientCommand", callback);
 }
 
 template<typename T>

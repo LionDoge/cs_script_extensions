@@ -337,7 +337,8 @@ static void RegisterScriptFunctions()
 			{ "AddSampleCallback", ScriptDomainCallbacks::AddSampleCallback },
 			{ "EmitSound", ScriptDomainCallbacks::EmitSound },
 			{ "PrintToChatAll", ScriptDomainCallbacks::PrintToChatAll },
-			{ "OnDispatchClientCommand", ScriptDomainCallbacks::OnDispatchClientCommand }
+			{ "OnDispatchClientCommand", ScriptDomainCallbacks::OnDispatchClientCommand },
+			{ "OnClientCommand", ScriptDomainCallbacks::OnClientCommand }
 		});
 
 	if (g_pluginConfig.IsQueryConvarsEnabled())
@@ -540,6 +541,28 @@ void MMSPlugin::Hook_ClientActive( CPlayerSlot slot, bool bLoadGame, const char 
 
 void MMSPlugin::Hook_ClientCommand( CPlayerSlot slot, const CCommand &args )
 {
+	auto isolate = v8::Isolate::GetCurrent();
+	v8::HandleScope handleScope(isolate);
+	const auto scripts = ScriptExtensions::GetScripts();
+	CGlobalSymbol callbackSymbol("OnClientCommand");
+	for (CPointScript* scriptEnt : scripts)
+	{
+		const auto script = scriptEnt->GetScript();
+		if (!script || !script->IsCallbackRegistered(callbackSymbol))
+			continue;
+
+		const auto v8Context = script->GetContext().Get(isolate);
+		v8Context->Enter();
+
+		v8::Local<v8::Number> v8Slot = v8::Number::New(isolate, slot.Get());
+		v8::Local<v8::Array> v8ArgsArray = v8::Array::New(isolate, args.ArgC());
+		for (int i = 0; i < args.ArgC(); i++)
+		{
+			v8ArgsArray->Set(isolate->GetCurrentContext(), i, v8::String::NewFromUtf8(isolate, args.Arg(i)).ToLocalChecked()).Check();
+		}
+		v8::Local<v8::Value> jsArgs[] = { v8Slot, v8ArgsArray };
+		script->InvokeCallback(callbackSymbol, 2, jsArgs);
+	}
 }
 
 void MMSPlugin::Hook_ClientSettingsChanged( CPlayerSlot slot )

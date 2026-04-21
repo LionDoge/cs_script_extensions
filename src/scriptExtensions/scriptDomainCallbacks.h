@@ -32,6 +32,7 @@ namespace ScriptDomainCallbacks {
 	void GetConVarValue(const v8::FunctionCallbackInfo<v8::Value>& args);
 	void PrintToChatAll(const v8::FunctionCallbackInfo<v8::Value>& args);
 	void OnDispatchClientCommand(const v8::FunctionCallbackInfo<v8::Value>& args);
+	void OnClientCommand(const v8::FunctionCallbackInfo<v8::Value>& args);
 
 	void CreateUserMessage(const v8::FunctionCallbackInfo<v8::Value>& args);
 
