@@ -337,7 +337,7 @@ static void RegisterScriptFunctions()
 			{ "AddSampleCallback", ScriptDomainCallbacks::AddSampleCallback },
 			{ "EmitSound", ScriptDomainCallbacks::EmitSound },
 			{ "PrintToChatAll", ScriptDomainCallbacks::PrintToChatAll },
-			{ "OnClientCommand", ScriptDomainCallbacks::OnClientCommand }
+			{ "OnDispatchClientCommand", ScriptDomainCallbacks::OnDispatchClientCommand }
 		});
 
 	if (g_pluginConfig.IsQueryConvarsEnabled())
@@ -673,7 +673,7 @@ void MMSPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext
 
 	v8::HandleScope handleScope(isolate);
 	const auto scripts = ScriptExtensions::GetScripts();
-	CGlobalSymbol callbackSymbol("OnClientCommand");
+	CGlobalSymbol callbackSymbol("OnDispatchClientCommand");
 	for (CPointScript* scriptEnt : scripts)
 	{
 		const auto script = scriptEnt->GetScript();

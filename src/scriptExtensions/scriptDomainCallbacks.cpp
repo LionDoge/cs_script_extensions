@@ -434,7 +434,7 @@ void ScriptDomainCallbacks::PrintToChatAll(const v8::FunctionCallbackInfo<v8::Va
 	ClientPrintAll(HUD_PRINTTALK, message->c_str());
 }
 
-void ScriptDomainCallbacks::OnClientCommand(const v8::FunctionCallbackInfo<v8::Value>& args)
+void ScriptDomainCallbacks::OnDispatchClientCommand(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	SCRIPT_SETUP(args);
 
@@ -450,7 +450,7 @@ void ScriptDomainCallbacks::OnClientCommand(const v8::FunctionCallbackInfo<v8::V
 
 	auto callback = (*callbackVal).As<v8::Function>();
 	const auto script = ScriptExtensions::GetCurrentCsScriptInstance();
-	script->AddCallback("OnClientCommand", callback);
+	script->AddCallback("OnDispatchClientCommand", callback);
 }
 
 template<typename T>
