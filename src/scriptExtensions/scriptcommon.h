@@ -50,17 +50,14 @@ inline void V8FakeObjectConstructorCallback(const v8::FunctionCallbackInfo<v8::V
 {
 	auto isolate = info.GetIsolate();
 	v8::HandleScope handleScope(isolate);
-	V8ThrowException(isolate, "Cannot be constructed from script\n");
+	V8ThrowException(isolate, "Cannot be constructed from script.\n");
 }
 
 inline bool VerifyScriptScope(const CallContext& context)
 {
 	if (!ScriptExtensions::GetCurrentCsScriptInstance())
 	{
-		V8ThrowException(
-			context.isolate,
-			std::format("Method {} invoked in incorrect script scope.", context.name)
-		);
+		ThrowFunctionException(context, "invoked in an incorrect scope.");
 		return false;
 	}
 	return true;
@@ -76,10 +73,7 @@ inline std::optional<CEntityHandle> ExtractEntityHandleFromObject(v8::Isolate* i
 {
 	if (obj->InternalFieldCount() != 3)
 	{
-		V8ThrowException(isolate,
-			std::format("{} invoked with an invalid 'this' value (mismatched internal field count).", contextName)
-		);
-		return std::nullopt;
+		return {};
 	}
 
 	// This might look quite dumb, but native type markers are just pointer values, and the native code checks for literal pointer value, which we do not have.
@@ -89,19 +83,13 @@ inline std::optional<CEntityHandle> ExtractEntityHandleFromObject(v8::Isolate* i
 	auto marker = (uint32_t*)obj->GetAlignedPointerFromInternalField(0);
 	if (!modules::server->IsAddressInSectionRange(marker, ".data") || *marker != 1)
 	{
-		V8ThrowException(isolate,
-			std::format("{} invoked with an invalid 'this' value (internal field 0 is not valid).", contextName)
-		);
-		return std::nullopt;
+		return {};
 	}
 
 	CSScriptHandle* scriptHandle = (CSScriptHandle*)obj->GetAlignedPointerFromInternalField(1);
 	if (!scriptHandle || scriptHandle->typeIdentifier != ScriptHandleType::Entity)
 	{
-		V8ThrowException(isolate,
-			std::format("{} invoked with an invalid 'this' value (not an entity type).", contextName)
-		);
-		return std::nullopt;
+		return {};
 	}
 	return scriptHandle->handle;
 }
@@ -110,7 +98,13 @@ template <>
 inline std::optional<CEntityHandle> UnwrapThis(const CallContext& context)
 {
 	auto obj = context.args.This();
-	return ExtractEntityHandleFromObject(context.isolate, obj, context.name);
+	if (auto handle = ExtractEntityHandleFromObject(context.isolate, obj, context.name); handle)
+	{
+		return handle;
+	}
+
+	ThrowFunctionException(context, "invoked with an invalid 'this' value.");
+	return {};
 }
 
 template <typename T>
@@ -123,9 +117,7 @@ inline std::optional<ManagedObject<T>*> UnwrapThisAsManagedObject(const CallCont
 	if (obj->InternalFieldCount() < 2 ||
 		!typeMarker || obj->GetAlignedPointerFromInternalField(0) != typeMarker)
 	{
-		V8ThrowException(context.isolate,
-			std::format("{} invoked with an invalid 'this' value.", context.name)
-		);
+		ThrowFunctionException(context, "invoked with an invalid 'this' value.");
 		return std::nullopt;
 	}
 
@@ -140,7 +132,7 @@ inline std::optional<T> UnwrapArg(const CallContext& context, int argIndex, bool
 
 	if (argIndex >= context.args.Length())
 	{
-		ThrowFunctionException(context, std::format("Argument number {} is required but was not provided.", argIndex));
+		ThrowFunctionException(context, std::format("argument #{} is missing.", argIndex));
 		return std::nullopt;
 	}
 
@@ -155,10 +147,7 @@ inline std::optional<std::string> UnwrapArg<std::string>(const CallContext& cont
 
 	if (argIndex >= context.args.Length() || !context.args[argIndex]->IsString())
 	{
-		V8ThrowException(
-			context.isolate,
-			std::format("{}: Argument number {} is expected to be a string", context.name, argIndex)
-		);
+		ThrowFunctionException(context, std::format("argument #{} is required as a string.", argIndex));
 		return std::nullopt;
 	}
 	v8::String::Utf8Value utf8Value(context.isolate, context.args[argIndex].As<v8::String>());
@@ -173,10 +162,7 @@ inline std::optional<T> UnwrapArg(const CallContext& context, int argIndex, bool
 
 	if (argIndex >= context.args.Length() || !context.args[argIndex]->IsNumber())
 	{
-		V8ThrowException(
-			context.isolate,
-			std::format("{}: Argument number {} is expected to be a number", context.name, argIndex)
-		);
+		ThrowFunctionException(context, std::format("argument #{} is required as a number.", argIndex));
 		return std::nullopt;
 	}
 	return static_cast<T>(context.args[argIndex].As<v8::Number>()->Value());
@@ -190,10 +176,7 @@ inline std::optional<bool> UnwrapArg<bool>(const CallContext& context, int argIn
 
 	if (argIndex >= context.args.Length() || !context.args[argIndex]->IsBoolean())
 	{
-		V8ThrowException(
-			context.isolate,
-			std::format("{}: Argument number {} is expected to be a bool", context.name, argIndex)
-		);
+		ThrowFunctionException(context, std::format("argument #{} is required as a boolean.", argIndex));
 		return std::nullopt;
 	}
 
@@ -208,10 +191,7 @@ inline std::optional<CEntityHandle> UnwrapArg(const CallContext& context, int ar
 
 	if (argIndex >= context.args.Length() || !context.args[argIndex]->IsObject())
 	{
-		V8ThrowException(
-			context.isolate,
-			std::format("{}: Argument number {} is expected to be an object", context.name, argIndex)
-		);
+		ThrowFunctionException(context, std::format("argument #{} is required as an object.", argIndex));
 		return std::nullopt;
 	}
 	auto obj = context.args[argIndex]->ToObject(context.isolate->GetCurrentContext()).ToLocalChecked();
