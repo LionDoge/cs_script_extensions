@@ -242,6 +242,31 @@ inline v8::Local<v8::Object> CreateVectorObject(v8::Local<v8::Context> context, 
 	return handleScope.Escape(obj);
 }
 
+inline std::optional<Vector> ObjectToVector(v8::Local<v8::Context> context, v8::Local<v8::Object> obj)
+{
+	auto isolate = context->GetIsolate();
+
+	auto maybeX = obj->Get(context, v8::String::NewFromUtf8(isolate, "x").ToLocalChecked());
+	auto maybeY = obj->Get(context, v8::String::NewFromUtf8(isolate, "y").ToLocalChecked());
+	auto maybeZ = obj->Get(context, v8::String::NewFromUtf8(isolate, "z").ToLocalChecked());
+
+	if (maybeX.IsEmpty() || maybeY.IsEmpty() || maybeZ.IsEmpty())
+		return std::nullopt;
+
+	auto xVal = maybeX.ToLocalChecked();
+	auto yVal = maybeY.ToLocalChecked();
+	auto zVal = maybeZ.ToLocalChecked();
+
+	if (!xVal->IsNumber() || !yVal->IsNumber() || !zVal->IsNumber())
+		return std::nullopt;
+
+	return Vector{ 
+		static_cast<float>(xVal.As<v8::Number>()->Value()),
+		static_cast<float>(yVal.As<v8::Number>()->Value()),
+		static_cast<float>(zVal.As<v8::Number>()->Value())
+	};
+}
+
 inline v8::Local<v8::Object> CreateQAngleObject(v8::Local<v8::Context> context, const QAngle& ang)
 {
 	auto isolate = v8::Isolate::GetCurrent();
@@ -253,6 +278,31 @@ inline v8::Local<v8::Object> CreateQAngleObject(v8::Local<v8::Context> context, 
 	obj->Set(context, v8::String::NewFromUtf8(isolate, "roll").ToLocalChecked(), v8::Number::New(isolate, ang.z));
 
 	return handleScope.Escape(obj);
+}
+
+inline std::optional<QAngle> ObjectToQAngle(v8::Local<v8::Context> context, v8::Local<v8::Object> obj)
+{
+	auto isolate = context->GetIsolate();
+
+	auto maybePitch = obj->Get(context, v8::String::NewFromUtf8(isolate, "pitch").ToLocalChecked());
+	auto maybeYaw = obj->Get(context, v8::String::NewFromUtf8(isolate, "yaw").ToLocalChecked());
+	auto maybeRoll = obj->Get(context, v8::String::NewFromUtf8(isolate, "roll").ToLocalChecked());
+
+	if (maybePitch.IsEmpty() || maybeYaw.IsEmpty() || maybeRoll.IsEmpty())
+		return std::nullopt;
+
+	auto pitch = maybePitch.ToLocalChecked();
+	auto yaw = maybeYaw.ToLocalChecked();
+	auto roll = maybeRoll.ToLocalChecked();
+
+	if (!pitch->IsNumber() || !yaw->IsNumber() || !roll->IsNumber())
+		return std::nullopt;
+
+	return QAngle{ 
+		static_cast<float>(pitch.As<v8::Number>()->Value()),
+		static_cast<float>(yaw.As<v8::Number>()->Value()),
+		static_cast<float>(roll.As<v8::Number>()->Value())
+	};
 }
 
 inline v8::Local<v8::Object> CreateColorObject(v8::Local<v8::Context> context, const Color& clr)
@@ -267,4 +317,34 @@ inline v8::Local<v8::Object> CreateColorObject(v8::Local<v8::Context> context, c
 	obj->Set(context, v8::String::NewFromUtf8(isolate, "a").ToLocalChecked(), v8::Number::New(isolate, clr.a()));
 
 	return handleScope.Escape(obj);
+}
+
+inline std::optional<Color> ObjectToColor(v8::Local<v8::Context> context, v8::Local<v8::Object> obj)
+{
+	auto isolate = context->GetIsolate();
+
+	auto maybeR = obj->Get(context, v8::String::NewFromUtf8(isolate, "r").ToLocalChecked());
+	auto maybeG = obj->Get(context, v8::String::NewFromUtf8(isolate, "g").ToLocalChecked());
+	auto maybeB = obj->Get(context, v8::String::NewFromUtf8(isolate, "b").ToLocalChecked());
+	auto maybeA = obj->Get(context, v8::String::NewFromUtf8(isolate, "a").ToLocalChecked());
+
+	if (maybeR.IsEmpty() || maybeG.IsEmpty() || maybeB.IsEmpty())
+		return std::nullopt;
+
+	auto r = maybeR.ToLocalChecked();
+	auto g = maybeG.ToLocalChecked();
+	auto b = maybeB.ToLocalChecked();
+	int a = 0;
+	if(!maybeA.IsEmpty())
+		a = static_cast<int>(maybeA.ToLocalChecked().As<v8::Number>()->Value());
+
+	if (!r->IsNumber() || !g->IsNumber() || !b->IsNumber())
+		return std::nullopt;
+
+	return Color{ 
+		static_cast<int>(r.As<v8::Number>()->Value()),
+		static_cast<int>(g.As<v8::Number>()->Value()),
+		static_cast<int>(b.As<v8::Number>()->Value()),
+		a
+	};
 }

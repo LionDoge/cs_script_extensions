@@ -480,6 +480,131 @@ void ScriptDomainCallbacks::OnClientCommand(const v8::FunctionCallbackInfo<v8::V
 		script->AddCallback("OnClientCommand", callback);
 }
 
+void ScriptDomainCallbacks::CreateEntity(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	SCRIPT_SETUP(args);
+
+	auto config = UnwrapArg<v8::Local<v8::Value>>(context, 0);
+	if (!config)
+		return;
+
+	if (!(*config)->IsObject())
+	{
+		ThrowFunctionException(context, "argument 0 must be an object {classname: string, origin: Vector, keyValues?: EntityKeyValues }");
+		return;
+	}
+
+	auto v8Context = ScriptExtensions::GetCurrentCsScriptInstance()->GetContext().Get(isolate);
+	const auto obj = (*config)->ToObject(v8Context).ToLocalChecked();
+	auto maybeClassName = obj->Get(v8Context, v8::String::NewFromUtf8(isolate, "classname").ToLocalChecked());
+	if (maybeClassName.IsEmpty())
+	{
+		ThrowFunctionException(context, "config.classname is missing");
+		return;
+	}
+
+	auto className = maybeClassName.ToLocalChecked();
+	if (!className->IsString())
+	{
+		ThrowFunctionException(context, "config.classname must be a string");
+		return;
+	}
+	auto classNameUtf8 = v8::String::Utf8Value(isolate, className);
+
+	auto maybeOrigin = obj->Get(v8Context, v8::String::NewFromUtf8(isolate, "origin").ToLocalChecked());
+	if (maybeOrigin.IsEmpty())
+	{
+		ThrowFunctionException(context, "config.origin is missing");
+		return;
+	}
+
+	auto originVal = maybeOrigin.ToLocalChecked();
+	if (!originVal->IsObject())
+	{
+		ThrowFunctionException(context, "config.origin must be a Vector");
+		return;
+	}
+	auto origin = ObjectToVector(v8Context, originVal.As<v8::Object>());
+	if (!origin)
+	{
+		ThrowFunctionException(context, "config.origin must be a Vector");
+		return;
+	}
+
+	auto maybeKeyValues = obj->Get(v8Context, v8::String::NewFromUtf8(isolate, "keyValues").ToLocalChecked());
+	CEntityKeyValues* pKeyValues = nullptr;
+	if (!maybeKeyValues.IsEmpty())
+	{
+		auto keyValues = maybeKeyValues.ToLocalChecked();
+		if (!keyValues->IsObject())
+		{
+			ThrowFunctionException(context, "config.keyValues must be an object");
+			return;
+		}
+		auto kvObject = keyValues->ToObject(v8Context).ToLocalChecked();
+		auto props = kvObject->GetOwnPropertyNames(v8Context).ToLocalChecked();
+
+		pKeyValues = new CEntityKeyValues();
+		for (int i = 0; i < props->Length(); i++)
+		{
+			auto propNameVal = props->Get(v8Context, i).ToLocalChecked();
+			if (!propNameVal->IsString())
+				continue;
+
+			auto propName = v8::String::Utf8Value(isolate, propNameVal);
+			auto propValue = kvObject->Get(v8Context, propNameVal).ToLocalChecked();
+
+			if (propValue->IsString())
+			{
+				pKeyValues->SetString(*propName, *v8::String::Utf8Value(isolate, propValue));
+			}
+			else if (propValue->IsNumber())
+			{
+				pKeyValues->SetDouble(*propName, propValue.As<v8::Number>()->Value());
+			}
+			else if (propValue->IsBoolean())
+			{
+				pKeyValues->SetBool(*propName, propValue.As<v8::Boolean>()->Value());
+			}
+			else if (propValue->IsObject())
+			{
+				auto propObject = propValue->ToObject(v8Context).ToLocalChecked();
+				// if the object doesn't have the correct fields for a type it will fall through to the correct one, or none
+				if (auto vecObj = ObjectToVector(v8Context, propObject); vecObj.has_value())
+				{
+					pKeyValues->SetVector(*propName, *vecObj);
+				}
+				else if (auto angObj = ObjectToQAngle(v8Context, propObject); angObj.has_value())
+				{
+					pKeyValues->SetQAngle(*propName, *angObj);
+				}
+				else if (auto clrObj = ObjectToColor(v8Context, propObject); clrObj.has_value())
+				{
+					pKeyValues->SetColor(*propName, *clrObj);
+				}
+				else
+				{
+					Log_Debug(g_logChanScript, "CreateEntity: type of KeyValue %s does not match any compatible type, skipping.\n", *propName);
+				}
+			}
+			else
+			{
+				Log_Debug(g_logChanScript, "CreateEntity: type of KeyValue %s is not supported, skipping.\n", *propName);
+			}
+		}
+	}
+
+	auto entity = addresses::CreateEntityByName(*classNameUtf8, -1);
+	if (entity)
+	{
+		addresses::DispatchSpawn(entity, pKeyValues);
+		// TODO: go through a function that can handle user defined entity-based templates!
+		// This requires additions to the API
+		auto entObj = ScriptExtensions::CreateEntityObjectAuto(entity);
+		args.GetReturnValue().Set(entObj);
+	}
+}
+
 template<typename T>
 inline constexpr bool always_false_v = false;
 

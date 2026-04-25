@@ -338,7 +338,8 @@ static void RegisterScriptFunctions()
 			{ "EmitSound", ScriptDomainCallbacks::EmitSound },
 			{ "PrintToChatAll", ScriptDomainCallbacks::PrintToChatAll },
 			{ "OnDispatchClientCommand", ScriptDomainCallbacks::OnDispatchClientCommand },
-			{ "OnClientCommand", ScriptDomainCallbacks::OnClientCommand }
+			{ "OnClientCommand", ScriptDomainCallbacks::OnClientCommand },
+			{ "CreateEntity", ScriptDomainCallbacks::CreateEntity }
 		});
 
 	if (g_pluginConfig.IsQueryConvarsEnabled())
