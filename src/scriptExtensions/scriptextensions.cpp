@@ -145,7 +145,19 @@ CCSBaseScript* ScriptExtensions::GetCurrentCsScriptInstance()
 
 v8::Local<v8::Object> ScriptExtensions::CreateEntityObjectAuto(CEntityInstance* ent)
 {
+	if (m_entityTemplateDecider)
+	{
+		if (auto val = m_entityTemplateDecider(ent); val)
+		{
+			return CreateEntityObjectFromTemplate(*val, ent);
+		}
+	}
 	return m_pfnAssignEntityToObject(ent);
+}
+
+void ScriptExtensions::SetEntityTemplateDecider(std::optional<const char*> (*callback)(CEntityInstance*))
+{
+	m_entityTemplateDecider = callback;
 }
 
 v8::Local<v8::Object> ScriptExtensions::CreateEntityObjectFromTemplate(const CGlobalSymbol& templateName, CEntityInstance* entity)

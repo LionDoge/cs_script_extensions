@@ -84,14 +84,18 @@ public:
 	// Native functions check for this! V8 context is not enough! Use when invoking callbacks from your own code.
 	void SwitchScriptContext(CCSBaseScript* script);
 
+	// Set a callback that will decide which function template to use when a script function tries to create an entity object
+	// You can compare against classname, or other attributes for the given entity instance
+	void SetEntityTemplateDecider(std::optional<const char*>(*callback)(CEntityInstance*));
 	// Creates a V8 object representing the entity instance from a specific template (can also be our types).
 	// Using a signature is required since it also stores a global marker inside the internal field that gets checked by native functions.
 	static v8::Local<v8::Object> CreateEntityObjectFromTemplate(const CGlobalSymbol& templateName, CEntityInstance* entity);
 
 	// Creates a V8 object representing the entity instance.
-	// Internally this calls an inner function that runs checks for a few hardcoded types.
-	// NOTE: DO NOT USE FOR YOUR OWN CUSTOM REGISTERED ENTITY TYPES!
-	static v8::Local<v8::Object> CreateEntityObjectAuto(CEntityInstance* ent);
+	// This will go through custom SetEntityTemplateDecider to determine a custom template type (optional)
+	// If there's no custom type it will try to find a natively defined function template.
+	// Worst case the resulting type will be a generic 'Entity' type.
+	v8::Local<v8::Object> CreateEntityObjectAuto(CEntityInstance* ent);
 
 	// Get all script entities in the map
 	static std::vector<CPointScript*> GetScripts();
@@ -124,7 +128,7 @@ private:
 	// Used for manual registration of function templates, useful for advanced users that want full control of the process.
 	std::vector<void (*)(CCSBaseScript*)> m_functionTemplateInitializers;
 	std::unordered_map<CGlobalSymbol, ScriptCustomTemplateInfo, GlobalSymbolHashFunctor> m_customFunctionTemplates;
-	
+	std::optional<const char*> (*m_entityTemplateDecider)(CEntityInstance*);
 
 	// function pointers
 	typedef void* (FASTCALL* funcRegisterV8InstanceTemplate_t)(CCSBaseScript* script, const char* name, v8::Local<v8::FunctionTemplate> funcTemplate);

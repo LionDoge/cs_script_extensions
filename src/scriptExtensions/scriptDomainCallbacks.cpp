@@ -600,7 +600,7 @@ void ScriptDomainCallbacks::CreateEntity(const v8::FunctionCallbackInfo<v8::Valu
 		addresses::DispatchSpawn(entity, pKeyValues);
 		// TODO: go through a function that can handle user defined entity-based templates!
 		// This requires additions to the API
-		auto entObj = ScriptExtensions::CreateEntityObjectAuto(entity);
+		auto entObj = ScriptExtensions::GetInstance()->CreateEntityObjectAuto(entity);
 		args.GetReturnValue().Set(entObj);
 	}
 }
@@ -637,7 +637,7 @@ constexpr void ScriptDomainCallbacks::SetSchemaReturnValue(const v8::FunctionCal
 	{
 		if (val.IsValid())
 		{
-			auto obj = ScriptExtensions::CreateEntityObjectAuto(val.Get());
+			auto obj = ScriptExtensions::GetInstance()->CreateEntityObjectAuto(val.Get());
 			args.GetReturnValue().Set(obj);
 		}
 	}
