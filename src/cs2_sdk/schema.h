@@ -61,6 +61,7 @@ enum class SchemaKeyType : uint8_t
 	UtlString,
 	UtlSymbolLarge,
 	GameTime,
+	// Atomic
 	EntityHandle,
 	Vector,
 	QAngle
@@ -70,7 +71,11 @@ struct SchemaKey
 {
 	int32 offset;
 	bool networked;
+	// useful for dynamic access, e.g. from script
 	SchemaKeyType keyType;
+	SchemaTypeCategory_t typeCategory;
+	const char* className;
+	uint32_t classNameHash;
 };
 
 class CNetworkVarChainer

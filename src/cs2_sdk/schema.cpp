@@ -154,6 +154,8 @@ static void InitChainOffset(SchemaClassInfoData_t* pClassInfo, SchemaKeyValueMap
 		keyValuePair.second.offset = field.m_nSingleInheritanceOffset;
 		keyValuePair.second.networked = IsFieldNetworked(field);
 		keyValuePair.second.keyType = GetKeyType(field.m_pType);
+		keyValuePair.second.typeCategory = field.m_pType->m_eTypeCategory;
+		keyValuePair.second.classNameHash = hash_32_fnv1a_const(field.m_pType->m_sTypeName.Get());
 
 		keyValueMap.insert(keyValuePair);
 		return;
@@ -230,7 +232,7 @@ SchemaKey schema::GetOffset(const char* className, uint32_t classKey, const char
 		if (InitSchemaFieldsForClass(schemaTableMap, className, classKey))
 			return GetOffset(className, classKey, memberName, memberKey);
 
-		return {0, 0};
+		return {0, 0, SchemaKeyType::Void};
 	}
 
 	SchemaKeyValueMap_t tableMap = schemaTableMap[classKey];
@@ -240,7 +242,7 @@ SchemaKey schema::GetOffset(const char* className, uint32_t classKey, const char
 		if (memberKey != g_ChainKey)
 			Warning("schema::GetOffset(): '%s' was not found in '%s'!\n", memberName, className);
 
-		return {0, 0};
+		return {0, 0, SchemaKeyType::Void};
 	}
 
 	return tableMap[memberKey];

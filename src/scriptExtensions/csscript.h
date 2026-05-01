@@ -93,6 +93,7 @@ private:
 // Entity script has potentially more fields that have not been reversed yet...
 class CCSScript_EntityScript : public CCSBaseScript {
 	IGameEventListener2* m_eventListener; // 0xf0 (240)
+	bool m_eventListenerActive; // 0xf8 (248)
 	// There seem to be more hashtables defined, but in practice I never saw them filled.
 };
 
