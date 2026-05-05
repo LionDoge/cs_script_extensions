@@ -111,7 +111,7 @@ static SchemaKeyType GetKeyType(CSchemaType* type)
 				auto className = classType->m_pAtomicInfo->m_pszName;
 				auto classNameHash = hash_32_fnv1a_const(className);
 
-				if (classNameHash == hash_32_fnv1a_const("Vector"))
+				if (classNameHash == hash_32_fnv1a_const("Vector") || classNameHash == hash_32_fnv1a_const("VectorWS"))
 					return SchemaKeyType::Vector;
 				if (classNameHash == hash_32_fnv1a_const("QAngle"))
 					return SchemaKeyType::QAngle;
@@ -123,8 +123,8 @@ static SchemaKeyType GetKeyType(CSchemaType* type)
 			auto classType = type->ReinterpretAs<CSchemaType_Atomic_T>();
 			if (classType->m_pAtomicInfo)
 			{
-				auto className = classType->m_pAtomicInfo->m_pszName;
-				if (hash_32_fnv1a_const(className) == hash_32_fnv1a_const("CHandle"))
+				auto classNameHash = hash_32_fnv1a_const(classType->m_pAtomicInfo->m_pszName);
+				if (classNameHash == hash_32_fnv1a_const("CHandle"))
 					return SchemaKeyType::EntityHandle;
 			}
 			break;
@@ -155,7 +155,7 @@ static void InitChainOffset(SchemaClassInfoData_t* pClassInfo, SchemaKeyValueMap
 		keyValuePair.second.networked = IsFieldNetworked(field);
 		keyValuePair.second.keyType = GetKeyType(field.m_pType);
 		keyValuePair.second.typeCategory = field.m_pType->m_eTypeCategory;
-		keyValuePair.second.classNameHash = hash_32_fnv1a_const(field.m_pType->m_sTypeName.Get());
+		keyValuePair.second.originClassNameHash = hash_32_fnv1a_const(field.m_pType->m_sTypeName.Get());
 
 		keyValueMap.insert(keyValuePair);
 		return;
@@ -184,6 +184,9 @@ static void InitSchemaKeyValueMap(SchemaClassInfoData_t* pClassInfo, SchemaKeyVa
 		keyValuePair.second.offset = field.m_nSingleInheritanceOffset;
 		keyValuePair.second.networked = IsFieldNetworked(field);
 		keyValuePair.second.keyType = GetKeyType(field.m_pType);
+		keyValuePair.second.typeCategory = field.m_pType->m_eTypeCategory;
+		keyValuePair.second.originClass = SchemaMetaInfoHandle_t(pClassInfo);
+		keyValuePair.second.originClassNameHash = hash_32_fnv1a_const(field.m_pType->m_sTypeName.Get());
 
 		keyValueMap.insert(keyValuePair);
 	}
@@ -232,17 +235,17 @@ SchemaKey schema::GetOffset(const char* className, uint32_t classKey, const char
 		if (InitSchemaFieldsForClass(schemaTableMap, className, classKey))
 			return GetOffset(className, classKey, memberName, memberKey);
 
-		return {0, 0, SchemaKeyType::Void};
+		return {0, 0, SchemaKeyType::Void, SCHEMA_TYPE_INVALID};
 	}
 
 	SchemaKeyValueMap_t tableMap = schemaTableMap[classKey];
 
 	if (!tableMap.contains(memberKey))
 	{
-		if (memberKey != g_ChainKey)
-			Warning("schema::GetOffset(): '%s' was not found in '%s'!\n", memberName, className);
+		//if (memberKey != g_ChainKey)
+		//	Warning("schema::GetOffset(): '%s' was not found in '%s'!\n", memberName, className);
 
-		return {0, 0, SchemaKeyType::Void};
+		return {0, 0, SchemaKeyType::Void, SCHEMA_TYPE_INVALID};
 	}
 
 	return tableMap[memberKey];

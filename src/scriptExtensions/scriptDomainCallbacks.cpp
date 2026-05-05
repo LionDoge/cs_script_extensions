@@ -119,14 +119,9 @@ void ScriptSetReturnChainedSchemaKey(
 	const v8::Local<v8::Array>& fieldChainArray,
 	void* obj,
 	uint32_t arrayIndex, 
-	const char* className, 
-	uint32_t classNameHash,
-	const char* fieldName
+	const SchemaKey& schemaFieldInfo
 )
 {
-	uint32_t fieldNameHash = hash_32_fnv1a_const(fieldName);
-	SchemaKey schemaFieldInfo = schema::GetOffset(className, classNameHash, fieldName, fieldNameHash);
-	
 	auto isolate = v8::Isolate::GetCurrent();
 	auto offset = schemaFieldInfo.offset;
 	switch (schemaFieldInfo.keyType) {
@@ -162,17 +157,43 @@ void ScriptSetReturnChainedSchemaKey(
 				return;
 			}
 
-			auto nextFieldName = val.ToLocalChecked().As<v8::String>();
-			const char* nextFieldNameStr = *v8::String::Utf8Value(isolate, nextFieldName);
-			void* newPtr = nullptr;
+			// Adjust pointer, if underlying type is a pointer, deref it, if it's inline, then just add the offset.
+			void* newPtr = obj;
 			if (schemaFieldInfo.typeCategory == SCHEMA_TYPE_POINTER)
 			{
 				newPtr = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(obj) + offset);
 			}
-			else if (schemaFieldInfo.typeCategory == SCHEMA_TYPE_DECLARED_CLASS)
+			else
 			{
 				newPtr = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(obj) + offset);
 			}
+
+			auto nextFieldName = val.ToLocalChecked().As<v8::String>();
+			const char* nextFieldNameStr = *v8::String::Utf8Value(isolate, nextFieldName);
+			auto nextFiledNameHash = hash_32_fnv1a_const(nextFieldNameStr);
+
+			SchemaClassInfoData_t* classInfoHandle = schemaFieldInfo.originClass.Get();
+			SchemaKey nextSchemaKey{};
+			do
+			{
+				// TODO: Add schema caching by class info handles to avoid having to redundantly hash class on every access.
+				// For now we are just retrofitting it into the existing system.
+				auto className = classInfoHandle->m_pszName;
+				nextSchemaKey = schema::GetOffset(className, hash_32_fnv1a_const(className), "", nextFiledNameHash);
+
+				if (!classInfoHandle->m_nBaseClassCount)
+					break;
+
+				classInfoHandle = classInfoHandle->m_pBaseClasses[0].m_pClass;
+			} while (nextSchemaKey.typeCategory == SCHEMA_TYPE_INVALID);
+
+			// Haven't found the next field in the inheritance chain.
+			if (nextSchemaKey.typeCategory == SCHEMA_TYPE_INVALID)
+			{
+				ThrowFunctionException(context, std::format("field '{}' not found in schema class def '{}' or its ancestors", nextFieldNameStr, classInfoHandle->m_pszName));
+				return;
+			}
+
 			ScriptSetReturnChainedSchemaKey(
 				context,
 				v8context,
@@ -180,9 +201,7 @@ void ScriptSetReturnChainedSchemaKey(
 				fieldChainArray,
 				newPtr,
 				arrayIndex + 1,
-				schemaFieldInfo.className,
-				schemaFieldInfo.classNameHash,
-				nextFieldNameStr
+				nextSchemaKey
 			);
 		}
 		else
@@ -199,41 +218,13 @@ void ScriptDomainCallbacks::GetSchemaField(const v8::FunctionCallbackInfo<v8::Va
 
 	auto v8context = ScriptExtensions::GetCurrentCsScriptInstance()->GetContext().Get(isolate);
 	auto targetEntHandle = UnwrapThis<CEntityHandle>(context);
-	auto className = UnwrapArg<std::string>(context, 0);
 
-	// for compatibility with non-array param
-	v8::Local<v8::Array> fieldArray;
-	const char* firstFireldName = nullptr;
-	if (context.args.Length() > 1)
-	{
-		if (args[1]->IsString())
-		{
-			fieldArray = v8::Array::New(isolate, 1);
-			fieldArray->Set(v8context, 0, args[1]).Check();
-		}
-		else if (args[1]->IsArray())
-		{
-			fieldArray = args[1].As<v8::Array>();
-		}
-		else
-		{
-			ThrowFunctionException(context, "argument 1 must be a string or string[]");
-			return;
-		}
-	}
-	else
-	{
-		ThrowFunctionException(context, "argument 1 is required as a string or string[]");
-		return;
-	}
-
-	
-	if(!targetEntHandle || !className)
+	if (!targetEntHandle)
 		return;
 
 	if (!targetEntHandle->IsValid())
 	{
-		ThrowFunctionException(context, "failed to get entity from 'this' object.");
+		ThrowFunctionException(context, "invalid entity handle of 'this' object");
 		return;
 	}
 
@@ -243,9 +234,68 @@ void ScriptDomainCallbacks::GetSchemaField(const v8::FunctionCallbackInfo<v8::Va
 		ThrowFunctionException(context, "called on invalid entity instance.");
 		return;
 	}
+	
+	if (context.args.Length() <= 0)
+	{
+		ThrowFunctionException(context, "argument 0 is required as a string or string[]");
+		return;
+	}
 
+	// for compatibility with non-array param
+	v8::Local<v8::Array> fieldArray;
+	const char* firstFireldName = nullptr;
+	if (args[0]->IsString())
+	{
+		fieldArray = v8::Array::New(isolate, 1);
+		fieldArray->Set(v8context, 0, args[0]).Check();
+	}
+	else if (args[0]->IsArray())
+	{
+		fieldArray = args[0].As<v8::Array>();
+	}
+	else
+	{
+		ThrowFunctionException(context, "argument 0 must be a string or string[]");
+		return;
+	}
+
+	auto classInfoHandle = ent->Schema_DynamicBinding().Get();
+	if (!classInfoHandle)
+	{
+		Log_Warning(g_logChanScript, "GetSchemaField: Entity does not have schema binding information");
+		return;
+	}
+
+	auto originalClassName = classInfoHandle->m_pszName;
 	auto fieldName = fieldArray->Get(v8context, 0).ToLocalChecked()->ToString(v8context).ToLocalChecked();
 	auto fieldNameStr = *v8::String::Utf8Value(isolate, fieldName);
+	auto fieldNameHash = hash_32_fnv1a_const(fieldNameStr);
+
+	// First, find the field in this or base classes if possible
+	SchemaKey schemaKey{};
+	do
+	{
+		// TODO: Add schema caching by class info handles to avoid having to redundantly hash class on every access.
+		// For now we are just retrofitting it into the existing system.
+		auto className = classInfoHandle->m_pszName;
+		schemaKey = schema::GetOffset(className, hash_32_fnv1a_const(className), "", fieldNameHash);
+
+		if (!classInfoHandle->m_nBaseClassCount)
+			break;
+
+		classInfoHandle = classInfoHandle->m_pBaseClasses[0].m_pClass;
+	} while (schemaKey.typeCategory == SCHEMA_TYPE_INVALID);
+
+	// Did not find anything, just throw.
+	if (schemaKey.typeCategory == SCHEMA_TYPE_INVALID)
+	{
+		ThrowFunctionException(context, std::format("field '{}' not found in schema class def '{}' or its ancestors", fieldNameStr, originalClassName));
+		return;
+	}
+
+	// Try returning the field, or delegate next searches through the field array, 
+	// if it ends up at a valid field with a basic type then the field will be set as a return value.
+	// If any more fields were provided for some reason, then they will be ignored.
 	auto returnValue = args.GetReturnValue();
 	ScriptSetReturnChainedSchemaKey(
 		context,
@@ -254,9 +304,7 @@ void ScriptDomainCallbacks::GetSchemaField(const v8::FunctionCallbackInfo<v8::Va
 		fieldArray,
 		(void*)ent,
 		0,
-		className->c_str(),
-		hash_32_fnv1a_const(className->c_str()),
-		fieldNameStr
+		schemaKey
 	);
 }
 

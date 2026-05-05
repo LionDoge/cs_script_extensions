@@ -63,6 +63,7 @@ enum class SchemaKeyType : uint8_t
 	GameTime,
 	// Atomic
 	EntityHandle,
+	Entity,
 	Vector,
 	QAngle
 };
@@ -74,8 +75,8 @@ struct SchemaKey
 	// useful for dynamic access, e.g. from script
 	SchemaKeyType keyType;
 	SchemaTypeCategory_t typeCategory;
-	const char* className;
-	uint32_t classNameHash;
+	SchemaMetaInfoHandle_t<SchemaClassInfoData_t> originClass;
+	uint32_t originClassNameHash;
 };
 
 class CNetworkVarChainer
