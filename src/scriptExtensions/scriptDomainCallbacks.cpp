@@ -128,92 +128,93 @@ void ScriptSetReturnChainedSchemaKey(
 {
 	auto isolate = v8::Isolate::GetCurrent();
 	auto offset = schemaFieldInfo.offset;
-	switch (schemaFieldInfo.keyType) {
-	case SchemaKeyType::Int8: SetSchemaReturnValue<int8_t>(returnValue, obj, offset); break;
-	case SchemaKeyType::Uint8: SetSchemaReturnValue<uint8_t>(returnValue, obj, offset); break;
-	case SchemaKeyType::Int16: SetSchemaReturnValue<int16_t>(returnValue, obj, offset); break;
-	case SchemaKeyType::Uint16: SetSchemaReturnValue<uint16_t>(returnValue, obj, offset); break;
-	case SchemaKeyType::Int32: SetSchemaReturnValue<int32_t>(returnValue, obj, offset); break;
-	case SchemaKeyType::Uint32: SetSchemaReturnValue<uint32_t>(returnValue, obj, offset); break;
-	case SchemaKeyType::Int64: SetSchemaReturnValue<int64_t>(returnValue, obj, offset); break;
-	case SchemaKeyType::Uint64: SetSchemaReturnValue<uint64_t>(returnValue, obj, offset); break;
-	case SchemaKeyType::Bool: SetSchemaReturnValue<bool>(returnValue, obj, offset); break;
-	case SchemaKeyType::UtlString: SetSchemaReturnValue<CUtlString>(returnValue, obj, offset); break;
-	case SchemaKeyType::UtlSymbolLarge: SetSchemaReturnValue<CUtlSymbolLarge>(returnValue, obj, offset); break;
-	case SchemaKeyType::GameTime: SetSchemaReturnValue<GameTime_t>(returnValue, obj, offset); break;
-	case SchemaKeyType::EntityHandle: SetSchemaReturnValue<CEntityHandle>(returnValue, obj, offset); break;
-	case SchemaKeyType::Entity: SetSchemaReturnValue<CEntityInstance*>(returnValue, obj, offset); break;
-	case SchemaKeyType::Vector: SetSchemaReturnValue<Vector>(returnValue, obj, offset); break;
-	case SchemaKeyType::QAngle: SetSchemaReturnValue<QAngle>(returnValue, obj, offset); break;
+	// No more fields provided.
+	if (arrayIndex + 1 >= fieldChainArray->Length())
+	{
+		switch (schemaFieldInfo.keyType) {
+		case SchemaKeyType::Int8: SetSchemaReturnValue<int8_t>(returnValue, obj, offset); break;
+		case SchemaKeyType::Uint8: SetSchemaReturnValue<uint8_t>(returnValue, obj, offset); break;
+		case SchemaKeyType::Int16: SetSchemaReturnValue<int16_t>(returnValue, obj, offset); break;
+		case SchemaKeyType::Uint16: SetSchemaReturnValue<uint16_t>(returnValue, obj, offset); break;
+		case SchemaKeyType::Int32: SetSchemaReturnValue<int32_t>(returnValue, obj, offset); break;
+		case SchemaKeyType::Uint32: SetSchemaReturnValue<uint32_t>(returnValue, obj, offset); break;
+		case SchemaKeyType::Int64: SetSchemaReturnValue<int64_t>(returnValue, obj, offset); break;
+		case SchemaKeyType::Uint64: SetSchemaReturnValue<uint64_t>(returnValue, obj, offset); break;
+		case SchemaKeyType::Bool: SetSchemaReturnValue<bool>(returnValue, obj, offset); break;
+		case SchemaKeyType::UtlString: SetSchemaReturnValue<CUtlString>(returnValue, obj, offset); break;
+		case SchemaKeyType::UtlSymbolLarge: SetSchemaReturnValue<CUtlSymbolLarge>(returnValue, obj, offset); break;
+		case SchemaKeyType::GameTime: SetSchemaReturnValue<GameTime_t>(returnValue, obj, offset); break;
+		case SchemaKeyType::EntityHandle: SetSchemaReturnValue<CEntityHandle>(returnValue, obj, offset); break;
+		case SchemaKeyType::Entity: SetSchemaReturnValue<CEntityInstance*>(returnValue, obj, offset); break;
+		case SchemaKeyType::Vector: SetSchemaReturnValue<Vector>(returnValue, obj, offset); break;
+		case SchemaKeyType::QAngle: SetSchemaReturnValue<QAngle>(returnValue, obj, offset); break;
+		default: ThrowFunctionException(context, "This field is a component field which is unsupported for direct access in scripts"); return;
+		}
+
+		return;
+	}
+
 	// Likely a component class, so try recursing. Requires the next field name to be given
-	default:
-		if (schemaFieldInfo.typeCategory == SCHEMA_TYPE_POINTER || schemaFieldInfo.typeCategory == SCHEMA_TYPE_DECLARED_CLASS)
+	if (schemaFieldInfo.typeCategory == SCHEMA_TYPE_POINTER || schemaFieldInfo.typeCategory == SCHEMA_TYPE_DECLARED_CLASS)
+	{
+		auto val = fieldChainArray->Get(v8context, arrayIndex + 1);
+		if (val.IsEmpty() || !val.ToLocalChecked()->IsString())
 		{
-			if (arrayIndex + 1 >= fieldChainArray->Length())
-			{
-				ThrowFunctionException(context, "This field is a component field which is unsupported for direct access in scripts");
-				return;
-			}
+			ThrowFunctionException(context, std::format("Expected string at index {} in field chain array", arrayIndex + 1));
+			return;
+		}
 
-			auto val = fieldChainArray->Get(v8context, arrayIndex + 1);
-			if (val.IsEmpty() || !val.ToLocalChecked()->IsString())
-			{
-				ThrowFunctionException(context, std::format("Expected string at index {} in field chain array", arrayIndex + 1));
-				return;
-			}
-
-			// Adjust pointer, if underlying type is a pointer, deref it, if it's inline, then just add the offset.
-			void* newPtr = obj;
-			if (schemaFieldInfo.typeCategory == SCHEMA_TYPE_POINTER)
-			{
-				newPtr = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(obj) + offset);
-			}
-			else
-			{
-				newPtr = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(obj) + offset);
-			}
-
-			auto nextFieldName = val.ToLocalChecked().As<v8::String>();
-			const char* nextFieldNameStr = *v8::String::Utf8Value(isolate, nextFieldName);
-			auto nextFiledNameHash = hash_32_fnv1a_const(nextFieldNameStr);
-
-			SchemaClassInfoData_t* classInfoHandle = schemaFieldInfo.originClass.Get();
-			SchemaKey nextSchemaKey{};
-			do
-			{
-				// TODO: Add schema caching by class info handles to avoid having to redundantly hash class on every access.
-				// For now we are just retrofitting it into the existing system.
-				auto className = classInfoHandle->m_pszName;
-				nextSchemaKey = schema::GetOffset(className, hash_32_fnv1a_const(className), "", nextFiledNameHash);
-
-				if (!classInfoHandle->m_nBaseClassCount)
-					break;
-
-				classInfoHandle = classInfoHandle->m_pBaseClasses[0].m_pClass;
-			} while (nextSchemaKey.typeCategory == SCHEMA_TYPE_INVALID);
-
-			// Haven't found the next field in the inheritance chain.
-			if (nextSchemaKey.typeCategory == SCHEMA_TYPE_INVALID)
-			{
-				ThrowFunctionException(context, std::format("field '{}' not found in schema class def '{}' or its ancestors", nextFieldNameStr, classInfoHandle->m_pszName));
-				return;
-			}
-
-			ScriptSetReturnChainedSchemaKey(
-				context,
-				v8context,
-				returnValue,
-				fieldChainArray,
-				newPtr,
-				arrayIndex + 1,
-				nextSchemaKey
-			);
+		// Adjust pointer, if underlying type is a pointer, deref it, if it's inline, then just add the offset.
+		void* newPtr = obj;
+		if (schemaFieldInfo.typeCategory == SCHEMA_TYPE_POINTER)
+		{
+			newPtr = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(obj) + offset);
 		}
 		else
 		{
-			ThrowFunctionException(context, "This schema field's type is not supported in script");
+			newPtr = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(obj) + offset);
+		}
+
+		auto nextFieldName = val.ToLocalChecked().As<v8::String>();
+		const char* nextFieldNameStr = *v8::String::Utf8Value(isolate, nextFieldName);
+		auto nextFiledNameHash = hash_32_fnv1a_const(nextFieldNameStr);
+
+		SchemaClassInfoData_t* classInfoHandle = schemaFieldInfo.originClass.Get();
+		SchemaKey nextSchemaKey{};
+		do
+		{
+			// TODO: Add schema caching by class info handles to avoid having to redundantly hash class on every access.
+			// For now we are just retrofitting it into the existing system.
+			auto className = classInfoHandle->m_pszName;
+			nextSchemaKey = schema::GetOffset(className, hash_32_fnv1a_const(className), "", nextFiledNameHash);
+
+			if (!classInfoHandle->m_nBaseClassCount)
+				break;
+
+			classInfoHandle = classInfoHandle->m_pBaseClasses[0].m_pClass;
+		} while (nextSchemaKey.typeCategory == SCHEMA_TYPE_INVALID);
+
+		// Haven't found the next field in the inheritance chain.
+		if (nextSchemaKey.typeCategory == SCHEMA_TYPE_INVALID)
+		{
+			ThrowFunctionException(context, std::format("field '{}' not found in schema class def '{}' or its ancestors", nextFieldNameStr, classInfoHandle->m_pszName));
 			return;
 		}
+
+		ScriptSetReturnChainedSchemaKey(
+			context,
+			v8context,
+			returnValue,
+			fieldChainArray,
+			newPtr,
+			arrayIndex + 1,
+			nextSchemaKey
+		);
+	}
+	else
+	{
+		ThrowFunctionException(context, "This schema field's type is not supported in script");
+		return;
 	}
 }
 
@@ -300,7 +301,6 @@ void ScriptDomainCallbacks::GetSchemaField(const v8::FunctionCallbackInfo<v8::Va
 
 	// Try returning the field, or delegate next searches through the field array, 
 	// if it ends up at a valid field with a basic type then the field will be set as a return value.
-	// If any more fields were provided for some reason, then they will be ignored.
 	auto returnValue = args.GetReturnValue();
 	ScriptSetReturnChainedSchemaKey(
 		context,
