@@ -131,6 +131,33 @@ static SchemaKeyType GetKeyType(CSchemaType* type)
 		}
 		}
 	}
+	case SCHEMA_TYPE_POINTER:
+	{
+		constexpr auto entityClassHash = hash_32_fnv1a_const("CEntityInstance");
+		auto classType = type->ReinterpretAs<CSchemaType_Ptr>();
+		auto objectType = classType->m_pObjectType;
+		if (auto declaredClassType = objectType->ReinterpretAs<CSchemaType_DeclaredClass>(); declaredClassType)
+		{
+			CSchemaClassInfo* classInfo = declaredClassType->m_pClassInfo;
+			auto classNameHash = hash_32_fnv1a_const(classInfo->m_pszName);
+
+			if (classNameHash == entityClassHash)
+				return SchemaKeyType::Entity;
+
+			if (!classInfo->m_nBaseClassCount)
+				return SchemaKeyType::Void;
+
+			do
+			{
+				classInfo = classInfo->m_pBaseClasses[0].m_pClass;
+				auto classNameHash = hash_32_fnv1a_const(classInfo->m_pszName);
+				if (classNameHash == entityClassHash)
+					return SchemaKeyType::Entity;
+			} while (classInfo->m_nBaseClassCount);
+
+			return SchemaKeyType::Void; // Not an entity pointer
+		}
+	}
 	}
 	return SchemaKeyType::Void; // Invalid/unsupported type
 }

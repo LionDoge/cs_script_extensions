@@ -94,6 +94,10 @@ constexpr void SetSchemaReturnValue(v8::ReturnValue<v8::Value>& returnValue, voi
 			returnValue.Set(obj);
 		}
 	}
+	else if constexpr (std::is_same_v<T, CEntityInstance*>)
+	{
+		returnValue.Set(ScriptExtensions::GetInstance()->CreateEntityObjectAuto(val));
+	}
 	else if constexpr (std::is_same_v<T, Vector>)
 	{
 		auto context = isolate->GetCurrentContext();
@@ -138,6 +142,7 @@ void ScriptSetReturnChainedSchemaKey(
 	case SchemaKeyType::UtlSymbolLarge: SetSchemaReturnValue<CUtlSymbolLarge>(returnValue, obj, offset); break;
 	case SchemaKeyType::GameTime: SetSchemaReturnValue<GameTime_t>(returnValue, obj, offset); break;
 	case SchemaKeyType::EntityHandle: SetSchemaReturnValue<CEntityHandle>(returnValue, obj, offset); break;
+	case SchemaKeyType::Entity: SetSchemaReturnValue<CEntityInstance*>(returnValue, obj, offset); break;
 	case SchemaKeyType::Vector: SetSchemaReturnValue<Vector>(returnValue, obj, offset); break;
 	case SchemaKeyType::QAngle: SetSchemaReturnValue<QAngle>(returnValue, obj, offset); break;
 	// Likely a component class, so try recursing. Requires the next field name to be given
