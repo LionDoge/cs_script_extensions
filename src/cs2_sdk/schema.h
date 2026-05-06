@@ -75,8 +75,9 @@ struct SchemaKey
 	// useful for dynamic access, e.g. from script
 	SchemaKeyType keyType;
 	SchemaTypeCategory_t typeCategory;
-	SchemaMetaInfoHandle_t<SchemaClassInfoData_t> originClass;
-	uint32_t originClassNameHash;
+	SchemaMetaInfoHandle_t<SchemaClassInfoData_t> classType;
+	// cache the hash for slightly faster lookup
+	uint32_t classKey;
 };
 
 class CNetworkVarChainer

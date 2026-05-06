@@ -61,7 +61,9 @@ static SchemaKeyType GetIntegerKeyTypeBySize(uint8_t size)
 	}
 }
 
-static SchemaKeyType GetKeyType(CSchemaType* type)
+// Retrive key type, optionally fills out outClassType, if the type is a class/pointer to class.
+// outClassType can be left unchanged, if it's not a class type.
+static SchemaKeyType GetKeyType(CSchemaType* type, SchemaMetaInfoHandle_t<SchemaClassInfoData_t>& outClassType)
 {
 	switch (type->m_eTypeCategory)
 	{
@@ -84,19 +86,21 @@ static SchemaKeyType GetKeyType(CSchemaType* type)
 		case SCHEMA_BUILTIN_TYPE_CHAR: return SchemaKeyType::Char;
 		case SCHEMA_BUILTIN_TYPE_BOOL: return SchemaKeyType::Bool;
 		}
+		break;
 	}
 	case SCHEMA_TYPE_DECLARED_CLASS:
 	{
 		auto classType = type->ReinterpretAs<CSchemaType_DeclaredClass>();
+		outClassType = classType->m_pClassInfo;
+
 		const char* className = classType->m_pClassInfo->m_pszName;
 		auto classNameHash = hash_32_fnv1a_const(className);
 
-		if (classNameHash == hash_32_fnv1a_const("CUtlString"))
-			return SchemaKeyType::UtlString;
-		if (classNameHash == hash_32_fnv1a_const("CUtlSymbolLarge"))
-			return SchemaKeyType::UtlSymbolLarge;
 		if (classNameHash == hash_32_fnv1a_const("GameTime_t"))
 			return SchemaKeyType::GameTime;
+		if (classNameHash == hash_32_fnv1a_const("CUtlSymbolLarge") || classNameHash == hash_32_fnv1a_const("CUtlString"))
+			return SchemaKeyType::UtlString;
+		break;
 	}
 	// CHandles are defined as atomic types with a template
 	case SCHEMA_TYPE_ATOMIC:
@@ -106,39 +110,39 @@ static SchemaKeyType GetKeyType(CSchemaType* type)
 		case SCHEMA_ATOMIC_PLAIN:
 		{
 			auto classType = type->ReinterpretAs<CSchemaType_Atomic>();
-			if (classType->m_pAtomicInfo)
-			{
-				auto className = classType->m_pAtomicInfo->m_pszName;
-				auto classNameHash = hash_32_fnv1a_const(className);
+			auto className = classType->m_sTypeName;
+			auto classNameHash = hash_32_fnv1a_const(className);
 
-				if (classNameHash == hash_32_fnv1a_const("Vector") || classNameHash == hash_32_fnv1a_const("VectorWS"))
-					return SchemaKeyType::Vector;
-				if (classNameHash == hash_32_fnv1a_const("QAngle"))
-					return SchemaKeyType::QAngle;
-			}
+			if (V_StringHasPrefixCaseSensitive(className, "Vector"))
+				return SchemaKeyType::Vector;
+			if (V_StringHasPrefixCaseSensitive(className, "QAngle"))
+				return SchemaKeyType::QAngle;
+			if (V_StringHasPrefixCaseSensitive(className, "CUtlSymbolLarge") || V_StringHasPrefixCaseSensitive(className, "CUtlString"))
+				return SchemaKeyType::UtlString;
+
 			break;
 		}
 		case SCHEMA_ATOMIC_T:
 		{
+			// for some reason atomicInfo is always null, just compare the full name partially.
 			auto classType = type->ReinterpretAs<CSchemaType_Atomic_T>();
-			if (classType->m_pAtomicInfo)
-			{
-				auto classNameHash = hash_32_fnv1a_const(classType->m_pAtomicInfo->m_pszName);
-				if (classNameHash == hash_32_fnv1a_const("CHandle"))
-					return SchemaKeyType::EntityHandle;
-			}
+			if (V_StringHasPrefixCaseSensitive(classType->m_sTypeName, "CHandle"))
+				return SchemaKeyType::EntityHandle;
+
 			break;
 		}
 		}
+		break;
 	}
 	case SCHEMA_TYPE_POINTER:
 	{
-		constexpr auto entityClassHash = hash_32_fnv1a_const("CEntityInstance");
 		auto classType = type->ReinterpretAs<CSchemaType_Ptr>();
 		auto objectType = classType->m_pObjectType;
 		if (auto declaredClassType = objectType->ReinterpretAs<CSchemaType_DeclaredClass>(); declaredClassType)
 		{
+			constexpr auto entityClassHash = hash_32_fnv1a_const("CEntityInstance");
 			CSchemaClassInfo* classInfo = declaredClassType->m_pClassInfo;
+			outClassType = classInfo;
 			auto classNameHash = hash_32_fnv1a_const(classInfo->m_pszName);
 
 			if (classNameHash == entityClassHash)
@@ -154,9 +158,8 @@ static SchemaKeyType GetKeyType(CSchemaType* type)
 				if (classNameHash == entityClassHash)
 					return SchemaKeyType::Entity;
 			} while (classInfo->m_nBaseClassCount);
-
-			return SchemaKeyType::Void; // Not an entity pointer
 		}
+		break;
 	}
 	}
 	return SchemaKeyType::Void; // Invalid/unsupported type
@@ -176,13 +179,16 @@ static void InitChainOffset(SchemaClassInfoData_t* pClassInfo, SchemaKeyValueMap
 		if (hash_32_fnv1a_const(field.m_pszName) != g_ChainKey)
 			continue;
 
+		SchemaMetaInfoHandle_t<SchemaClassInfoData_t> fieldClassInfo{nullptr};
 		std::pair<uint32_t, SchemaKey> keyValuePair;
 		keyValuePair.first = g_ChainKey;
 		keyValuePair.second.offset = field.m_nSingleInheritanceOffset;
 		keyValuePair.second.networked = IsFieldNetworked(field);
-		keyValuePair.second.keyType = GetKeyType(field.m_pType);
+		keyValuePair.second.keyType = GetKeyType(field.m_pType, fieldClassInfo);
 		keyValuePair.second.typeCategory = field.m_pType->m_eTypeCategory;
-		keyValuePair.second.originClassNameHash = hash_32_fnv1a_const(field.m_pType->m_sTypeName.Get());
+		keyValuePair.second.classType = fieldClassInfo;
+		if (fieldClassInfo.Get())
+			keyValuePair.second.classKey = hash_32_fnv1a_const(fieldClassInfo.Get()->m_pszName);
 
 		keyValueMap.insert(keyValuePair);
 		return;
@@ -206,14 +212,16 @@ static void InitSchemaKeyValueMap(SchemaClassInfoData_t* pClassInfo, SchemaKeyVa
 		//Msg("%s::%s found at -> 0x%X - %llx\n", pClassInfo->m_pszName, field.m_pszName, field.m_nSingleInheritanceOffset, &field);
 #endif
 
+		SchemaMetaInfoHandle_t<SchemaClassInfoData_t> fieldClassInfo{nullptr};
 		std::pair<uint32_t, SchemaKey> keyValuePair;
 		keyValuePair.first = hash_32_fnv1a_const(field.m_pszName);
 		keyValuePair.second.offset = field.m_nSingleInheritanceOffset;
 		keyValuePair.second.networked = IsFieldNetworked(field);
-		keyValuePair.second.keyType = GetKeyType(field.m_pType);
+		keyValuePair.second.keyType = GetKeyType(field.m_pType, fieldClassInfo);
 		keyValuePair.second.typeCategory = field.m_pType->m_eTypeCategory;
-		keyValuePair.second.originClass = SchemaMetaInfoHandle_t(pClassInfo);
-		keyValuePair.second.originClassNameHash = hash_32_fnv1a_const(field.m_pType->m_sTypeName.Get());
+		keyValuePair.second.classType = fieldClassInfo;
+		if (fieldClassInfo.Get())
+			keyValuePair.second.classKey = hash_32_fnv1a_const(fieldClassInfo.Get()->m_pszName);
 
 		keyValueMap.insert(keyValuePair);
 	}

@@ -66,21 +66,20 @@ constexpr void SetSchemaReturnValue(v8::ReturnValue<v8::Value>& returnValue, voi
 	auto isolate = v8::Isolate::GetCurrent();
 	auto val = *reinterpret_cast<std::add_pointer_t<T>>(reinterpret_cast<uintptr_t>(ptr) + offset);
 
-	if constexpr (std::is_arithmetic_v<T>)
-	{
-		returnValue.Set(v8::Number::New(isolate, val));
-	}
-	else if constexpr (std::is_same_v<T, bool>)
+	if constexpr (std::is_same_v<T, bool>)
 	{
 		returnValue.Set(v8::Boolean::New(isolate, val));
 	}
+	else if constexpr (std::is_arithmetic_v<T>)
+	{
+		returnValue.Set(v8::Number::New(isolate, val));
+	}
 	else if constexpr (std::is_same_v<T, CUtlString>)
 	{
-		returnValue.Set(v8::String::NewFromUtf8(isolate, val.Get()).ToLocalChecked());
-	}
-	else if constexpr (std::is_same_v<T, CUtlSymbolLarge>)
-	{
-		returnValue.Set(v8::String::NewFromUtf8(isolate, val.String()).ToLocalChecked());
+		if (val.Get())
+			returnValue.Set(v8::String::NewFromUtf8(isolate, val.Get()).ToLocalChecked());
+		else
+			returnValue.Set(v8::String::NewFromUtf8Literal(isolate, ""));
 	}
 	else if constexpr (std::is_same_v<T, GameTime_t>)
 	{
@@ -140,15 +139,16 @@ void ScriptSetReturnChainedSchemaKey(
 		case SchemaKeyType::Uint32: SetSchemaReturnValue<uint32_t>(returnValue, obj, offset); break;
 		case SchemaKeyType::Int64: SetSchemaReturnValue<int64_t>(returnValue, obj, offset); break;
 		case SchemaKeyType::Uint64: SetSchemaReturnValue<uint64_t>(returnValue, obj, offset); break;
+		case SchemaKeyType::Float32: SetSchemaReturnValue<float>(returnValue, obj, offset); break;
+		case SchemaKeyType::Float64: SetSchemaReturnValue<double>(returnValue, obj, offset); break;
 		case SchemaKeyType::Bool: SetSchemaReturnValue<bool>(returnValue, obj, offset); break;
 		case SchemaKeyType::UtlString: SetSchemaReturnValue<CUtlString>(returnValue, obj, offset); break;
-		case SchemaKeyType::UtlSymbolLarge: SetSchemaReturnValue<CUtlSymbolLarge>(returnValue, obj, offset); break;
 		case SchemaKeyType::GameTime: SetSchemaReturnValue<GameTime_t>(returnValue, obj, offset); break;
 		case SchemaKeyType::EntityHandle: SetSchemaReturnValue<CEntityHandle>(returnValue, obj, offset); break;
 		case SchemaKeyType::Entity: SetSchemaReturnValue<CEntityInstance*>(returnValue, obj, offset); break;
 		case SchemaKeyType::Vector: SetSchemaReturnValue<Vector>(returnValue, obj, offset); break;
 		case SchemaKeyType::QAngle: SetSchemaReturnValue<QAngle>(returnValue, obj, offset); break;
-		default: ThrowFunctionException(context, "This field is a component field which is unsupported for direct access in scripts"); return;
+		default: ThrowFunctionException(context, "This field is unsupported for direct access in scripts"); return;
 		}
 
 		return;
@@ -179,7 +179,13 @@ void ScriptSetReturnChainedSchemaKey(
 		const char* nextFieldNameStr = *v8::String::Utf8Value(isolate, nextFieldName);
 		auto nextFiledNameHash = hash_32_fnv1a_const(nextFieldNameStr);
 
-		SchemaClassInfoData_t* classInfoHandle = schemaFieldInfo.originClass.Get();
+		SchemaClassInfoData_t* classInfoHandle = schemaFieldInfo.classType.Get();
+		// Technically this should be set for the current types we are expecting.
+		if (!classInfoHandle)
+		{
+			ThrowFunctionException(context, "Schema cache is missing class information for type that's declared to be a class");
+			return;
+		}
 		SchemaKey nextSchemaKey{};
 		do
 		{
@@ -265,7 +271,8 @@ void ScriptDomainCallbacks::GetSchemaField(const v8::FunctionCallbackInfo<v8::Va
 		return;
 	}
 
-	auto classInfoHandle = ent->Schema_DynamicBinding().Get();
+	auto schemaDyn = ent->Schema_DynamicBinding();
+	auto classInfoHandle = schemaDyn.Get();
 	if (!classInfoHandle)
 	{
 		Log_Warning(g_logChanScript, "GetSchemaField: Entity does not have schema binding information");

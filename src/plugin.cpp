@@ -989,3 +989,31 @@ CON_COMMAND_F(script_summary, "List registered function templates on scripts", F
 	}
 }
 
+#ifdef _DEBUG
+CON_COMMAND_F(schema_class_info, "Print info about class definition", FCVAR_NONE)
+{
+	if (args.ArgC() < 2)
+	{
+		META_CONPRINT("Usage: schema_class_info <class_name>\n");
+		return;
+	}
+	CSchemaSystemTypeScope* pType = g_pSchemaSystem->FindTypeScopeForModule(MODULE_PREFIX "server" MODULE_EXT);
+
+	if (!pType)
+		return;
+
+	SchemaClassInfoData_t* pClassInfo = pType->FindDeclaredClass(args[1]).Get();
+	if(!pClassInfo)
+	{
+		META_CONPRINT("Class not found\n");
+		return;
+	}
+
+	for (int i = 0; i < pClassInfo->m_nFieldCount; i++)
+	{
+		auto field = pClassInfo->m_pFields[i];
+		auto type = field.m_pType;
+		Msg("Field: %s, TypeCat: %d, AtomicCat: %d\n", field.m_pszName, type->m_eTypeCategory, type->m_eAtomicCategory);
+	}
+}
+#endif
