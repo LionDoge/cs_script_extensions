@@ -216,31 +216,8 @@ declare module "cs_script/point_script"
         EntFireAtName(name: string, input: string, inputData?: InputValue | { value?: InputValue, caller?: Entity, activator?: Entity }, delay?: number): void;
         /** @deprecated This overload will be removed in a future update */
         EntFireAtTarget(target: Entity, input: string, inputData?: InputValue | { value?: InputValue, caller?: Entity, activator?: Entity }, delay?: number): void;
-
-        // Extensions
-
-        /** Show a hud hint to every player */
-        ShowHudHintAll(text: string, isAlert: boolean): void;
-        /** Listens for a protobuf message originating from the server with the specified (partial) name,
-        * callback can return false to block the message or true to let it through */
-        OnUserMessage(config: { messageName: string, callback: (info: UserMessageInfo) => boolean }): void;
-        CreateUserMessage(messageName: string): UserMessageInfo;
-        /** Emits a specified soundevent by name. If source entity is not provided, it will be played globally. if recipients are not specified, it will be played for all players */
-        EmitSound(config: { soundName: string, source?: Entity, volume?: number, pitch?: number, recipients?: CSPlayerController[] }): void;
-        /** Retrieves value of a convar */
-        GetConVarValue(cvar: string): CvarValue
-        /** Prints a message to the chat, supports special characters for color codes */
-        PrintToChatAll(message: string): void;
-        /** Listens for a command from clients, callback can return false to block the command or true to let it through 
-        * Players can invoke commands when not fully connected too, so make sure to check for that if necessary. */
-        OnDispatchClientCommand(callback: (playerSlot: number, arguments: string[]) => boolean): void;
-        /** Listens for a command from clients, unlike OnDispatchClientCommand, it allows to listen for unregistered commands.
-         * However, this callback cannot be used to block any command */
-        OnClientCommand(callback: (playerSlot: number, arguments: string[]) => void): void;
     }
 
-    type CvarValue = string | number | boolean | Vector | QAngle | Color | undefined;
-    type SchemaFieldValue = string | number | boolean | Vector | QAngle | Color | Entity | undefined;
     type Vector = { x: number, y: number, z: number };
     type RotationVector = { x: number, y: number, z: number };
     type QAngle = { pitch: number, yaw: number, roll: number };
@@ -531,19 +508,6 @@ declare module "cs_script/point_script"
         Teleport(newPosition: Vector | null, newAngles: QAngle | null, newVelocity: Vector | null): void;
         /** @deprecated This method will be removed in a future update */
         GetLocalVelcoity(): Vector;
-
-        // Extensions
-
-        SetMoveType(moveType: number): void;
-        /** Access value of a schema field for this entity.
-         * Supports only fields that are one of the basic types. Nested components can be accessed by providing a list of field names along the path.
-         * If target element is an array, the index can be specified as the last element of the field names list. */
-        GetSchemaField(fieldNames: Array<string | number>): SchemaFieldValue;
-        /** Override the transmission of this entity to the target player 
-         * @note Use responsibly, do not deny transmission of player pawn to it's owner, or weird things might happen, including players crashing. */
-        SetTransmitState(controller: CSPlayerController, state: boolean): void;
-        /** Set whether the entity will be transmitted to all players, will apply to newly connected clients too */
-        SetTransmitStateAll(state: boolean): void;
     }
 
     interface EntityDamage {
@@ -612,18 +576,6 @@ declare module "cs_script/point_script"
         IsBot(): boolean;
         IsConnected(): boolean;
         JoinTeam(team: number): void;
-
-        // Extensions
-
-        ShowHudHint(text: string, isAlert: boolean): void;
-        /** Shows a hud message supporting HTML syntax for text effects */
-        ShowHudMessageHTML(htmlText: string, duration: number): void;
-        /** Retrieve SteamID64 of this player */
-        GetSteamID(): number;
-        /** Respawns this player's pawn */
-        Respawn(): void;
-        /** Prints a message to this player's chat */
-        PrintToChat(text: string): void;
     }
 
     export class CSObserverPawn extends BaseModelEntity {
@@ -684,22 +636,6 @@ declare module "cs_script/point_script"
 
     /** @deprecated This enum will be removed in a future update */
     export enum CSDamageType { }
-
-    // Extensions
-
-    export class UserMessageInfo {
-        /** @note accessing repeated fields is not supported yet */
-        GetField<T>(fieldName: string): T;
-        /** @note accessing repeated fields is not supported yet */
-        SetField(fieldName: string, value: any): void;
-
-        RemoveRecipient(playerSlot: number): void;
-        AddRecipient(playerSlot: number): void;
-        AddAllRecipients(): void;
-        ClearRecipients(): void;
-
-        Send(): void;
-    }
 }
 
 /**
