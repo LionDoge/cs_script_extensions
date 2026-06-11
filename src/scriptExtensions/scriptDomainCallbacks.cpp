@@ -810,8 +810,7 @@ void ScriptDomainCallbacks::CreateEntity(const v8::FunctionCallbackInfo<v8::Valu
 	if (entity)
 	{
 		addresses::DispatchSpawn(entity, pKeyValues);
-		// TODO: go through a function that can handle user defined entity-based templates!
-		// This requires additions to the API
+		entity->SetAbsOrigin(*origin);
 		auto entObj = ScriptExtensions::GetInstance()->CreateEntityObjectAuto(entity);
 		args.GetReturnValue().Set(entObj);
 	}
