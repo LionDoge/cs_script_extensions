@@ -23,7 +23,6 @@
 #include "pluginconfig.h"
 
 void ClientPrint(CCSPlayerController* player, int hud_dest, const char* msg, ...);
-extern HudHintManager g_hudHintManager;
 
 void ScriptPlayerControllerCallbacks::GetSteamID(const v8::FunctionCallbackInfo<v8::Value>& args)
 {

@@ -1,4 +1,5 @@
 #include "playermanager.h"
+#include "hudhintmanager.h"
 
 void PlayerManager::OnPlayerConnect(CPlayerSlot slot)
 {
@@ -12,6 +13,7 @@ void PlayerManager::OnPlayerDisconnect(CPlayerSlot slot)
 	auto plr = m_connectedPlayers[slot.Get()];
 	delete plr;
 	m_connectedPlayers[slot.Get()] = nullptr;
+	g_hudHintManager.CancelHintMessage(slot);
 }
 
 void PlayerManager::SetEntityTransmitBlocked(CPlayerSlot slot, CEntityIndex entindex, bool state)

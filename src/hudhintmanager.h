@@ -46,3 +46,5 @@ private:
 	void Display(const HudHintInfo& info);
 	std::unordered_map<int, HudHintInfo> hintMessages; // map of player slot to their active hint message, if any
 };
+
+extern HudHintManager g_hudHintManager;

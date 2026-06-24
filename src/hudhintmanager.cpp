@@ -46,8 +46,7 @@ void HudHintManager::AddHintMessage(CPlayerSlot targetSlot, const std::string& m
 	}
 	else
 	{
-		HudHintInfo info(targetSlot, msg, g_flUniversalTime + duration);
-		hintMessages[targetSlot.Get()] = info;
+		hintMessages.emplace(targetSlot.Get(), HudHintInfo(targetSlot, msg, g_flUniversalTime + duration));
 	}
 }
 
