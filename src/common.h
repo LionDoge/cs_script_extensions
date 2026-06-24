@@ -87,3 +87,5 @@ void Panic(const char* msg, ...);
 
 // Would be cool to have in SDK, but I'll just put it there
 #define Log_Debug( Channel, /* [Color], Message, */ ... ) InternalMsg( Channel, LS_DETAILED, /* [Color], Message, */ ##__VA_ARGS__ )
+
+#define VPROF_LEVEL 1
