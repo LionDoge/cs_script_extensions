@@ -1,7 +1,7 @@
 ﻿/**
  * =============================================================================
  * CS2Fixes
- * Copyright (C) 2023-2025 Source2ZE
+ * Copyright (C) 2023-2026 Source2ZE
  * =============================================================================
  *
  * This program is free software; you can redistribute it and/or modify it under
@@ -25,22 +25,32 @@
 #include "entity/cbaseentity.h"
 #include "plat.h"
 #include "schemasystem/schemasystem.h"
-
+#include "entity2/entitysystem.h"
+#include "entity2/entityclass.h"
 #include "tier0/memdbgon.h"
+
+extern CGameEntitySystem* GameEntitySystem();
 
 using SchemaKeyValueMap_t = std::map<uint32_t, SchemaKey>;
 using SchemaTableMap_t = std::map<uint32_t, SchemaKeyValueMap_t>;
 
 static constexpr uint32_t g_ChainKey = hash_32_fnv1a_const("__m_pChainEntity");
 
-static bool IsFieldNetworked(SchemaClassFieldData_t& field)
+
+static bool IsFieldNetworked(const char* cppName, SchemaClassFieldData_t& field)
 {
-	for (int i = 0; i < field.m_nStaticMetadataCount; i++)
-	{
-		static auto networkEnabled = hash_32_fnv1a_const("MNetworkEnable");
-		if (networkEnabled == hash_32_fnv1a_const(field.m_pStaticMetadata[i].m_pszName))
-			return true;
-	}
+	if (!GameEntitySystem())
+		return false;
+
+	// Just use a random class to get access to the full database, as some schema classes don't have entity representations
+	CNetworkSerializerCodeGenDatabase* pDatabase = GameEntitySystem()->FindClassByName("CBaseEntity")->m_NetworkSerializerInfo->m_pDatabase;
+	int index = pDatabase->m_ClassInfos.Find(cppName);
+
+	if (index == pDatabase->m_ClassInfos.InvalidIndex())
+		return false;
+
+	if (pDatabase->m_ClassInfos[index]->FindField(field.m_pszName))
+		return true;
 
 	return false;
 }
@@ -183,7 +193,7 @@ static void InitChainOffset(SchemaClassInfoData_t* pClassInfo, SchemaKeyValueMap
 		std::pair<uint32_t, SchemaKey> keyValuePair;
 		keyValuePair.first = g_ChainKey;
 		keyValuePair.second.offset = field.m_nSingleInheritanceOffset;
-		keyValuePair.second.networked = IsFieldNetworked(field);
+		keyValuePair.second.networked = IsFieldNetworked(pClassInfo->m_pszName, field);
 		keyValuePair.second.keyType = GetKeyType(field.m_pType, fieldClassInfo);
 		keyValuePair.second.typeCategory = field.m_pType->m_eTypeCategory;
 		keyValuePair.second.classType = fieldClassInfo;
@@ -216,7 +226,7 @@ static void InitSchemaKeyValueMap(SchemaClassInfoData_t* pClassInfo, SchemaKeyVa
 		std::pair<uint32_t, SchemaKey> keyValuePair;
 		keyValuePair.first = hash_32_fnv1a_const(field.m_pszName);
 		keyValuePair.second.offset = field.m_nSingleInheritanceOffset;
-		keyValuePair.second.networked = IsFieldNetworked(field);
+		keyValuePair.second.networked = IsFieldNetworked(pClassInfo->m_pszName, field);
 		keyValuePair.second.keyType = GetKeyType(field.m_pType, fieldClassInfo);
 		keyValuePair.second.typeCategory = field.m_pType->m_eTypeCategory;
 		keyValuePair.second.classType = fieldClassInfo;
