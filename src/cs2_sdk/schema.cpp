@@ -108,7 +108,9 @@ static SchemaKeyType GetKeyType(CSchemaType* type, SchemaMetaInfoHandle_t<Schema
 
 		if (classNameHash == hash_32_fnv1a_const("GameTime_t"))
 			return SchemaKeyType::GameTime;
-		if (classNameHash == hash_32_fnv1a_const("CUtlSymbolLarge") || classNameHash == hash_32_fnv1a_const("CUtlString"))
+		if (classNameHash == hash_32_fnv1a_const("CUtlSymbolLarge"))
+			return SchemaKeyType::UtlSymbolLarge;
+		if (classNameHash == hash_32_fnv1a_const("CUtlString"))
 			return SchemaKeyType::UtlString;
 		break;
 	}
@@ -127,9 +129,10 @@ static SchemaKeyType GetKeyType(CSchemaType* type, SchemaMetaInfoHandle_t<Schema
 				return SchemaKeyType::Vector;
 			if (V_StringHasPrefixCaseSensitive(className, "QAngle"))
 				return SchemaKeyType::QAngle;
-			if (V_StringHasPrefixCaseSensitive(className, "CUtlSymbolLarge") || V_StringHasPrefixCaseSensitive(className, "CUtlString"))
+			if (V_StringHasPrefixCaseSensitive(className, "CUtlSymbolLarge"))
+				return SchemaKeyType::UtlSymbolLarge;
+			if (V_StringHasPrefixCaseSensitive(className, "CUtlString"))
 				return SchemaKeyType::UtlString;
-
 			break;
 		}
 		case SCHEMA_ATOMIC_T:
