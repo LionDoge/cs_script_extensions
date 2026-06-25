@@ -2,6 +2,7 @@
     "defaultFunctionsEnabled": true,
     "userMessagesEnabled": true,
     "schemaReadEnabled": true, // Allow to query named schema fields, do note that this is very powerful, and might expose a lot of information to scripts - including SteamIDs, even if they're disabled.
+    "schemaWriteEnabled": true, // Allow to write named schema fields, do note that this is very powerful, and has potential for code execution exploits if game code misinterprets custom data!
     "userIdentificationEnabled": true, // Allow to query SteamID of a player, or any other information that can uniquely identify them.
     "transmitStateChangeEnabled": true,
     "queryConvarsEnabled": true,

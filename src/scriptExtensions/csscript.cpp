@@ -18,7 +18,8 @@
  */
 
 #include "csscript.h"
-#include <vprof.h>
+#include <cstdint>
+#include "vprof_fix.h"
 #include "scriptextensions.h"
 #include "v8.h"
 

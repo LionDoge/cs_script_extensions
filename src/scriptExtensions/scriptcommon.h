@@ -69,7 +69,7 @@ concept arithmetic = std::integral<T> || std::floating_point<T>;
 template <typename T>
 inline std::optional<T> UnwrapThis(const CallContext& context) = delete;
 
-inline std::optional<CEntityHandle> ExtractEntityHandleFromObject(v8::Isolate* isolate, v8::Local<v8::Object> obj, const char* contextName)
+inline std::optional<CEntityHandle> ExtractEntityHandleFromObject(v8::Isolate* isolate, v8::Local<v8::Object> obj)
 {
 	if (obj->InternalFieldCount() != 3)
 	{
@@ -98,7 +98,7 @@ template <>
 inline std::optional<CEntityHandle> UnwrapThis(const CallContext& context)
 {
 	auto obj = context.args.This();
-	if (auto handle = ExtractEntityHandleFromObject(context.isolate, obj, context.name); handle)
+	if (auto handle = ExtractEntityHandleFromObject(context.isolate, obj); handle)
 	{
 		return handle;
 	}
@@ -195,7 +195,7 @@ inline std::optional<CEntityHandle> UnwrapArg(const CallContext& context, int ar
 		return std::nullopt;
 	}
 	auto obj = context.args[argIndex]->ToObject(context.isolate->GetCurrentContext()).ToLocalChecked();
-	return ExtractEntityHandleFromObject(context.isolate, obj, context.name);
+	return ExtractEntityHandleFromObject(context.isolate, obj);
 }
 
 // Boilerplate. Put this at the beginning of each callback to be able to use some of the getters that are provided here.

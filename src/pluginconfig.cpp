@@ -26,6 +26,7 @@ bool PluginConfig::Load(std::string_view path)
 	m_bDefaultFunctionsEnabled = configJson["defaultFunctionsEnabled"].get<bool>();
 	m_bUserMessagesEnabled = configJson["userMessagesEnabled"].get<bool>();
 	m_bSchemaReadEnabled = configJson["schemaReadEnabled"].get<bool>();
+	m_bSchemaWriteEnabled = configJson["schemaWriteEnabled"].get<bool>();
 	m_bUserIdentificationEnabled = configJson["userIdentificationEnabled"].get<bool>();
 	m_bTransmitStateChangeEnabled = configJson["transmitStateChangeEnabled"].get<bool>();
 	m_bQueryConvarsEnabled = configJson["queryConvarsEnabled"].get<bool>();

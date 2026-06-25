@@ -17,7 +17,7 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "scriptextensions.h"
-#include <vprof.h>
+#include "vprof_fix.h"
 #include "entity/cpointscript.h"
 #include "sigutils.h"
 #include "gameconfig.h"

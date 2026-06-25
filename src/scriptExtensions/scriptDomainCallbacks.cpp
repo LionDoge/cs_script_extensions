@@ -19,6 +19,7 @@
 
 #include <format>
 #include "scriptExtensions/scriptDomainCallbacks.h"
+#include "vprof_fix.h"
 #include "v8.h"
 #include "usermessages.pb.h"
 #include "entity/ccsplayercontroller.h"
@@ -115,6 +116,150 @@ constexpr void SetSchemaReturnValue(v8::ReturnValue<v8::Value>& returnValue, voi
 	}
 }
 
+template <typename T>
+constexpr bool SetSchemaValue(const CallContext& context, v8::Local<v8::Context> v8context, const v8::Local<v8::Value>& value, void* ptr, size_t offset)
+{
+	auto isolate = v8::Isolate::GetCurrent();
+	//auto val = *reinterpret_cast<std::add_pointer_t<T>>(reinterpret_cast<uintptr_t>(ptr) + offset);
+
+	if constexpr (std::is_same_v<T, bool>)
+	{
+		*reinterpret_cast<std::add_pointer_t<bool>>(reinterpret_cast<uintptr_t>(ptr) + offset) = value->ToBoolean(isolate)->Value();
+	}
+	else if constexpr (std::is_arithmetic_v<T>)
+	{
+		auto maybeNumber = value->ToNumber(v8context);
+		v8::Local<v8::Number> number;
+		if (!maybeNumber.ToLocal(&number))
+		{
+			ThrowFunctionException(context, "Failed to convert value to number");
+			return false;
+		}
+		*reinterpret_cast<std::add_pointer_t<T>>(reinterpret_cast<uintptr_t>(ptr) + offset) = static_cast<T>(number->Value());
+	}
+	else if constexpr (std::is_same_v<T, CUtlString>)
+	{
+		auto maybeString = value->ToString(v8context);
+		v8::Local<v8::String> stringValue;
+		if (!maybeString.ToLocal(&stringValue))
+		{
+			ThrowFunctionException(context, "Failed to convert value to string");
+			return false;
+		}
+		const char* pStr = *v8::String::Utf8Value(isolate, stringValue);
+		CUtlString newString(pStr);
+		*reinterpret_cast<std::add_pointer_t<CUtlString>>(reinterpret_cast<uintptr_t>(ptr) + offset) = newString;
+	}
+	else if constexpr (std::is_same_v<T, CUtlSymbolLarge>)
+	{
+		auto maybeString = value->ToString(v8context);
+		v8::Local<v8::String> stringValue;
+		if (!maybeString.ToLocal(&stringValue))
+		{
+			ThrowFunctionException(context, "Failed to convert value to string");
+			return false;
+		}
+		const char* pStr = *v8::String::Utf8Value(isolate, stringValue);
+		CUtlSymbolLarge newString(pStr);
+		*reinterpret_cast<std::add_pointer_t<CUtlSymbolLarge>>(reinterpret_cast<uintptr_t>(ptr) + offset) = newString;
+	}
+	else if constexpr (std::is_same_v<T, GameTime_t>)
+	{
+		auto maybeNumber = value->ToNumber(v8context);
+		v8::Local<v8::Number> number;
+		if (!maybeNumber.ToLocal(&number))
+		{
+			ThrowFunctionException(context, "Failed to convert value to number");
+			return false;
+		}
+		*reinterpret_cast<std::add_pointer_t<GameTime_t>>(reinterpret_cast<uintptr_t>(ptr) + offset) = GameTime_t(number->Value());
+	}
+	// TODO: we should check if the templated EntityHandle type matches, otherwise we allow for setting potentially unsupported entity classes
+	else if constexpr (std::is_same_v<T, CEntityHandle>)
+	{
+		auto maybeObj = value->ToObject(v8context);
+		v8::Local<v8::Object> obj;
+		if (!maybeObj.ToLocal(&obj))
+		{
+			ThrowFunctionException(context, "Failed to convert value to object");
+			return false;
+		}
+
+		auto ehandle = ExtractEntityHandleFromObject(isolate, obj);
+		if (!ehandle)
+		{
+			ThrowFunctionException(context, "Provided object is not an entity handle");
+			return false;
+		}
+
+		*reinterpret_cast<std::add_pointer_t<CEntityHandle>>(reinterpret_cast<uintptr_t>(ptr) + offset) = *ehandle;
+	}
+	else if constexpr (std::is_same_v<T, CEntityInstance*>)
+	{
+		auto maybeObj = value->ToObject(v8context);
+		v8::Local<v8::Object> obj;
+		if (!maybeObj.ToLocal(&obj))
+		{
+			ThrowFunctionException(context, "Failed to convert value to object");
+			return false;
+		}
+
+		auto ehandle = ExtractEntityHandleFromObject(isolate, obj);
+		if (!ehandle)
+		{
+			ThrowFunctionException(context, "Provided object is not an entity handle");
+			return false;
+		}
+
+		*reinterpret_cast<std::add_pointer_t<CEntityInstance*>>(reinterpret_cast<uintptr_t>(ptr) + offset) = (*ehandle).Get();
+	}
+	else if constexpr (std::is_same_v<T, Vector>)
+	{
+		auto maybeObj = value->ToObject(v8context);
+		v8::Local<v8::Object> obj;
+		if (!maybeObj.ToLocal(&obj))
+		{
+			ThrowFunctionException(context, "Failed to convert value to object");
+			return false;
+		}
+		
+		auto vec = ObjectToVector(v8context, obj);
+		if (!vec)
+		{
+			ThrowFunctionException(context, "Provided object is not a Vector");
+			return false;
+		}
+
+		*reinterpret_cast<std::add_pointer_t<Vector>>(reinterpret_cast<uintptr_t>(ptr) + offset) = *vec;
+	}
+	else if constexpr (std::is_same_v<T, QAngle>)
+	{
+		auto maybeObj = value->ToObject(v8context);
+		v8::Local<v8::Object> obj;
+		if (!maybeObj.ToLocal(&obj))
+		{
+			ThrowFunctionException(context, "Failed to convert value to object");
+			return false;
+		}
+
+		auto ang = ObjectToQAngle(v8context, obj);
+		if (!ang)
+		{
+			ThrowFunctionException(context, "Provided object is not a QAngle");
+			return false;
+		}
+		
+		*reinterpret_cast<std::add_pointer_t<QAngle>>(reinterpret_cast<uintptr_t>(ptr) + offset) = *ang;
+	}
+	else
+	{
+		static_assert(always_false_v<T>, "Unsupported type for SetSchemaValue");
+		return false;
+	}
+
+	return true;
+}
+
 void ScriptSetReturnChainedSchemaKey(
 	const CallContext& context,
 	const v8::Local<v8::Context>& v8context,
@@ -125,6 +270,7 @@ void ScriptSetReturnChainedSchemaKey(
 	const SchemaKey& schemaFieldInfo
 )
 {
+	VPROF_BUDGET(__func__, "CSScriptExtensions")
 	auto isolate = v8::Isolate::GetCurrent();
 	auto offset = schemaFieldInfo.offset;
 	// No more fields provided.
@@ -142,6 +288,7 @@ void ScriptSetReturnChainedSchemaKey(
 		case SchemaKeyType::Float32: SetSchemaReturnValue<float>(returnValue, obj, offset); break;
 		case SchemaKeyType::Float64: SetSchemaReturnValue<double>(returnValue, obj, offset); break;
 		case SchemaKeyType::Bool: SetSchemaReturnValue<bool>(returnValue, obj, offset); break;
+		case SchemaKeyType::UtlSymbolLarge: // stored the same way as CUtlString for read
 		case SchemaKeyType::UtlString: SetSchemaReturnValue<CUtlString>(returnValue, obj, offset); break;
 		case SchemaKeyType::GameTime: SetSchemaReturnValue<GameTime_t>(returnValue, obj, offset); break;
 		case SchemaKeyType::EntityHandle: SetSchemaReturnValue<CEntityHandle>(returnValue, obj, offset); break;
@@ -224,8 +371,140 @@ void ScriptSetReturnChainedSchemaKey(
 	}
 }
 
+
+void ScriptSetChainedSchemaKeyValue(
+	const CallContext& context,
+	const v8::Local<v8::Context>& v8context,
+	const v8::Local<v8::Value>& value,
+	const v8::Local<v8::Array>& fieldChainArray,
+	void* obj,
+	uint32_t arrayIndex,
+	const SchemaKey& schemaFieldInfo
+)
+{
+	VPROF_BUDGET(__func__, "CSScriptExtensions")
+	auto isolate = v8::Isolate::GetCurrent();
+	auto offset = schemaFieldInfo.offset;
+	// No more fields provided.
+	if (arrayIndex + 1 >= fieldChainArray->Length())
+	{
+		bool success = false;
+		switch (schemaFieldInfo.keyType) {
+		case SchemaKeyType::Int8: success = SetSchemaValue<int8_t>(context, v8context, value, obj, offset); break;
+		case SchemaKeyType::Uint8: success = SetSchemaValue<uint8_t>(context, v8context, value, obj, offset); break;
+		case SchemaKeyType::Int16: success = SetSchemaValue<int16_t>(context, v8context, value, obj, offset); break;
+		case SchemaKeyType::Uint16: success = SetSchemaValue<uint16_t>(context, v8context, value, obj, offset); break;
+		case SchemaKeyType::Int32: success = SetSchemaValue<int32_t>(context, v8context, value, obj, offset); break;
+		case SchemaKeyType::Uint32: success = SetSchemaValue<uint32_t>(context, v8context, value, obj, offset); break;
+		case SchemaKeyType::Int64: success = SetSchemaValue<int64_t>(context, v8context, value, obj, offset); break;
+		case SchemaKeyType::Uint64: success = SetSchemaValue<uint64_t>(context, v8context, value, obj, offset); break;
+		case SchemaKeyType::Float32: success = SetSchemaValue<float>(context, v8context, value, obj, offset); break;
+		case SchemaKeyType::Float64: success = SetSchemaValue<double>(context, v8context, value, obj, offset); break;
+		case SchemaKeyType::Bool: success = SetSchemaValue<bool>(context, v8context, value, obj, offset); break;
+		case SchemaKeyType::UtlSymbolLarge: SetSchemaValue<CUtlSymbolLarge>(context, v8context, value, obj, offset); break;
+		case SchemaKeyType::UtlString: success = SetSchemaValue<CUtlString>(context, v8context, value, obj, offset); break;
+		case SchemaKeyType::GameTime: success = SetSchemaValue<GameTime_t>(context, v8context, value, obj, offset); break;
+		case SchemaKeyType::EntityHandle: success = SetSchemaValue<CEntityHandle>(context, v8context, value, obj, offset); break;
+		case SchemaKeyType::Entity: success = SetSchemaValue<CEntityInstance*>(context, v8context, value, obj, offset); break;
+		case SchemaKeyType::Vector: success = SetSchemaValue<Vector>(context, v8context, value, obj, offset); break;
+		case SchemaKeyType::QAngle: success = SetSchemaValue<QAngle>(context, v8context, value, obj, offset); break;
+		default: ThrowFunctionException(context, "This field is unsupported for direct access in scripts"); return;
+		}
+
+		if (success && schemaFieldInfo.networked)
+		{
+			// if we got here the chain offset should be already initialized if it exists. 
+			// Technically we don't really need to have the class name, but to make it more readable and feel safer it will be included anyways.
+			SchemaClassInfoData_t* classInfoHandle = schemaFieldInfo.classType.Get();
+			auto chainOffs = schema::FindChainOffset(classInfoHandle->m_pszName, arrayIndex);
+
+			if (chainOffs != 0)
+			{
+				::ChainNetworkStateChanged(reinterpret_cast<uintptr_t>(obj) + chainOffs, schemaFieldInfo.offset);
+			}
+			else
+			{
+				::EntityNetworkStateChanged(reinterpret_cast<uintptr_t>(obj), schemaFieldInfo.offset);
+				// TODO: special cases for some objects here if they're using custom network change offset
+				//::NetworkVarStateChanged(pThisClass, m_key.offset + extra_offset, m_networkStateChangedOffset);
+			}
+		}
+		return;
+	}
+
+	// Likely a component class, so try recursing. Requires the next field name to be given
+	if (schemaFieldInfo.typeCategory == SCHEMA_TYPE_POINTER || schemaFieldInfo.typeCategory == SCHEMA_TYPE_DECLARED_CLASS)
+	{
+		auto val = fieldChainArray->Get(v8context, arrayIndex + 1);
+		if (val.IsEmpty() || !val.ToLocalChecked()->IsString())
+		{
+			ThrowFunctionException(context, std::format("Expected string at index {} in field chain array", arrayIndex + 1));
+			return;
+		}
+
+		// Adjust pointer, if underlying type is a pointer, deref it, if it's inline, then just add the offset.
+		void* newPtr = obj;
+		if (schemaFieldInfo.typeCategory == SCHEMA_TYPE_POINTER)
+		{
+			newPtr = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(obj) + offset);
+		}
+		else
+		{
+			newPtr = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(obj) + offset);
+		}
+
+		auto nextFieldName = val.ToLocalChecked().As<v8::String>();
+		const char* nextFieldNameStr = *v8::String::Utf8Value(isolate, nextFieldName);
+		auto nextFiledNameHash = hash_32_fnv1a_const(nextFieldNameStr);
+
+		SchemaClassInfoData_t* classInfoHandle = schemaFieldInfo.classType.Get();
+		// Technically this should be set for the current types we are expecting.
+		if (!classInfoHandle)
+		{
+			ThrowFunctionException(context, "Schema cache is missing class information for type that's declared to be a class");
+			return;
+		}
+		SchemaKey nextSchemaKey{};
+		do
+		{
+			// TODO: Add schema caching by class info handles to avoid having to redundantly hash class on every access.
+			// For now we are just retrofitting it into the existing system.
+			auto className = classInfoHandle->m_pszName;
+			nextSchemaKey = schema::GetOffset(className, hash_32_fnv1a_const(className), "", nextFiledNameHash);
+
+			if (!classInfoHandle->m_nBaseClassCount)
+				break;
+
+			classInfoHandle = classInfoHandle->m_pBaseClasses[0].m_pClass;
+		} while (nextSchemaKey.typeCategory == SCHEMA_TYPE_INVALID);
+
+		// Haven't found the next field in the inheritance chain.
+		if (nextSchemaKey.typeCategory == SCHEMA_TYPE_INVALID)
+		{
+			ThrowFunctionException(context, std::format("field '{}' not found in schema class def '{}' or its ancestors", nextFieldNameStr, classInfoHandle->m_pszName));
+			return;
+		}
+
+		ScriptSetChainedSchemaKeyValue(
+			context,
+			v8context,
+			value,
+			fieldChainArray,
+			newPtr,
+			arrayIndex + 1,
+			nextSchemaKey
+		);
+	}
+	else
+	{
+		ThrowFunctionException(context, "This schema field's type is not supported in script");
+		return;
+	}
+}
+
 void ScriptDomainCallbacks::GetSchemaField(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
+	VPROF_BUDGET(__func__, "CSScriptExtensions")
 	SCRIPT_SETUP(args);
 
 	auto v8context = ScriptExtensions::GetCurrentCsScriptInstance()->GetContext().Get(isolate);
@@ -313,6 +592,108 @@ void ScriptDomainCallbacks::GetSchemaField(const v8::FunctionCallbackInfo<v8::Va
 		context,
 		v8context,
 		returnValue,
+		fieldArray,
+		(void*)ent,
+		0,
+		schemaKey
+	);
+}
+
+void ScriptDomainCallbacks::SetSchemaField(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	VPROF_BUDGET(__func__, "CSScriptExtensions")
+	SCRIPT_SETUP(args);
+
+	auto v8context = ScriptExtensions::GetCurrentCsScriptInstance()->GetContext().Get(isolate);
+	auto targetEntHandle = UnwrapThis<CEntityHandle>(context);
+
+	if (!targetEntHandle)
+		return;
+
+	if (!targetEntHandle->IsValid())
+	{
+		ThrowFunctionException(context, "invalid entity handle of 'this' object");
+		return;
+	}
+
+	auto ent = targetEntHandle->Get();
+	if (!ent)
+	{
+		ThrowFunctionException(context, "called on invalid entity instance.");
+		return;
+	}
+
+	if (context.args.Length() <= 0)
+	{
+		ThrowFunctionException(context, "argument 0 is required as a string or string[]");
+		return;
+	}
+
+	if (context.args.Length() <= 1)
+	{
+		ThrowFunctionException(context, "argument 1 is required - the value to set");
+		return;
+	}
+
+	// for compatibility with non-array param
+	v8::Local<v8::Array> fieldArray;
+	const char* firstFireldName = nullptr;
+	if (args[0]->IsString())
+	{
+		fieldArray = v8::Array::New(isolate, 1);
+		fieldArray->Set(v8context, 0, args[0]).Check();
+	}
+	else if (args[0]->IsArray())
+	{
+		fieldArray = args[0].As<v8::Array>();
+	}
+	else
+	{
+		ThrowFunctionException(context, "argument 0 must be a string or string[]");
+		return;
+	}
+
+	auto schemaDyn = ent->Schema_DynamicBinding();
+	auto classInfoHandle = schemaDyn.Get();
+	if (!classInfoHandle)
+	{
+		Log_Warning(g_logChanScript, "GetSchemaField: Entity does not have schema binding information");
+		return;
+	}
+
+	auto originalClassName = classInfoHandle->m_pszName;
+	auto fieldName = fieldArray->Get(v8context, 0).ToLocalChecked()->ToString(v8context).ToLocalChecked();
+	auto fieldNameStr = *v8::String::Utf8Value(isolate, fieldName);
+	auto fieldNameHash = hash_32_fnv1a_const(fieldNameStr);
+
+	// First, find the field in this or base classes if possible
+	SchemaKey schemaKey{};
+	do
+	{
+		// TODO: Add schema caching by class info handles to avoid having to redundantly hash class on every access.
+		// For now we are just retrofitting it into the existing system.
+		auto className = classInfoHandle->m_pszName;
+		schemaKey = schema::GetOffset(className, hash_32_fnv1a_const(className), "", fieldNameHash);
+
+		if (!classInfoHandle->m_nBaseClassCount)
+			break;
+
+		classInfoHandle = classInfoHandle->m_pBaseClasses[0].m_pClass;
+	} while (schemaKey.typeCategory == SCHEMA_TYPE_INVALID);
+
+	// Did not find anything, just throw.
+	if (schemaKey.typeCategory == SCHEMA_TYPE_INVALID)
+	{
+		ThrowFunctionException(context, std::format("field '{}' not found in schema class def '{}' or its ancestors", fieldNameStr, originalClassName));
+		return;
+	}
+
+	// Try setting the filed, or delegate next searches through the field array, 
+	// if it ends up at a valid field with a basic type then the field will be set with the value.
+	ScriptSetChainedSchemaKeyValue(
+		context,
+		v8context,
+		args[1],
 		fieldArray,
 		(void*)ent,
 		0,

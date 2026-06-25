@@ -27,6 +27,8 @@
 #include "plugin.h"
 #include <fstream>
 #include <sstream>
+#include "vprof_fix.h"
+#include "pluginconfig.h"
 #include "entitysystem.h"
 #include "schemasystem/schemasystem.h"
 #include "convar.h"
@@ -43,7 +45,6 @@
 #include "ctimer.h"
 #include "gameconfig.h"
 #include "hudhintmanager.h"
-#include <vprof.h>
 #include "scriptExtensions/scriptDomainCallbacks.h"
 #include "scriptExtensions/scriptextensions.h"
 #include "scriptExtensions/userMessagesScriptExt.h"
@@ -52,7 +53,6 @@
 #include "v8.h"
 #include "playermanager.h"
 #include "entitylistener.h"
-#include "pluginconfig.h"
 #include "filesystem.h"
 #include "iserver.h"
 #include "scripttypes.h"
@@ -366,6 +366,11 @@ static void RegisterScriptFunctions()
 	if (g_pluginConfig.IsSchemaReadEnabled())
 	{
 		g_scriptExtensions->IncludeFunctions("Entity", { { "GetSchemaField", ScriptDomainCallbacks::GetSchemaField } });
+	}
+
+	if (g_pluginConfig.IsSchemaWriteEnabled())
+	{
+		g_scriptExtensions->IncludeFunctions("Entity", { { "SetSchemaField", ScriptDomainCallbacks::SetSchemaField } });
 	}
 
 	if (g_pluginConfig.IsTransmitStateChangeEnabled())

@@ -10,6 +10,7 @@ public:
 	bool AreDefaultFunctionsEnabled() const { return m_bDefaultFunctionsEnabled; }
 	bool AreUserMessagesEnabled() const { return m_bUserMessagesEnabled; }
 	bool IsSchemaReadEnabled() const { return m_bSchemaReadEnabled; }
+	bool IsSchemaWriteEnabled() const { return m_bSchemaWriteEnabled; }
 	bool IsUserIdentificationEnabled() const { return m_bUserIdentificationEnabled; }
 	bool IsTransmitStateChangeEnabled() const { return m_bTransmitStateChangeEnabled; }
 	bool IsQueryConvarsEnabled() const { return m_bQueryConvarsEnabled; }
@@ -19,6 +20,7 @@ private:
 	bool m_bDefaultFunctionsEnabled = true;
 	bool m_bUserMessagesEnabled = true;
 	bool m_bSchemaReadEnabled = true;
+	bool m_bSchemaWriteEnabled = true;
 	bool m_bUserIdentificationEnabled = true;
 	bool m_bTransmitStateChangeEnabled = true;
 	bool m_bQueryConvarsEnabled = true;

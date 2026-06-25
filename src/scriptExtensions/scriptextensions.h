@@ -25,6 +25,7 @@
 #include "csscript.h"
 #include "ehandle.h"
 #include "entity/cpointscript.h"
+#include <optional>
 
 struct ScriptFunctionInfo {
 	std::string name; // Name of the function as seen from script.

@@ -23,6 +23,7 @@
 namespace ScriptDomainCallbacks {
 	void NewMsg(const v8::FunctionCallbackInfo<v8::Value>& info);
 	void GetSchemaField(const v8::FunctionCallbackInfo<v8::Value>& args);
+	void SetSchemaField(const v8::FunctionCallbackInfo<v8::Value>& args);
 	void ShowHudHintAll(const v8::FunctionCallbackInfo<v8::Value>& args);
 	void AddSampleCallback(const v8::FunctionCallbackInfo<v8::Value>& args);
 	void SetEntityMoveType(const v8::FunctionCallbackInfo<v8::Value>& args);

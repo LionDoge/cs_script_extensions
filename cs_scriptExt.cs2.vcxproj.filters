@@ -238,6 +238,9 @@
     <ClInclude Include="src\scriptExtensions\scriptcommon_entities.h">
       <Filter>Header Files\Script Extensions</Filter>
     </ClInclude>
+    <ClInclude Include="src\utils\vprof_fix.h">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
