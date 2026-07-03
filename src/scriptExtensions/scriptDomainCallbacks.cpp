@@ -691,7 +691,7 @@ void ScriptDomainCallbacks::SetSchemaField(const v8::FunctionCallbackInfo<v8::Va
 	auto classInfoHandle = schemaDyn.Get();
 	if (!classInfoHandle)
 	{
-		Log_Warning(g_logChanScript, "GetSchemaField: Entity does not have schema binding information");
+		Log_Warning(g_logChanScript, "SetSchemaField: Entity does not have schema binding information");
 		return;
 	}
 
