@@ -177,41 +177,56 @@ constexpr bool SetSchemaValue(const CallContext& context, v8::Local<v8::Context>
 	// TODO: we should check if the templated EntityHandle type matches, otherwise we allow for setting potentially unsupported entity classes
 	else if constexpr (std::is_same_v<T, CEntityHandle>)
 	{
-		auto maybeObj = value->ToObject(v8context);
-		v8::Local<v8::Object> obj;
-		if (!maybeObj.ToLocal(&obj))
+		// allow setting invalid handle
+		if (value->IsNullOrUndefined())
 		{
-			ThrowFunctionException(context, "Failed to convert value to object");
-			return false;
+			*reinterpret_cast<std::add_pointer_t<CEntityHandle>>(reinterpret_cast<uintptr_t>(ptr) + offset) = CEntityHandle();
 		}
-
-		auto ehandle = ExtractEntityHandleFromObject(isolate, obj);
-		if (!ehandle)
+		else
 		{
-			ThrowFunctionException(context, "Provided object is not an entity handle");
-			return false;
-		}
+			auto maybeObj = value->ToObject(v8context);
+			v8::Local<v8::Object> obj;
+			if (!maybeObj.ToLocal(&obj))
+			{
+				ThrowFunctionException(context, "Failed to convert value to object");
+				return false;
+			}
 
-		*reinterpret_cast<std::add_pointer_t<CEntityHandle>>(reinterpret_cast<uintptr_t>(ptr) + offset) = *ehandle;
+			auto ehandle = ExtractEntityHandleFromObject(isolate, obj);
+			if (!ehandle)
+			{
+				ThrowFunctionException(context, "Provided object is not an entity handle");
+				return false;
+			}
+
+			*reinterpret_cast<std::add_pointer_t<CEntityHandle>>(reinterpret_cast<uintptr_t>(ptr) + offset) = *ehandle;
+		}
 	}
 	else if constexpr (std::is_same_v<T, CEntityInstance*>)
 	{
-		auto maybeObj = value->ToObject(v8context);
-		v8::Local<v8::Object> obj;
-		if (!maybeObj.ToLocal(&obj))
+		if (value->IsNullOrUndefined())
 		{
-			ThrowFunctionException(context, "Failed to convert value to object");
-			return false;
+			*reinterpret_cast<std::add_pointer_t<CEntityInstance*>>(reinterpret_cast<uintptr_t>(ptr) + offset) = nullptr;
 		}
-
-		auto ehandle = ExtractEntityHandleFromObject(isolate, obj);
-		if (!ehandle)
+		else
 		{
-			ThrowFunctionException(context, "Provided object is not an entity handle");
-			return false;
-		}
+			auto maybeObj = value->ToObject(v8context);
+			v8::Local<v8::Object> obj;
+			if (!maybeObj.ToLocal(&obj))
+			{
+				ThrowFunctionException(context, "Failed to convert value to object");
+				return false;
+			}
 
-		*reinterpret_cast<std::add_pointer_t<CEntityInstance*>>(reinterpret_cast<uintptr_t>(ptr) + offset) = (*ehandle).Get();
+			auto ehandle = ExtractEntityHandleFromObject(isolate, obj);
+			if (!ehandle)
+			{
+				ThrowFunctionException(context, "Provided object is not an entity handle");
+				return false;
+			}
+
+			*reinterpret_cast<std::add_pointer_t<CEntityInstance*>>(reinterpret_cast<uintptr_t>(ptr) + offset) = (*ehandle).Get();
+		}
 	}
 	else if constexpr (std::is_same_v<T, Vector>)
 	{
@@ -378,6 +393,7 @@ void ScriptSetChainedSchemaKeyValue(
 	const v8::Local<v8::Value>& value,
 	const v8::Local<v8::Array>& fieldChainArray,
 	void* obj,
+	const char* containingClassName,
 	uint32_t arrayIndex,
 	const SchemaKey& schemaFieldInfo
 )
@@ -416,7 +432,7 @@ void ScriptSetChainedSchemaKeyValue(
 			// if we got here the chain offset should be already initialized if it exists. 
 			// Technically we don't really need to have the class name, but to make it more readable and feel safer it will be included anyways.
 			SchemaClassInfoData_t* classInfoHandle = schemaFieldInfo.classType.Get();
-			auto chainOffs = schema::FindChainOffset(classInfoHandle->m_pszName, arrayIndex);
+			auto chainOffs = schema::FindChainOffset(containingClassName, hash_32_fnv1a_const(containingClassName));
 
 			if (chainOffs != 0)
 			{
@@ -485,15 +501,33 @@ void ScriptSetChainedSchemaKeyValue(
 			return;
 		}
 
-		ScriptSetChainedSchemaKeyValue(
-			context,
-			v8context,
-			value,
-			fieldChainArray,
-			newPtr,
-			arrayIndex + 1,
-			nextSchemaKey
-		);
+		if (const auto classInfo = schemaFieldInfo.classType.Get(); classInfo != nullptr)
+		{
+			ScriptSetChainedSchemaKeyValue(
+				context,
+				v8context,
+				value,
+				fieldChainArray,
+				newPtr,
+				classInfo->m_pszCPPName,
+				arrayIndex + 1,
+				nextSchemaKey
+			);
+		}
+		else
+		{
+			// keep previous classname
+			ScriptSetChainedSchemaKeyValue(
+				context,
+				v8context,
+				value,
+				fieldChainArray,
+				newPtr,
+				schemaFieldInfo.classType.Get()->m_pszCPPName,
+				arrayIndex + 1,
+				nextSchemaKey
+			);
+		}
 	}
 	else
 	{
@@ -696,6 +730,7 @@ void ScriptDomainCallbacks::SetSchemaField(const v8::FunctionCallbackInfo<v8::Va
 		args[1],
 		fieldArray,
 		(void*)ent,
+		classInfoHandle->m_pszCPPName,
 		0,
 		schemaKey
 	);
