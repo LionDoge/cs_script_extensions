@@ -41,6 +41,19 @@ extern HudHintManager g_hudHintManager;
 extern ScriptExtensions g_scriptExtensions;
 extern PlayerManager g_playerManager;
 
+constexpr uint32_t schemaEntityInstanceKey = hash_32_fnv1a_const("CEntityInstance");
+// use FNV hash, as that's what we already have.
+std::unordered_map<uint32_t, uint32_t> specificClassNetworkableOffsets = {
+	{hash_32_fnv1a_const("CAttributeManager"), 2},
+	{hash_32_fnv1a_const("CEconItemAttribute"), 2},
+	{hash_32_fnv1a_const("CAttributeContainer"), 2},
+#ifdef _WIN32
+	{hash_32_fnv1a_const("CEconItemView"), 27},
+#else
+	{hash_32_fnv1a_const("CEconItemView"), 28},
+#endif
+};
+
 void ScriptDomainCallbacks::NewMsg(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	SCRIPT_SETUP(args);
@@ -393,7 +406,7 @@ void ScriptSetChainedSchemaKeyValue(
 	const v8::Local<v8::Value>& value,
 	const v8::Local<v8::Array>& fieldChainArray,
 	void* obj,
-	const char* containingClassName,
+	SchemaMetaInfoHandle_t<SchemaClassInfoData_t> containingClass,
 	uint32_t arrayIndex,
 	const SchemaKey& schemaFieldInfo
 )
@@ -429,10 +442,9 @@ void ScriptSetChainedSchemaKeyValue(
 
 		if (success && schemaFieldInfo.networked)
 		{
-			// if we got here the chain offset should be already initialized if it exists. 
-			// Technically we don't really need to have the class name, but to make it more readable and feel safer it will be included anyways.
-			SchemaClassInfoData_t* classInfoHandle = schemaFieldInfo.classType.Get();
-			auto chainOffs = schema::FindChainOffset(containingClassName, hash_32_fnv1a_const(containingClassName));
+			const char* containingClassName = containingClass.Get()->m_pszCPPName;
+			uint32_t containingClassNameHash = hash_32_fnv1a_const(containingClassName);
+			auto chainOffs = schema::FindChainOffset(containingClassName, containingClassNameHash);
 
 			if (chainOffs != 0)
 			{
@@ -440,9 +452,30 @@ void ScriptSetChainedSchemaKeyValue(
 			}
 			else
 			{
-				::EntityNetworkStateChanged(reinterpret_cast<uintptr_t>(obj), schemaFieldInfo.offset);
-				// TODO: special cases for some objects here if they're using custom network change offset
-				//::NetworkVarStateChanged(pThisClass, m_key.offset + extra_offset, m_networkStateChangedOffset);
+				if (specificClassNetworkableOffsets.contains(containingClassNameHash))
+				{
+					::NetworkVarStateChanged(reinterpret_cast<uintptr_t>(obj), schemaFieldInfo.offset, specificClassNetworkableOffsets[containingClassNameHash]);
+				}
+				else
+				{
+					// no chain offset? Check if it's inline class (not entity one), as it has different network update offset
+					// TODO: this info could also be potentially cached for performance in hot loops.
+					SchemaClassInfoData_t* baseClassInfo = containingClass.Get();
+					while (baseClassInfo->m_nBaseClassCount)
+					{
+						baseClassInfo = baseClassInfo->m_pBaseClasses[0].m_pClass;
+					}
+
+					if (hash_32_fnv1a_const(baseClassInfo->m_pszCPPName, schemaEntityInstanceKey))
+					{
+						::EntityNetworkStateChanged(reinterpret_cast<uintptr_t>(obj), schemaFieldInfo.offset);
+					}
+					else
+					{
+						::NetworkVarStateChanged(reinterpret_cast<uintptr_t>(obj), schemaFieldInfo.offset, 1);
+					}
+
+				}
 			}
 		}
 		return;
@@ -501,7 +534,7 @@ void ScriptSetChainedSchemaKeyValue(
 			return;
 		}
 
-		if (const auto classInfo = schemaFieldInfo.classType.Get(); classInfo != nullptr)
+		if (auto classInfo = schemaFieldInfo.classType; classInfo.Get() != nullptr)
 		{
 			ScriptSetChainedSchemaKeyValue(
 				context,
@@ -509,7 +542,7 @@ void ScriptSetChainedSchemaKeyValue(
 				value,
 				fieldChainArray,
 				newPtr,
-				classInfo->m_pszCPPName,
+				classInfo,
 				arrayIndex + 1,
 				nextSchemaKey
 			);
@@ -523,7 +556,7 @@ void ScriptSetChainedSchemaKeyValue(
 				value,
 				fieldChainArray,
 				newPtr,
-				schemaFieldInfo.classType.Get()->m_pszCPPName,
+				schemaFieldInfo.classType.Get(),
 				arrayIndex + 1,
 				nextSchemaKey
 			);
@@ -730,7 +763,7 @@ void ScriptDomainCallbacks::SetSchemaField(const v8::FunctionCallbackInfo<v8::Va
 		args[1],
 		fieldArray,
 		(void*)ent,
-		classInfoHandle->m_pszCPPName,
+		classInfoHandle,
 		0,
 		schemaKey
 	);
