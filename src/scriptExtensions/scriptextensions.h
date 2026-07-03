@@ -47,7 +47,9 @@ struct ScriptCustomTemplateInfo {
 
 class ScriptExtensions {
 public:
-	ScriptExtensions() = default;
+	ScriptExtensions() :
+		m_entityTemplateDecider{}
+	{};
 	~ScriptExtensions();
 
 	ScriptExtensions(ScriptExtensions& other) = delete;
