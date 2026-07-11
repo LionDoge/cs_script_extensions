@@ -599,10 +599,15 @@ void ScriptDomainCallbacks::GetSchemaField(const v8::FunctionCallbackInfo<v8::Va
 		return;
 	}
 
-	// for compatibility with non-array param
 	v8::Local<v8::Array> fieldArray;
 	const char* firstFireldName = nullptr;
-	if (args[0]->IsString())
+	// deprecated use case. First param is explicit classname, ignore it.
+	if (args.Length() >= 2 && args[0]->IsString() && args[1]->IsString())
+	{
+		fieldArray = v8::Array::New(isolate, 1);
+		fieldArray->Set(v8context, 0, args[1]).Check();
+	}
+	else if (args[0]->IsString())
 	{
 		fieldArray = v8::Array::New(isolate, 1);
 		fieldArray->Set(v8context, 0, args[0]).Check();
