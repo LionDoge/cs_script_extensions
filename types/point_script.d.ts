@@ -1,10 +1,13 @@
 /**
+ * NOTE: This file is modified from the original provided in CS2 tools in order to add extension definitions from cs_script_extensions.
+ * 
  * This file, `point_script.d.ts`, documents the JavaScript API for cs_script scripts attached to point_script entities.
  * This file is a TypeScript Declaration file. https://www.typescriptlang.org/docs/handbook/2/type-declarations.html#dts-files
  * This file can be used by various editors to provide tooling while editing JavaScript. https://www.typescriptlang.org/docs/handbook/intro-to-js-ts.html 
  * Next to this file is a `tsconfig.json` file configured for editing JavaScript targetting the current version used by CS2.
  * Place copies of these two files, `point_script.d.ts` and `tsconfig.json`, next to your scripts and some editors will begin providing tooling without further configuration.
  * These two files will be maintained as the cs_script API changes or the JavaScript version in CS2 is updated.
+ * Please send feedback to CSGOTeamFeedback@valvesoftware.com with "cs_script Feedback" in the subject line.
  */
 
 /**
@@ -64,15 +67,11 @@ declare module "cs_script/point_script"
         /**
          * Writes save data associated with this workshop addon.
          * Will synchronously write to disk every time this is called.
-         * @experimental This method is experimental and may experience breaking changes.
-         * Please send feedback to CSGOTeamFeedback@valvesoftware.com with "cs_script Feedback" in the subject line.
          */
         SetSaveData(data: string): void;
         /**
          * Retrieves the save data associated with this workshop addon.
          * Will synchronously read from disk the first time this is called.
-         * @experimental This method is experimental and may experience breaking changes.
-         * Please send feedback to CSGOTeamFeedback@valvesoftware.com with "cs_script Feedback" in the subject line.
          */
         GetSaveData(): string;
 
@@ -80,6 +79,16 @@ declare module "cs_script/point_script"
         SetThink(callback: () => void): void;
         /** Set when the OnThink callback should next be run. The exact time will be on the tick nearest to the specified time, which may be earlier or later. */
         SetNextThink(time: number): void;
+
+        /**
+         * Queue up a callback to be invoked once, after all entities have executed their think functions this tick (eg. player input has been handled, projectiles have moved).
+         * This can be useful for delaying until a clean moment when an entity isn't mid-computation and might ignore or misinterpret.
+         * This can be useful for delaying until the world is in a consistent state.
+         * Callbacks queued up during a post entity think callback will be invoked in the same tick.
+         * @experimental This method is experimental and may experience breaking changes.
+         * Please send feedback to CSGOTeamFeedback@valvesoftware.com with "cs_script Feedback" in the subject line.
+         */
+        QueueAfterThinks( callback: () => void ): void;
 
         /** Called when the point_script entity is activated */
         OnActivate(callback: () => void): void;
@@ -98,6 +107,12 @@ declare module "cs_script/point_script"
         OnRoundStart(callback: () => void): void;
         /** Called when a team wins a round */
         OnRoundEnd(callback: (event: { winningTeam: number, reason: CSRoundEndReason }) => void): void;
+        /**
+         * Called at the start of cleanup for a round restart
+         * @experimental This method is experimental and may experience breaking changes.
+         * Please send feedback to CSGOTeamFeedback@valvesoftware.com with "cs_script Feedback" in the subject line.
+         */
+        OnBeginRoundRestart(callback: () => void): void;
         /** Called when a player plants the c4 */
         OnBombPlant(callback: (event: { plantedC4: Entity, planter: CSPlayerPawn }) => void): void;
         /** Called when a player defuses the c4 */
@@ -110,8 +125,6 @@ declare module "cs_script/point_script"
          * Return `{ damage: N }` to modify the amount of damage.
          * Return `{ damageFlags: event.damageFlags | CSDamageFlags.IGNORE_ARMOR }` to have the damage pierce armor.
          * Return `{ abort: true }` to cancel the damage event.
-         * @experimental This method is experimental and may experience breaking changes.
-         * Please send feedback to CSGOTeamFeedback@valvesoftware.com with "cs_script Feedback" in the subject line.
          */
         OnModifyPlayerDamage(callback: (event: ModifyPlayerDamageEvent) => ModfiyPlayerDamageResult | void): void;
         /** 
@@ -138,6 +151,8 @@ declare module "cs_script/point_script"
          * This will be called for all impacts of a bullet before any player damage events are called.
          */
         OnBulletImpact(callback: (event: { weapon: CSWeaponBase, position: Vector, hitEntity: Entity }) => void): void;
+        /** Called when a weapon is dropped. */
+        OnWeaponDrop(callback: (event: { weapon: CSWeaponBase }) => void): void;
         /** Called when a grenade is thrown. `projectile` is the newly created grenade projectile. */
         OnGrenadeThrow(callback: (event: { weapon: CSWeaponBase, projectile: Entity }) => void): void;
         /** Called when a grenade bounces off a surface. `bounces` is the number of bounces so far. */
@@ -164,6 +179,8 @@ declare module "cs_script/point_script"
         FindEntitiesByClass(className: string): Entity[];
         /** Get the player controller in the given slot. */
         GetPlayerController(playerSlot: number): CSPlayerController | undefined;
+        /** Get all the player controllers. Includes disconnected players. */
+        GetAllPlayerControllers(): CSPlayerController[];
 
         /** Trace a point along a line and detect collisions */
         TraceLine(trace: BaseTraceConfig): TraceResult;
@@ -190,11 +207,19 @@ declare module "cs_script/point_script"
         GetRoundsPlayed(): number;
         /** Get the time remaining in the current round in seconds. */
         GetRoundRemainingTime(): number;
+        /** Set the time remaining in the current round in seconds. */
+        SetRoundRemainingTime(time: number): void;
 
         /** Issue the specified command to the specified client. */
         ClientCommand(playerSlot: number, command: string): void;
         /** Issue a command. */
         ServerCommand(command: string): void;
+        /**
+         * Creates a console command that will run the specified callback. The command will only work when sv_cheats is true.
+         * @experimental This method is experimental and may experience breaking changes.
+         * Please send feedback to CSGOTeamFeedback@valvesoftware.com with "cs_script Feedback" in the subject line.
+         */
+        RegisterCheatCommand(name: string, callback: (args: string) => void): void;
 
         /** @deprecated This method will be removed in a future update */
         OnBeforePlayerDamage(callback: () => any): void;
@@ -237,10 +262,11 @@ declare module "cs_script/point_script"
         /** Listens for a command from clients, unlike OnDispatchClientCommand, it allows to listen for unregistered commands.
          * However, this callback cannot be used to block any command */
         OnClientCommand(callback: (playerSlot: number, arguments: string[]) => void): void;
+        CreateEntity(config: { classname: string, origin: Vector, keyValues: Record<string, any> }): Entity;
     }
 
     type CvarValue = string | number | boolean | Vector | QAngle | Color | undefined;
-    type SchemaFieldValue = string | number | boolean | Vector | QAngle | Color | Entity | undefined;
+    type SchemaFieldValue = string | number | boolean | Vector | QAngle | Color | Entity | null | undefined;
     type Vector = { x: number, y: number, z: number };
     type RotationVector = { x: number, y: number, z: number };
     type QAngle = { pitch: number, yaw: number, roll: number };
@@ -535,12 +561,18 @@ declare module "cs_script/point_script"
         // Extensions
 
         SetMoveType(moveType: number): void;
-        /** Access value of a schema field for this entity.
-         * Supports only fields that are one of the basic types. Nested components can be accessed by providing a list of field names along the path.
-         * If target element is an array, the index can be specified as the last element of the field names list. */
-        GetSchemaField(fieldNames: Array<string | number>): SchemaFieldValue;
+        /** @deprecated This overload is deprecated, className is no longer needed */
+        GetSchemaField(className: string, fieldName: string): SchemaFieldValue
+        /** @experimental Access value of a schema field for this entity. Schema array field access is not supported yet*/
+        GetSchemaField(fieldNameChain: string | string[]): SchemaFieldValue
+        /** 
+         * @experimental Set the value of a schema field for this entity. Schema array field access is not supported yet 
+         * @example pawn.SetSchemaField(["m_pCameraServices", "m_hViewEntity"], entity);
+         * @example grenade.SetSchemaField("m_flDamage", 500);
+        */
+        SetSchemaField(fieldNameChain: string | string[], value: SchemaFieldValue): void
         /** Override the transmission of this entity to the target player 
-         * @note Use responsibly, do not deny transmission of player pawn to it's owner, or weird things might happen, including players crashing. */
+         * @note Use responsibly, do not deny transmission of player pawn to its owner, or weird things might happen, including players crashing. */
         SetTransmitState(controller: CSPlayerController, state: boolean): void;
         /** Set whether the entity will be transmitted to all players, will apply to newly connected clients too */
         SetTransmitStateAll(state: boolean): void;
@@ -576,10 +608,12 @@ declare module "cs_script/point_script"
     export class CSWeaponBase extends BaseModelEntity {
         GetData(): CSWeaponData;
         GetOwner(): CSPlayerPawn | undefined;
+        GetOriginalOwner(): CSPlayerPawn | undefined;
         GetClipAmmo(): number;
         SetClipAmmo(ammo: number): void;
         GetReserveAmmo(): number;
         SetReserveAmmo(ammo: number): void;
+        IsSilencerOn(): boolean;
     }
 
     export class CSWeaponData {
@@ -613,6 +647,11 @@ declare module "cs_script/point_script"
         IsConnected(): boolean;
         JoinTeam(team: number): void;
 
+        AddMoneySpendableNow(amount: number): void;
+        GetMoneySpendableNow(): number;
+        AddMoneyEarnedForNextRound(amount: number): void;
+        GetMoneyEarnedForNextRound(): number;
+
         // Extensions
 
         ShowHudHint(text: string, isAlert: boolean): void;
@@ -624,6 +663,9 @@ declare module "cs_script/point_script"
         Respawn(): void;
         /** Prints a message to this player's chat */
         PrintToChat(text: string): void;
+        /** Makes this client 'see' the specified ConVar as being set different from how it is on the server.
+         * Per-player state can get reset if the ConVar were to be changed on the server later on, or if the client reconnects */
+        ReplicateConVar(cvar: string, value: string): void;
     }
 
     export class CSObserverPawn extends BaseModelEntity {
@@ -640,23 +682,11 @@ declare module "cs_script/point_script"
         GetPlayerController(): CSPlayerController | undefined;
         /** Gets the controller that this player pawn was originally spawned for. */
         GetOriginalPlayerController(): CSPlayerController;
-        /**
-         * @returns `true` if specified inputs are pressed at the end of the current tick.
-         * @experimental This method is experimental and may experience breaking changes.
-         * Please send feedback to CSGOTeamFeedback@valvesoftware.com with "cs_script Feedback" in the subject line.
-         */
+        /** @returns `true` if specified inputs are pressed at the end of the current tick. */
         IsInputPressed(inputs: CSInputs): boolean;
-        /**
-         * @returns `true` if specified inputs went from released to pressed at some point during the current tick.
-         * @experimental This method is experimental and may experience breaking changes.
-         * Please send feedback to CSGOTeamFeedback@valvesoftware.com with "cs_script Feedback" in the subject line.
-         */
+        /** @returns `true` if specified inputs went from released to pressed at some point during the current tick. */
         WasInputJustPressed(inputs: CSInputs): boolean;
-        /**
-         * @returns `true` if specified inputs went from pressed to released at some point during the current tick.
-         * @experimental This method is experimental and may experience breaking changes.
-         * Please send feedback to CSGOTeamFeedback@valvesoftware.com with "cs_script Feedback" in the subject line.
-         */
+        /** @returns `true` if specified inputs went from pressed to released at some point during the current tick. */
         WasInputJustReleased(inputs: CSInputs): boolean;
         FindWeapon(name: string): CSWeaponBase | undefined;
         FindWeaponBySlot(slot: CSGearSlot): CSWeaponBase | undefined;
@@ -668,8 +698,11 @@ declare module "cs_script/point_script"
         GiveNamedItem(name: string, autoDeploy?: boolean): void;
         GetArmor(): number;
         SetArmor(value: number): void;
+        HasHelmet(): boolean;
+        SetHasHelmet(hasHelmet: boolean): void;
         IsDucking(): boolean;
         IsDucked(): boolean;
+        IsScoped(): boolean;
         IsNoclipping(): boolean;
 
         /** @deprecated This method will be removed in a future update */
@@ -701,12 +734,3 @@ declare module "cs_script/point_script"
         Send(): void;
     }
 }
-
-/**
- * @deprecated This unreleased feature will be removed in a future update as will the ability to load vts assets.
- */
-declare module "server/serverpointentity" { }
-/**
- * @deprecated This unreleased feature will be removed in a future update as will the ability to load vts assets.
- */
-declare module "server/cspointscript" { }
