@@ -433,8 +433,16 @@ void ScriptSetChainedSchemaKeyValue(
 		case SchemaKeyType::UtlSymbolLarge: SetSchemaValue<CUtlSymbolLarge>(context, v8context, value, obj, offset); break;
 		case SchemaKeyType::UtlString: success = SetSchemaValue<CUtlString>(context, v8context, value, obj, offset); break;
 		case SchemaKeyType::GameTime: success = SetSchemaValue<GameTime_t>(context, v8context, value, obj, offset); break;
-		case SchemaKeyType::EntityHandle: success = SetSchemaValue<CEntityHandle>(context, v8context, value, obj, offset); break;
-		case SchemaKeyType::Entity: success = SetSchemaValue<CEntityInstance*>(context, v8context, value, obj, offset); break;
+		case SchemaKeyType::EntityHandle:
+		{
+			// TODO!: check for actual inner type. Might lead to crashes or even vulnerabilities if game code assumes a specific entity type...
+			success = SetSchemaValue<CEntityHandle>(context, v8context, value, obj, offset); break;
+		}
+		case SchemaKeyType::Entity:
+		{
+			// TODO!: check for actual inner type. Might lead to crashes or even vulnerabilities if game code assumes a specific entity type...
+			success = SetSchemaValue<CEntityInstance*>(context, v8context, value, obj, offset); break;
+		}
 		case SchemaKeyType::Vector: success = SetSchemaValue<Vector>(context, v8context, value, obj, offset); break;
 		case SchemaKeyType::QAngle: success = SetSchemaValue<QAngle>(context, v8context, value, obj, offset); break;
 		default: ThrowFunctionException(context, "This field is unsupported for direct access in scripts"); return;

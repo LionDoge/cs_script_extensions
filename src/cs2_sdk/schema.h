@@ -75,6 +75,8 @@ struct SchemaKey
 	// useful for dynamic access, e.g. from script
 	SchemaKeyType keyType;
 	SchemaTypeCategory_t typeCategory;
+	SchemaAtomicCategory_t atomicCategory;
+	CSchemaType* schemaType;
 	SchemaMetaInfoHandle_t<SchemaClassInfoData_t> classType;
 	// cache the hash for slightly faster lookup
 	uint32_t classKey;

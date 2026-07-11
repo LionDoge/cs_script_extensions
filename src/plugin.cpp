@@ -1014,12 +1014,16 @@ CON_COMMAND_F(schema_class_info, "Print info about class definition", FCVAR_NONE
 		META_CONPRINT("Class not found\n");
 		return;
 	}
+	
+	Msg("Class: CPP: %s\n", pClassInfo->m_pszCPPName, pClassInfo);
 
 	for (int i = 0; i < pClassInfo->m_nFieldCount; i++)
 	{
 		auto field = pClassInfo->m_pFields[i];
 		auto type = field.m_pType;
-		Msg("Field: %s, TypeCat: %d, AtomicCat: %d\n", field.m_pszName, type->m_eTypeCategory, type->m_eAtomicCategory);
+		auto inner = field.m_pType->GetInnerType().Get();
+		const char* innerName = inner ? inner->m_sTypeName.Get() : "<no inner>";
+		Msg("Field: %s, TypeCat: %d, AtomicCat: %d inner: %s\n", field.m_pszName, type->m_eTypeCategory, type->m_eAtomicCategory, innerName);
 	}
 }
 #endif
