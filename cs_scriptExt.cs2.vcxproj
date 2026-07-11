@@ -87,6 +87,8 @@ sdks\hl2sdk-cs2\devtools\bin\protoc.exe --proto_path="sdks\hl2sdk-cs2\networksys
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="cs_scriptExt.cs2 - Default\networkbasetypes.pb.cc" />
+    <ClCompile Include="cs_scriptExt.cs2 - Default\valveextensions.pb.cc" />
     <ClCompile Include="src\addresses.cpp" />
     <ClCompile Include="src\cs2_sdk\entity\cpointscript.cpp" />
     <ClCompile Include="src\entitylistener.cpp" />
