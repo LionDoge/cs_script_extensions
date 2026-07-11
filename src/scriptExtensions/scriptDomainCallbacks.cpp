@@ -433,8 +433,16 @@ void ScriptSetChainedSchemaKeyValue(
 		case SchemaKeyType::UtlSymbolLarge: SetSchemaValue<CUtlSymbolLarge>(context, v8context, value, obj, offset); break;
 		case SchemaKeyType::UtlString: success = SetSchemaValue<CUtlString>(context, v8context, value, obj, offset); break;
 		case SchemaKeyType::GameTime: success = SetSchemaValue<GameTime_t>(context, v8context, value, obj, offset); break;
-		case SchemaKeyType::EntityHandle: success = SetSchemaValue<CEntityHandle>(context, v8context, value, obj, offset); break;
-		case SchemaKeyType::Entity: success = SetSchemaValue<CEntityInstance*>(context, v8context, value, obj, offset); break;
+		case SchemaKeyType::EntityHandle:
+		{
+			// TODO!: check for actual inner type. Might lead to crashes or even vulnerabilities if game code assumes a specific entity type...
+			success = SetSchemaValue<CEntityHandle>(context, v8context, value, obj, offset); break;
+		}
+		case SchemaKeyType::Entity:
+		{
+			// TODO!: check for actual inner type. Might lead to crashes or even vulnerabilities if game code assumes a specific entity type...
+			success = SetSchemaValue<CEntityInstance*>(context, v8context, value, obj, offset); break;
+		}
 		case SchemaKeyType::Vector: success = SetSchemaValue<Vector>(context, v8context, value, obj, offset); break;
 		case SchemaKeyType::QAngle: success = SetSchemaValue<QAngle>(context, v8context, value, obj, offset); break;
 		default: ThrowFunctionException(context, "This field is unsupported for direct access in scripts"); return;
@@ -466,7 +474,7 @@ void ScriptSetChainedSchemaKeyValue(
 						baseClassInfo = baseClassInfo->m_pBaseClasses[0].m_pClass;
 					}
 
-					if (hash_32_fnv1a_const(baseClassInfo->m_pszCPPName, schemaEntityInstanceKey))
+					if (hash_32_fnv1a_const(baseClassInfo->m_pszCPPName) == schemaEntityInstanceKey)
 					{
 						::EntityNetworkStateChanged(reinterpret_cast<uintptr_t>(obj), schemaFieldInfo.offset);
 					}
@@ -599,10 +607,15 @@ void ScriptDomainCallbacks::GetSchemaField(const v8::FunctionCallbackInfo<v8::Va
 		return;
 	}
 
-	// for compatibility with non-array param
 	v8::Local<v8::Array> fieldArray;
 	const char* firstFireldName = nullptr;
-	if (args[0]->IsString())
+	// deprecated use case. First param is explicit classname, ignore it.
+	if (args.Length() >= 2 && args[0]->IsString() && args[1]->IsString())
+	{
+		fieldArray = v8::Array::New(isolate, 1);
+		fieldArray->Set(v8context, 0, args[1]).Check();
+	}
+	else if (args[0]->IsString())
 	{
 		fieldArray = v8::Array::New(isolate, 1);
 		fieldArray->Set(v8context, 0, args[0]).Check();

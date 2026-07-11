@@ -199,6 +199,8 @@ static void InitChainOffset(SchemaClassInfoData_t* pClassInfo, SchemaKeyValueMap
 		keyValuePair.second.networked = IsFieldNetworked(pClassInfo->m_pszName, field);
 		keyValuePair.second.keyType = GetKeyType(field.m_pType, fieldClassInfo);
 		keyValuePair.second.typeCategory = field.m_pType->m_eTypeCategory;
+		keyValuePair.second.atomicCategory = field.m_pType->m_eAtomicCategory;
+		keyValuePair.second.schemaType = field.m_pType;
 		keyValuePair.second.classType = fieldClassInfo;
 		if (fieldClassInfo.Get())
 			keyValuePair.second.classKey = hash_32_fnv1a_const(fieldClassInfo.Get()->m_pszName);
@@ -232,6 +234,8 @@ static void InitSchemaKeyValueMap(SchemaClassInfoData_t* pClassInfo, SchemaKeyVa
 		keyValuePair.second.networked = IsFieldNetworked(pClassInfo->m_pszName, field);
 		keyValuePair.second.keyType = GetKeyType(field.m_pType, fieldClassInfo);
 		keyValuePair.second.typeCategory = field.m_pType->m_eTypeCategory;
+		keyValuePair.second.atomicCategory = field.m_pType->m_eAtomicCategory;
+		keyValuePair.second.schemaType = field.m_pType;
 		keyValuePair.second.classType = fieldClassInfo;
 		if (fieldClassInfo.Get())
 			keyValuePair.second.classKey = hash_32_fnv1a_const(fieldClassInfo.Get()->m_pszName);

@@ -20,6 +20,7 @@
 #pragma once
 #include <format>
 #include <string_view>
+#include <type_traits>
 #include <v8-primitive.h>
 #include <v8-isolate.h>
 #include "scriptextensions.h"
@@ -197,6 +198,78 @@ inline std::optional<CEntityHandle> UnwrapArg(const CallContext& context, int ar
 	auto obj = context.args[argIndex]->ToObject(context.isolate->GetCurrentContext()).ToLocalChecked();
 	return ExtractEntityHandleFromObject(context.isolate, obj);
 }
+
+template <typename T>
+inline std::optional<T> UnwrapObjectArg(const CallContext& context, v8::Local<v8::Object> obj, const char* fieldName, bool isOptional = false)
+{
+	auto isolate = context.isolate;
+	auto v8ctx = isolate->GetCurrentContext();
+	auto propName = v8::String::NewFromUtf8(isolate, fieldName).ToLocalChecked();
+
+	v8::Maybe<bool> hasProp = obj->Has(v8ctx, propName);
+	if (!hasProp.FromMaybe(false))
+	{
+		if (isOptional)
+			return std::nullopt;
+		ThrowFunctionException(context, std::format("argument '{}' is missing.", fieldName));
+		return std::nullopt;
+	}
+
+	auto valMaybe = obj->Get(v8ctx, propName);
+	if (valMaybe.IsEmpty())
+	{
+		if (isOptional)
+			return std::nullopt;
+		ThrowFunctionException(context, std::format("argument '{}' is missing.", fieldName));
+		return std::nullopt;
+	}
+	auto val = valMaybe.ToLocalChecked();
+
+	if constexpr (std::is_same_v<T, std::string>)
+	{
+		if (!val->IsString())
+		{
+			ThrowFunctionException(context, std::format("argument '{}' is required as a string.", fieldName));
+			return std::nullopt;
+		}
+		v8::String::Utf8Value utf8Value(isolate, val.As<v8::String>());
+		return std::string(*utf8Value);
+	}
+	else if constexpr (std::is_same_v<T, bool>)
+	{
+		if (!val->IsBoolean())
+		{
+			ThrowFunctionException(context, std::format("argument '{}' is required as a boolean.", fieldName));
+			return std::nullopt;
+		}
+		return val.As<v8::Boolean>()->Value();
+	}
+	else if constexpr (arithmetic<T>)
+	{
+		if (!val->IsNumber())
+		{
+			ThrowFunctionException(context, std::format("argument '{}' is required as a number.", fieldName));
+			return std::nullopt;
+		}
+		return static_cast<T>(val.As<v8::Number>()->Value());
+	}
+	else if constexpr (std::is_same_v<T, CEntityHandle>)
+	{
+		if (!val->IsObject())
+		{
+			ThrowFunctionException(context, std::format("argument '{}' is required as an object.", fieldName));
+			return std::nullopt;
+		}
+		auto objVal = val->ToObject(v8ctx).ToLocalChecked();
+		return ExtractEntityHandleFromObject(isolate, objVal);
+	}
+	else
+	{
+		ThrowFunctionException(context, std::format("argument '{}' has unsupported type for UnwrapArg.", fieldName));
+		return std::nullopt;
+	}
+}
+
 
 // Boilerplate. Put this at the beginning of each callback to be able to use some of the getters that are provided here.
 #define SCRIPT_SETUP(args) \
