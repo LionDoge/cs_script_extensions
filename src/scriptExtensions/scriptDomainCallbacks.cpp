@@ -466,7 +466,7 @@ void ScriptSetChainedSchemaKeyValue(
 						baseClassInfo = baseClassInfo->m_pBaseClasses[0].m_pClass;
 					}
 
-					if (hash_32_fnv1a_const(baseClassInfo->m_pszCPPName, schemaEntityInstanceKey))
+					if (hash_32_fnv1a_const(baseClassInfo->m_pszCPPName) == schemaEntityInstanceKey)
 					{
 						::EntityNetworkStateChanged(reinterpret_cast<uintptr_t>(obj), schemaFieldInfo.offset);
 					}
