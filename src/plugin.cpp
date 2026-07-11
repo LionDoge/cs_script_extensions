@@ -389,7 +389,8 @@ static void RegisterScriptFunctions()
 			{ "ShowHudHint", ScriptPlayerControllerCallbacks::ShowHudHint },
 			{ "ShowHudMessageHTML", ScriptPlayerControllerCallbacks::ShowHTMLMessage },
 			{ "Respawn", ScriptPlayerControllerCallbacks::Respawn },
-			{ "PrintToChat", ScriptPlayerControllerCallbacks::PrintToChat }
+			{ "PrintToChat", ScriptPlayerControllerCallbacks::PrintToChat },
+			{ "ReplicateConVar", ScriptPlayerControllerCallbacks::ReplicateConVar }
 		});
 
 	if (g_pluginConfig.IsUserIdentificationEnabled())

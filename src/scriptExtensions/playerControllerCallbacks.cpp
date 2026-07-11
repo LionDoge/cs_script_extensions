@@ -21,6 +21,12 @@
 #include "entity/ccsplayercontroller.h"
 #include "hudhintmanager.h"
 #include "pluginconfig.h"
+#include "igameeventsystem.h"
+#include "networkbasetypes.pb.h"
+#include "networksystem/inetworkmessages.h"
+#include "recipientfilters.h"
+
+extern IGameEventSystem* g_gameEventSystem;
 
 void ClientPrint(CCSPlayerController* player, int hud_dest, const char* msg, ...);
 
@@ -101,4 +107,33 @@ void ScriptPlayerControllerCallbacks::PrintToChat(const v8::FunctionCallbackInfo
 		return;
 
 	ClientPrint(*playerController, HUD_PRINTTALK, message->c_str());
+}
+
+void ScriptPlayerControllerCallbacks::ReplicateConVar(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	SCRIPT_SETUP(args);
+
+	auto playerController = UnwrapThis<CCSPlayerController*>(context);
+	auto cvarName = UnwrapArg<std::string>(context, 0);
+	auto cvarValue = UnwrapArg<std::string>(context, 1);
+
+	if (!playerController || !cvarName || !cvarValue)
+		return;
+
+	if (!(*playerController)->IsConnected())
+		return;
+
+	auto slot = (*playerController)->GetPlayerSlot();
+
+	INetworkMessageInternal* pNetMsg = g_pNetworkMessages->FindNetworkMessagePartial("SetConVar");
+	auto msg = pNetMsg->AllocateMessage()->ToPB<CNETMsg_SetConVar>();
+
+	CMsg_CVars_CVar* cvarMsg = msg->mutable_convars()->add_cvars();
+	cvarMsg->set_name(cvarName->c_str());
+	cvarMsg->set_value(cvarValue->c_str());
+
+	CSingleRecipientFilter filter(slot);
+	g_gameEventSystem->PostEventAbstract(-1, false, &filter, pNetMsg, msg, 0);
+
+	delete msg;
 }
