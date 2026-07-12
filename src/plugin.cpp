@@ -97,7 +97,6 @@ LoggingChannelID_t g_logChanScript;
 
 ScriptExtensions* g_scriptExtensions;
 SafetyHookInline g_v8ExceptionHook{};
-SafetyHookInline g_isJumpThrowHook{};
 
 bool Hook_V8_TryCatch_HasCaught(v8::TryCatch* tryCatch)
 {
@@ -193,20 +192,6 @@ void InitScriptExceptionHook()
 	}
 #endif
 	g_v8ExceptionHook = safetyhook::create_inline((void*)funcAddress, Hook_V8_TryCatch_HasCaught);
-}
-
-bool Hook_IsJumpThrow(void* nadeEnt, float timeDelta)
-{
-	return false;
-}
-
-void InitJumpThrowHook()
-{
-	void* addr = g_GameConfig->ResolveSignature("IsJumpThrow");
-	if (!addr)
-		return;
-
-	g_isJumpThrowHook = safetyhook::create_inline(addr, Hook_IsJumpThrow);
 }
 
 // Snippet from: CS2Fixes
@@ -510,7 +495,6 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 	auto gameEventMgrVtbl = (IGameEventManager2*)modules::server->FindVirtualTable("CGameEventManager");
 	SH_ADD_DVPHOOK(IGameEventManager2, LoadEventsFromFile, gameEventMgrVtbl, Hook_LoadEventsFromFile, false);
 	InitScriptExceptionHook();
-	InitJumpThrowHook();
 
 	META_CONVAR_REGISTER(FCVAR_RELEASE | FCVAR_GAMEDLL);
 

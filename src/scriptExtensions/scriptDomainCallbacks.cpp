@@ -1227,59 +1227,57 @@ void ScriptDomainCallbacks::CreateEntity(const v8::FunctionCallbackInfo<v8::Valu
 		auto keyValues = maybeKeyValues.ToLocalChecked();
 		if (!keyValues->IsObject())
 		{
-			ThrowFunctionException(context, "config.keyValues must be an object");
-			return;
-		}
-		auto kvObject = keyValues->ToObject(v8Context).ToLocalChecked();
-		auto props = kvObject->GetOwnPropertyNames(v8Context).ToLocalChecked();
+			auto kvObject = keyValues->ToObject(v8Context).ToLocalChecked();
+			auto props = kvObject->GetOwnPropertyNames(v8Context).ToLocalChecked();
 
-		pKeyValues = new CEntityKeyValues();
-		for (int i = 0; i < props->Length(); i++)
-		{
-			auto propNameVal = props->Get(v8Context, i).ToLocalChecked();
-			if (!propNameVal->IsString())
-				continue;
+			pKeyValues = new CEntityKeyValues();
+			for (int i = 0; i < props->Length(); i++)
+			{
+				auto propNameVal = props->Get(v8Context, i).ToLocalChecked();
+				if (!propNameVal->IsString())
+					continue;
 
-			auto propName = v8::String::Utf8Value(isolate, propNameVal);
-			auto propValue = kvObject->Get(v8Context, propNameVal).ToLocalChecked();
+				auto propName = v8::String::Utf8Value(isolate, propNameVal);
+				auto propValue = kvObject->Get(v8Context, propNameVal).ToLocalChecked();
 
-			if (propValue->IsString())
-			{
-				auto propValueUtf8 = v8::String::Utf8Value(isolate, propValue);
-				pKeyValues->SetString(*propName, *propValueUtf8);
-			}
-			else if (propValue->IsNumber())
-			{
-				pKeyValues->SetDouble(*propName, propValue.As<v8::Number>()->Value());
-			}
-			else if (propValue->IsBoolean())
-			{
-				pKeyValues->SetBool(*propName, propValue.As<v8::Boolean>()->Value());
-			}
-			else if (propValue->IsObject())
-			{
-				auto propObject = propValue->ToObject(v8Context).ToLocalChecked();
-				// if the object doesn't have the correct fields for a type it will fall through to the correct one, or none
-				if (auto vecObj = ObjectToVector(v8Context, propObject); vecObj.has_value())
+				if (propValue->IsString())
 				{
-					pKeyValues->SetVector(*propName, *vecObj);
+					auto propValueUtf8 = v8::String::Utf8Value(isolate, propValue);
+					pKeyValues->SetString(*propName, *propValueUtf8);
 				}
-				else if (auto angObj = ObjectToQAngle(v8Context, propObject); angObj.has_value())
+				else if (propValue->IsNumber())
 				{
-					pKeyValues->SetQAngle(*propName, *angObj);
+					pKeyValues->SetDouble(*propName, propValue.As<v8::Number>()->Value());
 				}
-				else if (auto clrObj = ObjectToColor(v8Context, propObject); clrObj.has_value())
+				else if (propValue->IsBoolean())
 				{
-					pKeyValues->SetColor(*propName, *clrObj);
+					pKeyValues->SetBool(*propName, propValue.As<v8::Boolean>()->Value());
+				}
+				else if (propValue->IsObject())
+				{
+					auto propObject = propValue->ToObject(v8Context).ToLocalChecked();
+					// if the object doesn't have the correct fields for a type it will fall through to the correct one, or none
+					if (auto vecObj = ObjectToVector(v8Context, propObject); vecObj.has_value())
+					{
+						pKeyValues->SetVector(*propName, *vecObj);
+					}
+					else if (auto angObj = ObjectToQAngle(v8Context, propObject); angObj.has_value())
+					{
+						pKeyValues->SetQAngle(*propName, *angObj);
+					}
+					else if (auto clrObj = ObjectToColor(v8Context, propObject); clrObj.has_value())
+					{
+						pKeyValues->SetColor(*propName, *clrObj);
+					}
+					else
+					{
+						Log_Debug(g_logChanScript, "CreateEntity: type of KeyValue %s does not match any compatible type, skipping.\n", *propName);
+					}
 				}
 				else
 				{
-					Log_Debug(g_logChanScript, "CreateEntity: type of KeyValue %s does not match any compatible type, skipping.\n", *propName);
+					Log_Debug(g_logChanScript, "CreateEntity: type of KeyValue %s is not supported, skipping.\n", *propName);
 				}
-			}
-			else
-			{
-				Log_Debug(g_logChanScript, "CreateEntity: type of KeyValue %s is not supported, skipping.\n", *propName);
 			}
 		}
 	}
