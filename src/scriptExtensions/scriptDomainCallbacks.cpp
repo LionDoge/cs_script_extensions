@@ -159,7 +159,8 @@ constexpr bool SetSchemaValue(const CallContext& context, v8::Local<v8::Context>
 			ThrowFunctionException(context, "Failed to convert value to string");
 			return false;
 		}
-		const char* pStr = *v8::String::Utf8Value(isolate, stringValue);
+		auto v8Str = v8::String::Utf8Value(isolate, stringValue);
+		const char* pStr = *v8Str;
 		CUtlString newString(pStr);
 		*reinterpret_cast<std::add_pointer_t<CUtlString>>(reinterpret_cast<uintptr_t>(ptr) + offset) = newString;
 	}
@@ -172,9 +173,8 @@ constexpr bool SetSchemaValue(const CallContext& context, v8::Local<v8::Context>
 			ThrowFunctionException(context, "Failed to convert value to string");
 			return false;
 		}
-		const char* pStr = *v8::String::Utf8Value(isolate, stringValue);
-		CUtlSymbolLarge newString(pStr);
-		*reinterpret_cast<std::add_pointer_t<CUtlSymbolLarge>>(reinterpret_cast<uintptr_t>(ptr) + offset) = newString;
+		auto v8Str = v8::String::Utf8Value(isolate, stringValue);
+		*reinterpret_cast<std::add_pointer_t<CUtlSymbolLarge>>(reinterpret_cast<uintptr_t>(ptr) + offset) = GameEntitySystem()->AllocPooledString(*v8Str);
 	}
 	else if constexpr (std::is_same_v<T, GameTime_t>)
 	{
@@ -351,7 +351,8 @@ void ScriptSetReturnChainedSchemaKey(
 		}
 
 		auto nextFieldName = val.ToLocalChecked().As<v8::String>();
-		const char* nextFieldNameStr = *v8::String::Utf8Value(isolate, nextFieldName);
+		v8::String::Utf8Value nextFieldUtf8(isolate, nextFieldName);
+		const char* nextFieldNameStr = *nextFieldUtf8;
 		auto nextFiledNameHash = hash_32_fnv1a_const(nextFieldNameStr);
 
 		SchemaClassInfoData_t* classInfoHandle = schemaFieldInfo.classType.Get();
@@ -511,7 +512,8 @@ void ScriptSetChainedSchemaKeyValue(
 		}
 
 		auto nextFieldName = val.ToLocalChecked().As<v8::String>();
-		const char* nextFieldNameStr = *v8::String::Utf8Value(isolate, nextFieldName);
+		v8::String::Utf8Value nextFieldNameUtf8(isolate, nextFieldName);
+		const char* nextFieldNameStr = *nextFieldNameUtf8;
 		auto nextFiledNameHash = hash_32_fnv1a_const(nextFieldNameStr);
 
 		SchemaClassInfoData_t* classInfoHandle = schemaFieldInfo.classType.Get();
@@ -630,6 +632,13 @@ void ScriptDomainCallbacks::GetSchemaField(const v8::FunctionCallbackInfo<v8::Va
 		return;
 	}
 
+	auto fieldName = fieldArray->Get(v8context, 0).ToLocalChecked();
+	if (!fieldName->IsString())
+	{
+		ThrowFunctionException(context, "field name must be provided as a string");
+		return;
+	}
+
 	auto schemaDyn = ent->Schema_DynamicBinding();
 	auto classInfoHandle = schemaDyn.Get();
 	if (!classInfoHandle)
@@ -639,8 +648,8 @@ void ScriptDomainCallbacks::GetSchemaField(const v8::FunctionCallbackInfo<v8::Va
 	}
 
 	auto originalClassName = classInfoHandle->m_pszName;
-	auto fieldName = fieldArray->Get(v8context, 0).ToLocalChecked()->ToString(v8context).ToLocalChecked();
-	auto fieldNameStr = *v8::String::Utf8Value(isolate, fieldName);
+	v8::String::Utf8Value utf8FieldName(isolate, fieldName.As<v8::String>());
+	auto fieldNameStr = *utf8FieldName;
 	auto fieldNameHash = hash_32_fnv1a_const(fieldNameStr);
 
 	// First, find the field in this or base classes if possible
@@ -717,7 +726,6 @@ void ScriptDomainCallbacks::SetSchemaField(const v8::FunctionCallbackInfo<v8::Va
 
 	// for compatibility with non-array param
 	v8::Local<v8::Array> fieldArray;
-	const char* firstFireldName = nullptr;
 	if (args[0]->IsString())
 	{
 		fieldArray = v8::Array::New(isolate, 1);
@@ -733,6 +741,13 @@ void ScriptDomainCallbacks::SetSchemaField(const v8::FunctionCallbackInfo<v8::Va
 		return;
 	}
 
+	auto fieldName = fieldArray->Get(v8context, 0).ToLocalChecked();
+	if (!fieldName->IsString())
+	{
+		ThrowFunctionException(context, "field name must be provided as a string");
+		return;
+	}
+
 	auto schemaDyn = ent->Schema_DynamicBinding();
 	auto classInfoHandle = schemaDyn.Get();
 	if (!classInfoHandle)
@@ -742,8 +757,8 @@ void ScriptDomainCallbacks::SetSchemaField(const v8::FunctionCallbackInfo<v8::Va
 	}
 
 	auto originalClassName = classInfoHandle->m_pszName;
-	auto fieldName = fieldArray->Get(v8context, 0).ToLocalChecked()->ToString(v8context).ToLocalChecked();
-	auto fieldNameStr = *v8::String::Utf8Value(isolate, fieldName);
+	v8::String::Utf8Value utf8FieldName(isolate, fieldName.As<v8::String>());
+	auto fieldNameStr = *utf8FieldName;
 	auto fieldNameHash = hash_32_fnv1a_const(fieldNameStr);
 
 	// First, find the field in this or base classes if possible
@@ -1230,7 +1245,8 @@ void ScriptDomainCallbacks::CreateEntity(const v8::FunctionCallbackInfo<v8::Valu
 
 			if (propValue->IsString())
 			{
-				pKeyValues->SetString(*propName, *v8::String::Utf8Value(isolate, propValue));
+				auto propValueUtf8 = v8::String::Utf8Value(isolate, propValue);
+				pKeyValues->SetString(*propName, *propValueUtf8);
 			}
 			else if (propValue->IsNumber())
 			{
