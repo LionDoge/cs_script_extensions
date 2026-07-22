@@ -23,14 +23,14 @@ bool PluginConfig::Load(std::string_view path)
 		return false;
 	}
 
-	m_bDefaultFunctionsEnabled = configJson["defaultFunctionsEnabled"].get<bool>();
-	m_bUserMessagesEnabled = configJson["userMessagesEnabled"].get<bool>();
-	m_bSchemaReadEnabled = configJson["schemaReadEnabled"].get<bool>();
+	m_bDefaultFunctionsEnabled = configJson.value("defaultFunctionsEnabled", false);
+	m_bUserMessagesEnabled = configJson.value("userMessagesEnabled", false);
+	m_bSchemaReadEnabled = configJson.value("schemaReadEnabled", false);
 	m_bSchemaWriteEnabled = configJson.value("schemaWriteEnabled", false); // Default to false if the key is not present
-	m_bUserIdentificationEnabled = configJson["userIdentificationEnabled"].get<bool>();
-	m_bTransmitStateChangeEnabled = configJson["transmitStateChangeEnabled"].get<bool>();
-	m_bQueryConvarsEnabled = configJson["queryConvarsEnabled"].get<bool>();
-	m_bClientNetworkRequestsEnabled = configJson["clientNetworkRequestsEnabled"].get<bool>();
+	m_bUserIdentificationEnabled = configJson.value("userIdentificationEnabled", false);
+	m_bTransmitStateChangeEnabled = configJson.value("transmitStateChangeEnabled", false);
+	m_bQueryConvarsEnabled = configJson.value("queryConvarsEnabled", false);
+	m_bClientNetworkRequestsEnabled = configJson.value("clientNetworkRequestsEnabled", false);
 
 	return true;
 }
