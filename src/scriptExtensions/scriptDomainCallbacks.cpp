@@ -1286,7 +1286,8 @@ void ScriptDomainCallbacks::CreateEntity(const v8::FunctionCallbackInfo<v8::Valu
 	if (entity)
 	{
 		addresses::DispatchSpawn(entity, pKeyValues);
-		entity->SetAbsOrigin(*origin);
+		entity->Teleport(&(*origin), nullptr, nullptr);
+		//entity->SetAbsOrigin(*origin);
 		auto entObj = ScriptExtensions::GetInstance()->CreateEntityObjectAuto(entity);
 		args.GetReturnValue().Set(entObj);
 	}

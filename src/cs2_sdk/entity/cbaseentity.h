@@ -215,6 +215,12 @@ public:
 		return CALL_VIRTUAL(bool, offset, this);
 	}
 
+	void Teleport(const Vector* pPosition, const QAngle* pAngles, const Vector* pVelocity)
+	{
+		static int offset = g_GameConfig->GetOffset("Teleport");
+		CALL_VIRTUAL(void, offset, this, pPosition, pAngles, pVelocity);
+	}
+
 	/* Begin Custom Entities Cast */
 
 	[[nodiscard]] CGameUI *AsGameUI()
