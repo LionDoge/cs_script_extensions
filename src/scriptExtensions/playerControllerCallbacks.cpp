@@ -137,3 +137,23 @@ void ScriptPlayerControllerCallbacks::ReplicateConVar(const v8::FunctionCallback
 
 	delete msg;
 }
+
+void ScriptPlayerControllerCallbacks::SetPlayerName(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	SCRIPT_SETUP(args);
+
+	auto playerController = UnwrapThis<CCSPlayerController*>(context);
+	auto newName = UnwrapArg<std::string>(context, 0);
+
+	if (!playerController || !newName)
+		return;
+
+	if (newName->length() > 126)
+	{
+		ThrowFunctionException(context, "Player name too long");
+		return;
+	}
+
+	V_strncpy((*playerController)->m_iszPlayerName, newName->c_str(), 128);
+	(*playerController)->m_iszPlayerName.NetworkStateChanged();
+}

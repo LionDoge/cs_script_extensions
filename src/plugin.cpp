@@ -391,7 +391,8 @@ static void RegisterScriptFunctions()
 			{ "ShowHudMessageHTML", ScriptPlayerControllerCallbacks::ShowHTMLMessage },
 			{ "Respawn", ScriptPlayerControllerCallbacks::Respawn },
 			{ "PrintToChat", ScriptPlayerControllerCallbacks::PrintToChat },
-			{ "ReplicateConVar", ScriptPlayerControllerCallbacks::ReplicateConVar }
+			{ "ReplicateConVar", ScriptPlayerControllerCallbacks::ReplicateConVar },
+			{ "SetPlayerName", ScriptPlayerControllerCallbacks::SetPlayerName }
 		});
 
 	g_scriptExtensions->IncludeFunctions(

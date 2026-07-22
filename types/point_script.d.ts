@@ -666,6 +666,8 @@ declare module "cs_script/point_script"
         /** Makes this client 'see' the specified ConVar as being set different from how it is on the server.
          * Per-player state can get reset if the ConVar were to be changed on the server later on, or if the client reconnects */
         ReplicateConVar(cvar: string, value: string): void;
+        /** Up to 126 characters (may get truncated even before that) */
+        SetPlayerName(name: string): void;
     }
 
     export class CSObserverPawn extends BaseModelEntity {

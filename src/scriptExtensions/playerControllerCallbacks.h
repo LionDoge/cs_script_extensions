@@ -27,4 +27,5 @@ namespace ScriptPlayerControllerCallbacks {
 	void Respawn(const v8::FunctionCallbackInfo<v8::Value>& args);
 	void PrintToChat(const v8::FunctionCallbackInfo<v8::Value>& args);
 	void ReplicateConVar(const v8::FunctionCallbackInfo<v8::Value>& args);
+	void SetPlayerName(const v8::FunctionCallbackInfo<v8::Value>& args);
 };
