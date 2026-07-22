@@ -99,6 +99,7 @@ sdks\hl2sdk-cs2\devtools\bin\protoc.exe --proto_path="sdks\hl2sdk-cs2\networksys
     <ClCompile Include="src\gameconfig.cpp" />
     <ClCompile Include="src\cs2_sdk\globalsymbol.cpp" />
     <ClCompile Include="src\hudhintmanager.cpp" />
+    <ClCompile Include="src\scriptExtensions\observerPawnCallbacks.cpp" />
     <ClCompile Include="src\scriptExtensions\playerControllerCallbacks.cpp" />
     <ClCompile Include="src\scriptExtensions\scriptextensions.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Default|x64'">false</ExcludedFromBuild>
@@ -131,6 +132,7 @@ sdks\hl2sdk-cs2\devtools\bin\protoc.exe --proto_path="sdks\hl2sdk-cs2\networksys
     <ClInclude Include="src\plugin.h" />
     <ClInclude Include="src\pluginconfig.h" />
     <ClInclude Include="src\scriptExtensions\managedObject.h" />
+    <ClInclude Include="src\scriptExtensions\observerPawnCallbacks.h" />
     <ClInclude Include="src\scriptExtensions\playerControllerCallbacks.h" />
     <ClInclude Include="src\scriptExtensions\scriptcommon.h" />
     <ClInclude Include="src\addresses.h" />

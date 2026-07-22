@@ -50,6 +50,7 @@
 #include "scriptExtensions/userMessagesScriptExt.h"
 #include "scriptExtensions/userMessageInfo.h"
 #include "scriptExtensions/playerControllerCallbacks.h"
+#include "scriptExtensions/observerPawnCallbacks.h"
 #include "v8.h"
 #include "playermanager.h"
 #include "entitylistener.h"
@@ -391,6 +392,12 @@ static void RegisterScriptFunctions()
 			{ "Respawn", ScriptPlayerControllerCallbacks::Respawn },
 			{ "PrintToChat", ScriptPlayerControllerCallbacks::PrintToChat },
 			{ "ReplicateConVar", ScriptPlayerControllerCallbacks::ReplicateConVar }
+		});
+
+	g_scriptExtensions->IncludeFunctions(
+		"CSObserverPawn",
+		{
+			{ "GetObserverTarget", ObserverPawnCallbacks::GetObserverTarget},
 		});
 
 	if (g_pluginConfig.IsUserIdentificationEnabled())

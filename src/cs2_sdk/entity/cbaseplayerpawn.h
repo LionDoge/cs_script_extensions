@@ -31,6 +31,6 @@ class CBasePlayerPawn : public CBaseModelEntity
 public:
 	DECLARE_SCHEMA_CLASS(CBasePlayerPawn);
 
-	//SCHEMA_FIELD(CPlayer_MovementServices*, m_pMovementServices)
 	SCHEMA_FIELD(CPlayer_WeaponServices*, m_pWeaponServices)
+	SCHEMA_FIELD(CPlayer_ObserverServices*, m_pObserverServices)
 };

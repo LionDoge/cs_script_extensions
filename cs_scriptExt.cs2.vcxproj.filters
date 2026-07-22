@@ -83,6 +83,11 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\cs2_sdk\entity\cpointscript.cpp" />
+    <ClCompile Include="cs_scriptExt.cs2 - Default\networkbasetypes.pb.cc" />
+    <ClCompile Include="cs_scriptExt.cs2 - Default\valveextensions.pb.cc" />
+    <ClCompile Include="src\scriptExtensions\observerPawnCallbacks.cpp">
+      <Filter>Source Files\Script Extensions\Observer pawn</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cpointscript.h">
@@ -241,6 +246,9 @@
     <ClInclude Include="src\utils\vprof_fix.h">
       <Filter>Header Files\utils</Filter>
     </ClInclude>
+    <ClInclude Include="src\scriptExtensions\observerPawnCallbacks.h">
+      <Filter>Header Files\Script Extensions\Observer pawn</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -296,6 +304,12 @@
     </Filter>
     <Filter Include="Header Files\Script Extensions\CSPlayerController">
       <UniqueIdentifier>{bad7f8ae-ef1c-4a81-b1b4-adbc1dc24843}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Script Extensions\Observer pawn">
+      <UniqueIdentifier>{add83c2d-295b-4f8c-8dd0-26a3ea111d45}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Script Extensions\Observer pawn">
+      <UniqueIdentifier>{fe377c1d-5eb3-4864-8eab-b54c3eadb0a9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

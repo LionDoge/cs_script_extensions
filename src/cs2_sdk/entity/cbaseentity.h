@@ -209,6 +209,12 @@ public:
 		return CALL_VIRTUAL(bool, offset, this);
 	}
 
+	bool IsPawn()
+	{
+		static int offset = g_GameConfig->GetOffset("IsPlayerPawn");
+		return CALL_VIRTUAL(bool, offset, this);
+	}
+
 	/* Begin Custom Entities Cast */
 
 	[[nodiscard]] CGameUI *AsGameUI()

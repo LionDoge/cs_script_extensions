@@ -14,7 +14,7 @@ public:
 
 	SCHEMA_FIELD(CCSPlayerPawn*, __m_pChainEntity)
 
-		CCSPlayerPawn* GetPawn() { return __m_pChainEntity; }
+	CCSPlayerPawn* GetPawn() { return __m_pChainEntity; }
 };
 
 class CPlayerControllerComponent
@@ -24,7 +24,7 @@ public:
 
 	SCHEMA_FIELD(CCSPlayerController*, __m_pChainEntity)
 
-		CCSPlayerController* GetController() { return __m_pChainEntity; }
+	CCSPlayerController* GetController() { return __m_pChainEntity; }
 };
 
 class CPlayer_WeaponServices : public CPlayerPawnComponent
@@ -42,18 +42,31 @@ public:
 	DECLARE_SCHEMA_CLASS(CCSPlayer_WeaponServices);
 
 	SCHEMA_FIELD(GameTime_t, m_flNextAttack)
-		SCHEMA_FIELD(bool, m_bIsLookingAtWeapon)
-		SCHEMA_FIELD(bool, m_bIsHoldingLookAtWeapon)
+	SCHEMA_FIELD(bool, m_bIsLookingAtWeapon)
+	SCHEMA_FIELD(bool, m_bIsHoldingLookAtWeapon)
 
-		SCHEMA_FIELD(CHandle<CBasePlayerWeapon>, m_hSavedWeapon)
-		SCHEMA_FIELD(int32_t, m_nTimeToMelee)
-		SCHEMA_FIELD(int32_t, m_nTimeToSecondary)
-		SCHEMA_FIELD(int32_t, m_nTimeToPrimary)
-		SCHEMA_FIELD(int32_t, m_nTimeToSniperRifle)
-		SCHEMA_FIELD(bool, m_bIsBeingGivenItem)
-		SCHEMA_FIELD(bool, m_bIsPickingUpItemWithUse)
-		SCHEMA_FIELD(bool, m_bPickedUpWeapon)
+	SCHEMA_FIELD(CHandle<CBasePlayerWeapon>, m_hSavedWeapon)
+	SCHEMA_FIELD(int32_t, m_nTimeToMelee)
+	SCHEMA_FIELD(int32_t, m_nTimeToSecondary)
+	SCHEMA_FIELD(int32_t, m_nTimeToPrimary)
+	SCHEMA_FIELD(int32_t, m_nTimeToSniperRifle)
+	SCHEMA_FIELD(bool, m_bIsBeingGivenItem)
+	SCHEMA_FIELD(bool, m_bIsPickingUpItemWithUse)
+	SCHEMA_FIELD(bool, m_bPickedUpWeapon)
 
+};
+
+class CPlayer_ObserverServices : public CPlayerPawnComponent
+{
+	virtual ~CPlayer_ObserverServices() = 0;
+
+public:
+	DECLARE_SCHEMA_CLASS(CPlayer_ObserverServices)
+
+	SCHEMA_FIELD(ObserverMode_t, m_iObserverMode)
+	SCHEMA_FIELD(CHandle<CBaseEntity>, m_hObserverTarget)
+	SCHEMA_FIELD(ObserverMode_t, m_iObserverLastMode)
+	SCHEMA_FIELD(bool, m_bForcedObserverMode)
 };
 
 enum class MedalRank_t : std::uint32_t

@@ -45,3 +45,26 @@ inline std::optional<CCSPlayerController*> UnwrapThis(const CallContext& context
 
 	return ent;
 }
+
+template <>
+inline std::optional<CCSPlayerPawnBase*> UnwrapThis(const CallContext& context)
+{
+	auto targetEntHandle = UnwrapThis<CEntityHandle>(context);
+	if (!targetEntHandle)
+		return {};
+
+	if (!targetEntHandle->IsValid())
+	{
+		ThrowFunctionException(context, "invoked with an unrecognized 'this' value.");
+		return {};
+	}
+
+	auto ent = static_cast<CCSPlayerPawnBase*>(targetEntHandle->Get());
+	if (!ent || !ent->IsPawn())
+	{
+		ThrowFunctionException(context, "invoked with an unrecognized 'this' value.");
+		return {};
+	}
+
+	return ent;
+}

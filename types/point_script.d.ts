@@ -675,6 +675,10 @@ declare module "cs_script/point_script"
         GetOriginalPlayerController(): CSPlayerController;
         GetObserverMode(): number;
         SetObserverMode(nMode: number): void;
+
+        /* Extensions */
+        /** Get the entity being observed */
+        GetObserverTarget(): Entity | undefined;
     }
 
     export class CSPlayerPawn extends BaseModelEntity {
