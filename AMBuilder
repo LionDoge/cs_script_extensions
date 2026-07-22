@@ -59,6 +59,7 @@ for sdk_target in MMSPlugin.sdk_targets:
     'src/scriptExtensions/scriptextensions.cpp',
     'src/scriptExtensions/userMessagesScriptExt.cpp',
     'src/scriptExtensions/playerControllerCallbacks.cpp',
+    'src/scriptExtensions/observerPawnCallbacks.cpp',
 
     'src/utils/entity.cpp',
 
